@@ -1,14 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createNodeSqliteDriver } from "../src/db/drivers/node-sqlite.js";
-import { migrate } from "../src/db/migrator.js";
 import type { SqlDriver } from "../src/db/driver.js";
+import { nuevaDb } from "./_ayuda.js";
 import { crearFacturaRepo, crearProductoRepo, crearClienteRepo, ValidacionError } from "../src/index.js";
-
-async function nuevaDb(): Promise<SqlDriver> {
-  const db = createNodeSqliteDriver();
-  await migrate(db);
-  return db;
-}
 
 describe("facturaRepo — armar ticket (§7.1)", () => {
   let db: SqlDriver;

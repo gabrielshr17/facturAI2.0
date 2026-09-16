@@ -1,14 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createNodeSqliteDriver } from "../src/db/drivers/node-sqlite.js";
-import { migrate } from "../src/db/migrator.js";
 import type { SqlDriver } from "../src/db/driver.js";
+import { nuevaDb } from "./_ayuda.js";
 import { crearPromocionRepo, crearProductoRepo, crearDepartamentoRepo, aplicarDescuento, ValidacionError } from "../src/index.js";
-
-async function nuevaDb(): Promise<SqlDriver> {
-  const db = createNodeSqliteDriver();
-  await migrate(db);
-  return db;
-}
 
 function hoyMasDias(dias: number): string {
   const d = new Date();

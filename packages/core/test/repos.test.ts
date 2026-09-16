@@ -1,17 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createNodeSqliteDriver } from "../src/db/drivers/node-sqlite.js";
-import { migrate } from "../src/db/migrator.js";
 import type { SqlDriver } from "../src/db/driver.js";
+import { nuevaDb } from "./_ayuda.js";
 import { crearProductoRepo, ValidacionError } from "../src/repos/producto-repo.js";
 import { crearClienteRepo } from "../src/repos/cliente-repo.js";
 import { crearNegocioRepo } from "../src/repos/negocio-repo.js";
 import { crearDepartamentoRepo } from "../src/repos/departamento-repo.js";
-
-async function nuevaDb(): Promise<SqlDriver> {
-  const db = createNodeSqliteDriver();
-  await migrate(db);
-  return db;
-}
 
 describe("productoRepo — CRUD persiste en SQLite", () => {
   let db: SqlDriver;
