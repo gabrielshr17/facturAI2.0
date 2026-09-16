@@ -1,10 +1,18 @@
 {
+  // "test" se agrega a "include" (PLATAFORMA-06) para que `tsc --noEmit` cubra de verdad las
+  // pruebas de humo, igual que ya hace packages/core/tsconfig.json con su propia carpeta
+  // "test". Sin "rootDir": test/_render.tsx importa createNodeSqliteDriver por ruta relativa
+  // directa a packages/core/src/db/drivers/node-sqlite.ts (a propósito: ese archivo NO está
+  // en el barrel de @sfr/core, ver el propio _render.tsx). Cualquier "rootDir" explícito
+  // — "src", ".", o el que sea dentro de packages/ui — dispara TS6059 porque ese archivo
+  // vive fuera de packages/ui. Sin la opción, TypeScript solo la usa para calcular la forma
+  // del outDir (que aquí no se usa: este paquete no compila a dist) y deja de exigir que
+  // todo el programa quede bajo un directorio único.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
     "outDir": "dist",
-    "rootDir": "src",
-    "types": ["react", "react-dom"]
+    "types": ["react", "react-dom", "node"]
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }
