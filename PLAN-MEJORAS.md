@@ -63,6 +63,12 @@ pantalla de Reportes; el punto 6 lo haria visible.
 defecto porque el inventario viene apagado de fabrica. Una tarjeta de "mercancia con existencia
 baja" mostraria "0 productos" y seria mentira.
 
+**La suite recursiva esta roja antes de empezar.** `pnpm -r test` falla hoy, con el
+repositorio limpio: `packages/api` declara un script `test` y no tiene ni un archivo de prueba, asi
+que vitest sale con codigo 1 y tumba la corrida entera. `@sfr/core` si esta verde (18 archivos, 144
+pruebas). Importa porque *"suite en verde"* es criterio de aceptacion de las 63 tareas: sin
+arreglarlo, ninguna se puede dar por terminada. Es una linea, y la arregla PLATAFORMA-01.
+
 ### Lo que si esta hecho y no hay que rehacer
 
 - Compras **ya tiene** campo de proveedor con busqueda y alta al vuelo, y hasta un analizador
@@ -288,7 +294,7 @@ se espera al criterio de salida.
 
 **Objetivo.** Que dos agentes puedan anadir una migracion, un tipo o un reporte sin tocar el mismo archivo, que exista guia de diseno y runner de pruebas para la UI, y que el vocabulario de roles y permisos quede congelado antes de que nadie lo use.
 
-- PLATAFORMA-01 AMPLIADA: dividir migrations.ts en migraciones/ (un archivo por banda), tipos.ts en tipos/ y reportes-repo.ts en reportes/; documentar bandas en MIGRACIONES.md; test de integridad (ids unicos, dentro de banda, ordenados, sin ';' en literales ni comentarios); crear packages/core/test/_ayuda.ts y migrar los 18 tests a el
+- PLATAFORMA-01 AMPLIADA: arreglar primero `pnpm -r test`, que HOY sale rojo porque `packages/api` declara script `test` sin tener ningun archivo de prueba (`vitest run --passWithNoTests`) — sin eso ninguna tarea puede cumplir su criterio de aceptacion; dividir migrations.ts en migraciones/ (un archivo por banda), tipos.ts en tipos/ y reportes-repo.ts en reportes/; documentar bandas en MIGRACIONES.md; test de integridad (ids unicos, dentro de banda, ordenados, sin ';' en literales ni comentarios); crear packages/core/test/_ayuda.ts y migrar los 18 tests a el
 - PLATAFORMA-06: derivar DESIGN.md de design-guidelines.md corrigiendo el drift de useAtajosTeclado; instalar vitest+jsdom en @sfr/ui con el bloque css.postcss vacio; crear test/_render.tsx
 - RBAC-02 AMPLIADA: dominio/permisos.ts (catalogo unico, cuatro roles cajero|supervisor|dueno|superadmin, puedeVerBackoffice incluida) + dominio/pin.ts (PBKDF2) + contrato de sesion exportado (SesionRepo, PortadorSesion, PermisoError) SIN implementacion todavia; declarar RolUsuario aqui y que tipos.ts lo reexporte, para no depender de RBAC-01
 

@@ -261,6 +261,18 @@ comentado en espanol, con una cabecera por archivo que explica el *por que* de c
 Una tarea no esta lista hasta que:
 
 - [ ] `pnpm -r test` y `pnpm -r typecheck` en verde.
+
+> [!CAUTION]
+> **`pnpm -r test` esta ROJO hoy, antes de tocar nada, y no es culpa tuya.**
+> `packages/api/package.json` declara `"test": "vitest run"` y el paquete **no tiene ni un archivo
+> de prueba**, asi que vitest sale con codigo 1 y tumba la corrida recursiva entera. `@sfr/core` si
+> esta verde: 18 archivos, 144 pruebas.
+>
+> Lo arregla PLATAFORMA-01 en la ola 1, con una linea:
+> `"test": "vitest run --passWithNoTests"`.
+>
+> **Hasta que eso aterrice**, verifica con `pnpm --filter @sfr/core test` y no te dejes arrastrar a
+> "arreglar" `@sfr/api` por tu cuenta: no esta roto, es un script mal configurado y tiene dueno.
 - [ ] Ningun archivo de test preexistente aparece en `git diff --stat`, salvo que la tabla de
       excepciones de `MIGRACIONES.md` lo autorice explicitamente para tu ola.
 - [ ] El numero de tests que pasan no bajo respecto a la corrida previa.
