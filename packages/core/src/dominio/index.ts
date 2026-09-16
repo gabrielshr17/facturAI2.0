@@ -40,3 +40,16 @@ export {
   type DescuentoInput,
   aplicarDescuento,
 } from "./promocion.js";
+export {
+  type RolUsuario,
+  type Permiso,
+  type PortadorSesion,
+  type SesionRepo,
+  PERMISOS,
+  permisosDeRol,
+  resolverPermisos,
+  modulosPermitidos,
+  puedeVerBackoffice,
+  PermisoError,
+} from "./permisos.js";
+export { hashearPin, verificarPin, CriptoNoDisponibleError } from "./pin.js";
