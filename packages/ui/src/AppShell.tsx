@@ -1,54 +1,81 @@
-import { useEffect, useRef, useState, type CSSProperties, type ComponentType } from "react";
-import {
-  ShoppingCart, Package, Users, Receipt, Truck,
-  Banknote, ChartColumn, Tag, Settings, Sun, Moon, Menu, type LucideProps,
-} from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Sun, Moon, Menu } from "lucide-react";
 import { Marca } from "./componentes/Marca.js";
-import { Ventas } from "./pantallas/Ventas.js";
-import { Productos } from "./pantallas/Productos.js";
-import { Clientes } from "./pantallas/Clientes.js";
-import { ConsultaFacturas } from "./pantallas/ConsultaFacturas.js";
-import { CorteCaja } from "./pantallas/CorteCaja.js";
-import { Compras } from "./pantallas/Compras.js";
-import { Reportes } from "./pantallas/Reportes.js";
-import { Promociones } from "./pantallas/Promociones.js";
-import { Configuracion } from "./pantallas/Configuracion.js";
 import { ErrorBoundary } from "./componentes/ErrorBoundary.js";
 import { ProveedorAlertas } from "./contexto/Alertas.js";
+import { useSesion } from "./sesion/contexto.js";
+import { MODULOS, MODULO_POR_DEFECTO_ID, type ModuloDef } from "./navegacion/modulos.js";
 import { c, sombra } from "./estilos.js";
 import { useTema } from "./hooks/useTema.js";
 import { useAtajosTeclado } from "./hooks/useAtajosTeclado.js";
 import { useNavegacionFlechas } from "./hooks/useNavegacionFlechas.js";
 import { useBreakpoint, useNavSoloIconos, useNavEnCajon } from "./hooks/useBreakpoint.js";
 
-type Modulo =
-  | "Ventas" | "Productos" | "Clientes" | "Facturas" | "Compras"
-  | "Corte de caja" | "Reportes" | "Promociones" | "Configuración";
+// Clave de localStorage: el módulo activo sobrevive a un remontaje (recargar la página,
+// reabrir la ventana de escritorio) igual que el tema. Si el valor guardado ya no existe
+// en MODULOS o el permiso que lo cubría se revocó, `moduloInicial` cae a 'ventas'.
+const CLAVE_MODULO_ACTIVO = "sfr-modulo-activo";
 
-const MODULOS: Modulo[] = [
-  "Ventas", "Productos", "Clientes", "Facturas", "Compras",
-  "Corte de caja", "Reportes", "Promociones", "Configuración",
-];
+function leerModuloPersistido(): string | null {
+  try {
+    return localStorage.getItem(CLAVE_MODULO_ACTIVO);
+  } catch {
+    return null;
+  }
+}
 
-const ICONO: Record<Modulo, ComponentType<LucideProps>> = {
-  "Ventas": ShoppingCart,
-  "Productos": Package,
-  "Clientes": Users,
-  "Facturas": Receipt,
-  "Compras": Truck,
-  "Corte de caja": Banknote,
-  "Reportes": ChartColumn,
-  "Promociones": Tag,
-  "Configuración": Settings,
-};
+function guardarModuloActivo(id: string): void {
+  try {
+    localStorage.setItem(CLAVE_MODULO_ACTIVO, id);
+  } catch {
+    // localStorage puede fallar (modo privado, cuota agotada, jsdom sin storage real): no
+    // persistir el módulo activo no es un error que deba interrumpir la navegación, solo
+    // se pierde el "recordar dónde estaba" al recargar.
+  }
+}
+
+function moduloPorId(lista: ModuloDef[], id: string): ModuloDef | undefined {
+  return lista.find((m) => m.id === id);
+}
 
 /**
- * Cascarón de UI compartido (PWA y escritorio). Navega entre las pantallas del
- * MVP. El Cobro (§7.2) no es una pantalla propia: es el modal que se abre con
- * el botón "Cobrar" dentro de Ventas, ya que necesita el ticket activo.
+ * Cascarón de UI compartido (PWA y escritorio). Deriva el menú, el mapa de atajos y el
+ * render del módulo activo a partir de `MODULOS` (§ navegacion/modulos.ts, PLATAFORMA-07):
+ * agregar, quitar o esconder por permiso un módulo es editar SOLO ese registro — este
+ * archivo no menciona ningún módulo por nombre. El Cobro (§7.2) no es una pantalla
+ * propia: es el modal que se abre con el botón "Cobrar" dentro de Ventas, ya que
+ * necesita el ticket activo.
  */
 export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
-  const [activo, setActivo] = useState<Modulo>("Ventas");
+  const { sesion } = useSesion();
+
+  // Filtrar por permiso es lo que hace esto más que cosmético: un módulo sin permiso no
+  // se renderiza NI se registra su atajo (ver el `useAtajosTeclado` de abajo), así que
+  // Alt+N de un módulo oculto no cambia de pantalla.
+  const permitidos = useMemo(
+    () => MODULOS.filter((m) => m.permiso === null || sesion.permisos.has(m.permiso)),
+    [sesion.permisos],
+  );
+
+  const [activoId, setActivoId] = useState<string>(() => {
+    const persistidoId = leerModuloPersistido();
+    const persistido = persistidoId ? MODULOS.find((m) => m.id === persistidoId) : undefined;
+    const persistidoPermitido = persistido && (persistido.permiso === null || sesion.permisos.has(persistido.permiso));
+    if (persistidoPermitido && persistido) return persistido.id;
+    return MODULO_POR_DEFECTO_ID;
+  });
+
+  // Si la sesión cambia en caliente (o el módulo persistido resultó no estar permitido al
+  // montar) y el módulo activo deja de estar en `permitidos`, cae a Ventas — o al primero
+  // que sí esté permitido, por si algún día Ventas mismo quedara fuera.
+  useEffect(() => {
+    if (permitidos.some((m) => m.id === activoId)) return;
+    const reemplazo = moduloPorId(permitidos, MODULO_POR_DEFECTO_ID) ?? permitidos[0];
+    if (reemplazo) setActivoId(reemplazo.id);
+  }, [permitidos, activoId]);
+
+  const activo = moduloPorId(permitidos, activoId) ?? moduloPorId(permitidos, MODULO_POR_DEFECTO_ID) ?? permitidos[0];
+
   const [tema, alternarTema] = useTema();
   const tramo = useBreakpoint();
   // La columna izquierda es lo PRIMERO que cede al angostar la ventana: pierde las etiquetas y queda
@@ -58,11 +85,23 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
   const enCajon = useNavEnCajon();
   const [cajonAbierto, setCajonAbierto] = useState(false);
 
-  // Alt+1..Alt+9 cambia de pantalla desde cualquier lugar de la app — junto con
-  // `useNavegacionFlechas` (flechas para moverse entre campos en vez de alterar
-  // valores), es lo que hace posible operar todo el sistema sin mouse.
+  function irA(id: string) {
+    setActivoId(id);
+    guardarModuloActivo(id);
+    setCajonAbierto(false);
+  }
+
+  // Alt+1..Alt+9 (o el atajo que traiga cada módulo) cambia de pantalla desde cualquier
+  // lugar de la app — junto con `useNavegacionFlechas` (flechas para moverse entre campos
+  // en vez de alterar valores), es lo que hace posible operar todo el sistema sin mouse.
+  // El mapa sale de `permitidos`, no de `MODULOS`: un atajo de un módulo sin permiso no se
+  // registra, y uno con `atajo: null` tampoco entra en el mapa.
   useAtajosTeclado(
-    Object.fromEntries(MODULOS.map((m, i) => [`Alt+${i + 1}`, () => setActivo(m)])),
+    Object.fromEntries(
+      permitidos
+        .filter((m): m is ModuloDef & { atajo: string } => m.atajo !== null)
+        .map((m) => [m.atajo, () => irA(m.id)]),
+    ),
   );
   useNavegacionFlechas();
 
@@ -81,9 +120,11 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
     else botonMenuRef.current?.focus();
   }, [cajonAbierto]);
 
-  function irA(m: Modulo) {
-    setActivo(m);
-    setCajonAbierto(false);
+  if (!activo) {
+    // No debería ocurrir con SESION_LOCAL (todos los permisos); si una sesión real se
+    // queda sin ningún módulo visible, es mejor decirlo explícito que reventar con un
+    // `undefined.componente` más abajo.
+    return <div style={{ padding: 24 }}>No hay ningún módulo disponible para esta sesión.</div>;
   }
 
   const nav = (
@@ -116,32 +157,33 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
           </button>
         </div>
       </div>
-      {MODULOS.map((m, i) => {
-        const Icono = ICONO[m];
+      {permitidos.map((m) => {
+        const Icono = m.icono;
+        const pistaAtajo = m.atajo ? ` (${m.atajo})` : "";
         return (
           <button
-            key={m}
-            onClick={() => irA(m)}
+            key={m.id}
+            onClick={() => irA(m.id)}
             // Sin etiqueta visible el tooltip pasa a ser la única forma de saber qué es cada icono.
-            title={soloIconos ? `${m} (Alt+${i + 1})` : `Alt+${i + 1}`}
+            title={soloIconos ? `${m.etiqueta}${pistaAtajo}` : m.atajo ?? undefined}
             // En modo tira de iconos no queda texto dentro del botón: sin esto el lector de
             // pantalla lo anunciaría como "botón" a secas.
-            aria-label={soloIconos ? m : undefined}
-            // Le dice al lector cuál de los nueve módulos es el que está abierto.
-            aria-current={activo === m ? "page" : undefined}
+            aria-label={soloIconos ? m.etiqueta : undefined}
+            // Le dice al lector cuál de los módulos permitidos es el que está abierto.
+            aria-current={activo.id === m.id ? "page" : undefined}
             style={{
               ...styles.navItem,
-              ...(activo === m ? styles.navItemActivo : {}),
+              ...(activo.id === m.id ? styles.navItemActivo : {}),
               ...(soloIconos ? { justifyContent: "center", padding: "12px 0", width: "100%" } : {}),
             }}
           >
             <Icono size={16} aria-hidden="true" />
             {!soloIconos && (
               <>
-                <span style={{ flex: 1 }}>{m}</span>
-                {/* El número suelto ("1", "2"…) leído en voz alta no significa nada; la pista real
-                    ya va en el `title`, así que para el lector este adorno se oculta. */}
-                <span style={styles.navAtajo} aria-hidden="true">{i + 1}</span>
+                <span style={{ flex: 1 }}>{m.etiqueta}</span>
+                {/* El atajo leído en voz alta no significa nada; la pista real ya va en el
+                    `title`, así que para el lector este adorno se oculta. */}
+                {m.atajo && <span style={styles.navAtajo} aria-hidden="true">{m.atajo.replace("Alt+", "")}</span>}
               </>
             )}
           </button>
@@ -150,10 +192,13 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
     </nav>
   );
 
+  const Componente = activo.componente;
+  const IconoActivo = activo.icono;
+
   return (
     <ProveedorAlertas>
     <div style={styles.root}>
-      {/* Primer tabulador de la página: salta los nueve módulos y va directo al contenido. Solo se
+      {/* Primer tabulador de la página: salta los módulos y va directo al contenido. Solo se
           ve cuando tiene el foco (§ .sfr-salto-contenido en estilos-globales.css). */}
       <a href="#contenido-principal" className="sfr-salto-contenido">Saltar al contenido</a>
       {!enCajon && nav}
@@ -184,18 +229,10 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
               <Menu size={20} aria-hidden="true" />
             </button>
           )}
-          {(() => { const Icono = ICONO[activo]; return <Icono size={enCajon ? 18 : 22} aria-hidden="true" />; })()} {activo}
+          <IconoActivo size={enCajon ? 18 : 22} aria-hidden="true" /> {activo.etiqueta}
         </h2>
-        <ErrorBoundary key={activo}>
-          {activo === "Ventas" && <Ventas />}
-          {activo === "Productos" && <Productos />}
-          {activo === "Clientes" && <Clientes />}
-          {activo === "Facturas" && <ConsultaFacturas />}
-          {activo === "Compras" && <Compras />}
-          {activo === "Corte de caja" && <CorteCaja />}
-          {activo === "Reportes" && <Reportes />}
-          {activo === "Promociones" && <Promociones />}
-          {activo === "Configuración" && <Configuracion />}
+        <ErrorBoundary key={activo.id}>
+          <Componente />
         </ErrorBoundary>
       </main>
     </div>

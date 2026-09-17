@@ -51,5 +51,6 @@ export {
   modulosPermitidos,
   puedeVerBackoffice,
   PermisoError,
+  SESION_LOCAL,
 } from "./permisos.js";
 export { hashearPin, verificarPin, CriptoNoDisponibleError } from "./pin.js";
