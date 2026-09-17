@@ -135,7 +135,7 @@ Prefijo de moneda `RD$` con espacio: `RD$ 1,600.00`.
 | Capa | Valor |
 |---|---|
 | Sticky dentro de la pantalla (encabezado de tabla, resultados de búsqueda) | 20 |
-| Modales de pantalla y burbuja del chatbot | 100 |
+| Modales de pantalla y burbuja del chatbot, incluido el de cambio rápido de usuario (`Ctrl+U`, § RBAC-07 parte C) | 100 |
 | Modal encima de otro modal (`ModalConfirmarCambios`) | 150 |
 | Fondo del cajón / cajón de navegación | 290 / 300 |
 | Enlace "saltar al contenido" | 400 |
@@ -283,6 +283,7 @@ Es la característica más importante del producto, no un extra de accesibilidad
 | `Ctrl+S` | Guardar el formulario abierto |
 | `Ctrl+P` | Imprimir / reimprimir lo seleccionado |
 | `Ctrl+E` | Exportar (Reportes) |
+| `Ctrl+U` | Cambiar de usuario (desde cualquier lugar, § RBAC-07 parte C) |
 | `Esc` | Cerrar modal, cancelar formulario, cerrar cajón |
 | `Enter` | Acción primaria del contexto |
 | `Supr` | Eliminar la fila resaltada |
