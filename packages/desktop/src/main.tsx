@@ -1,13 +1,19 @@
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { AppShell, ProveedorDatos, configurarAdaptadorImpresora, configurarAdaptadorImpresoraTexto } from "@sfr/ui";
-import { migrate, seed, type SqlDriver } from "@sfr/core";
+import { AppShell, ProveedorDatos, ProveedorSesion, Acceso, useSesion, configurarAdaptadorImpresora, configurarAdaptadorImpresoraTexto } from "@sfr/ui";
+import { migrate, seed, crearUsuarioRepo, type SqlDriver } from "@sfr/core";
 import { crearTauriSqlDriver } from "./db/tauri-sql-driver.js";
 import { adaptadorImpresoraTauri, adaptadorImpresoraTextoTauri } from "./impresora/tauri-impresora.js";
 import "@sfr/ui/estilos-globales.css";
 
 configurarAdaptadorImpresora(adaptadorImpresoraTauri);
 configurarAdaptadorImpresoraTexto(adaptadorImpresoraTextoTauri);
+
+/** Ver `packages/web/src/main.tsx` para el porqué de esta compuerta (§ RBAC-05). */
+function Compuerta({ plataforma }: { plataforma: "Web" | "Escritorio" }) {
+  const { autenticado } = useSesion();
+  return autenticado ? <AppShell plataforma={plataforma} /> : <Acceso />;
+}
 
 /**
  * Arranque del escritorio: inicializa SQLite (tauri-plugin-sql, archivo real),
@@ -41,10 +47,16 @@ function App() {
   if (!db) {
     return <div style={{ padding: 24, fontFamily: "system-ui", color: "#6b7280" }}>Cargando base de datos…</div>;
   }
+  async function revalidarUsuarioActivo(usuarioId: string): Promise<boolean> {
+    const fila = await crearUsuarioRepo(db!).obtener(usuarioId);
+    return fila?.activo === 1;
+  }
   return (
-    <ProveedorDatos db={db}>
-      <AppShell plataforma="Escritorio" />
-    </ProveedorDatos>
+    <ProveedorSesion db={db} revalidarUsuarioActivo={revalidarUsuarioActivo}>
+      <ProveedorDatos>
+        <Compuerta plataforma="Escritorio" />
+      </ProveedorDatos>
+    </ProveedorSesion>
   );
 }
 
