@@ -25,6 +25,17 @@ CREATE TABLE negocio (
   ancho_impresora_default  INTEGER NOT NULL DEFAULT 80,
   redondeo_centavo         BOOLEAN NOT NULL DEFAULT true,
   inventario_activo        BOOLEAN NOT NULL DEFAULT false,
+  -- Censo de columnas compartido (migración SQLite 11): desfase_horario_min
+  -- lo consume BACKOFFICE, politica_costo/umbral_aviso_costo_pct COMPRAS, y
+  -- exige_caja_abierta/arqueo_ciego/umbral_diferencia_caja CAJA.
+  -- exige_caja_abierta nace en false para no exigir turno a instalaciones
+  -- que arrancan por primera vez sin haber sembrado la caja principal.
+  desfase_horario_min      INTEGER,
+  politica_costo           TEXT,
+  umbral_aviso_costo_pct   NUMERIC(6,2),
+  exige_caja_abierta       BOOLEAN NOT NULL DEFAULT false,
+  arqueo_ciego             BOOLEAN,
+  umbral_diferencia_caja   NUMERIC(12,2),
   created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at               TIMESTAMPTZ
@@ -61,6 +72,25 @@ CREATE TABLE caja (
   nombre      TEXT NOT NULL,
   ubicacion   TEXT,
   activa      BOOLEAN NOT NULL DEFAULT true,
+  -- prefijo (migración SQLite 30, MULTICAJA): base de la numeración por caja
+  -- (ej. "C1" -> C1-000123). NULL = caja sin numeración propia todavía.
+  prefijo     TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at  TIMESTAMPTZ
+);
+
+-- instalación (migración SQLite 30, MULTICAJA): fila única que responde "qué
+-- caja es esta instalación" desde los datos, no desde localStorage ni una
+-- variable de entorno (CLAUDE.md §4: ninguna regla de negocio solo en el
+-- front). El CHECK de fila única de SQLite (id = 'instalacion-local') se
+-- traduce igual en Postgres: una CHECK constraint sobre una PK de un solo
+-- valor posible cumple el mismo propósito sin necesitar una tabla singleton
+-- separada.
+CREATE TABLE instalacion (
+  id          TEXT PRIMARY KEY CHECK (id = 'instalacion-local'),
+  caja_id     TEXT REFERENCES caja(id),
+  alias       TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at  TIMESTAMPTZ
@@ -91,6 +121,15 @@ CREATE TABLE producto (
   tasa_impuesto           NUMERIC(5,4) NOT NULL DEFAULT 0.18,
   existencia              NUMERIC(14,4), -- NULL si inventario off
   politica_sin_existencia TEXT NOT NULL DEFAULT 'advertir', -- bloquear|advertir
+  -- favorito (migración SQLite 9): productos marcados para aparecer primero
+  -- al buscar en Ventas.
+  favorito                BOOLEAN NOT NULL DEFAULT false,
+  -- Censo de columnas compartido (migración SQLite 11): precio_2 y
+  -- cantidad_minima_mayoreo los consume PRECIOS (tercer nivel de precio);
+  -- existencia_minima lo consume BACKOFFICE (alerta de existencia baja).
+  precio_2                NUMERIC(12,2),
+  cantidad_minima_mayoreo NUMERIC(14,4),
+  existencia_minima       NUMERIC(14,4),
   activo                  BOOLEAN NOT NULL DEFAULT true,
   created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -98,6 +137,7 @@ CREATE TABLE producto (
 );
 CREATE UNIQUE INDEX ux_producto_codigo_barra
   ON producto(codigo_barra) WHERE codigo_barra IS NOT NULL AND deleted_at IS NULL;
+CREATE INDEX ix_producto_favorito ON producto(favorito);
 
 -- Clientes ------------------------------------------------------------------
 CREATE TABLE cliente (
@@ -113,6 +153,13 @@ CREATE TABLE cliente (
   saldo_credito    NUMERIC(12,2) NOT NULL DEFAULT 0,
   documento_tipo   TEXT, -- rnc | cedula | NULL
   documento_numero TEXT,
+  -- Censo de columnas compartido (migración SQLite 11): nivel_precio y
+  -- niveles_permitidos_json los consume PRECIOS (nivel por cliente);
+  -- fecha_nacimiento y dias_credito los consume CRM (recordatorios y crédito).
+  nivel_precio             TEXT,
+  niveles_permitidos_json  JSONB,
+  fecha_nacimiento         DATE,
+  dias_credito             INTEGER,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at       TIMESTAMPTZ
@@ -136,6 +183,9 @@ CREATE TABLE factura (
   notas             TEXT,
   estado            TEXT NOT NULL DEFAULT 'abierta', -- abierta|cobrada|anulada
   comprobante_id    TEXT, -- FK agregada más abajo (comprobante_fiscal se crea después)
+  -- prefijo_caja (migración SQLite 11, consumida por MULTICAJA): numeración
+  -- C1-000123 por caja.
+  prefijo_caja      TEXT,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at        TIMESTAMPTZ
@@ -153,6 +203,11 @@ CREATE TABLE factura_linea (
   tasa_impuesto   NUMERIC(5,4) NOT NULL DEFAULT 0.18,
   monto_itbis     NUMERIC(12,2) NOT NULL DEFAULT 0,
   subtotal        NUMERIC(12,2) NOT NULL DEFAULT 0,
+  -- Censo de columnas compartido (migración SQLite 11): nivel_precio lo
+  -- consume PRECIOS (qué nivel se cobró); costo_unitario lo consume
+  -- COMPRAS/BACKOFFICE (margen real de cada venta).
+  nivel_precio    TEXT,
+  costo_unitario  NUMERIC(12,2),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at      TIMESTAMPTZ
@@ -182,10 +237,14 @@ CREATE TABLE secuencia_ncf (
   proximo_numero  INTEGER NOT NULL,
   vencimiento     DATE NOT NULL,
   estado          TEXT NOT NULL DEFAULT 'disponible', -- disponible|agotada|vencida
+  -- caja_id (migración SQLite 30, MULTICAJA): secuencia NCF propia por caja;
+  -- NULL = secuencia compartida entre cajas (comportamiento previo a MULTICAJA).
+  caja_id         TEXT REFERENCES caja(id),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at      TIMESTAMPTZ
 );
+CREATE INDEX ix_secuencia_ncf_caja ON secuencia_ncf(caja_id, tipo_ecf);
 
 CREATE TABLE comprobante_fiscal (
   id                        TEXT PRIMARY KEY,
@@ -284,6 +343,15 @@ CREATE TABLE compra (
   estado_clasificacion     TEXT NOT NULL DEFAULT 'sin_fiscal', -- con_fiscal|sin_fiscal|pendiente_revision
   origen                   TEXT NOT NULL DEFAULT 'manual', -- manual|chatbot
   notas                    TEXT,
+  -- Censo de columnas compartido (migración SQLite 11), consumidas por
+  -- COMPRAS: cuentas por pagar y recepción.
+  condicion_pago           TEXT,
+  dias_credito             INTEGER,
+  fecha_vencimiento        DATE,
+  monto_pagado             NUMERIC(12,2),
+  estado_pago              TEXT,
+  estado_recepcion         TEXT,
+  fecha_recepcion          TIMESTAMPTZ,
   created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at               TIMESTAMPTZ
@@ -302,6 +370,9 @@ CREATE TABLE compra_linea (
   tasa_impuesto  NUMERIC(5,4) NOT NULL DEFAULT 0.18,
   monto_itbis    NUMERIC(12,2) NOT NULL DEFAULT 0,
   subtotal       NUMERIC(12,2) NOT NULL DEFAULT 0,
+  -- cantidad_recibida (migración SQLite 11, consumida por COMPRAS): recepción
+  -- parcial de la línea.
+  cantidad_recibida NUMERIC(14,4),
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at     TIMESTAMPTZ
@@ -338,6 +409,9 @@ CREATE TABLE devolucion (
   itbis           NUMERIC(12,2) NOT NULL DEFAULT 0,
   total           NUMERIC(12,2) NOT NULL DEFAULT 0,
   comprobante_id  TEXT REFERENCES comprobante_fiscal(id), -- NC E34, NULL si venta no fiscal
+  -- metodo_devolucion (migración SQLite 11, consumida por CAJA): una
+  -- devolución en efectivo mueve la gaveta; en tarjeta/crédito, no.
+  metodo_devolucion TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at      TIMESTAMPTZ
@@ -356,6 +430,9 @@ CREATE TABLE devolucion_linea (
   tasa_impuesto     NUMERIC(5,4) NOT NULL,
   monto_itbis       NUMERIC(12,2) NOT NULL,
   subtotal          NUMERIC(12,2) NOT NULL,
+  -- nivel_precio (migración SQLite 11): mismo motivo que factura_linea, para
+  -- que el nivel sobreviva si la línea se devuelve.
+  nivel_precio      TEXT,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at        TIMESTAMPTZ
@@ -398,11 +475,17 @@ CREATE TABLE cotizacion (
   notas             TEXT,
   estado            TEXT NOT NULL DEFAULT 'vigente', -- vigente|convertida|anulada
   factura_id        TEXT REFERENCES factura(id), -- si se convirtió en venta
+  -- caja_id/prefijo_caja (migración SQLite 30, MULTICAJA): numeración por
+  -- caja igual que factura.
+  caja_id           TEXT REFERENCES caja(id),
+  prefijo_caja      TEXT,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at        TIMESTAMPTZ
 );
 CREATE INDEX ix_cotizacion_fecha ON cotizacion(fecha_hora);
+CREATE UNIQUE INDEX ux_cotizacion_caja_numero
+  ON cotizacion(caja_id, numero_interno) WHERE deleted_at IS NULL;
 
 CREATE TABLE cotizacion_linea (
   id              TEXT PRIMARY KEY,
@@ -415,6 +498,9 @@ CREATE TABLE cotizacion_linea (
   tasa_impuesto   NUMERIC(5,4) NOT NULL DEFAULT 0.18,
   monto_itbis     NUMERIC(12,2) NOT NULL DEFAULT 0,
   subtotal        NUMERIC(12,2) NOT NULL DEFAULT 0,
+  -- nivel_precio (migración SQLite 11): mismo motivo que factura_linea, para
+  -- que el nivel sobreviva si la cotización se convierte en venta.
+  nivel_precio    TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at      TIMESTAMPTZ
@@ -434,3 +520,14 @@ CREATE TABLE bitacora_accion (
   timestamp   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_bitacora_accion_entidad ON bitacora_accion(entidad, entidad_id);
+
+-- Índices MULTICAJA (migración SQLite 30) --------------------------------
+CREATE UNIQUE INDEX ux_factura_caja_numero
+  ON factura(caja_id, numero_interno) WHERE deleted_at IS NULL;
+CREATE INDEX ix_factura_caja_estado ON factura(caja_id, estado);
+
+-- Índices BACKOFFICE (migración SQLite 80): panel del dueño, evitan un scan
+-- completo de factura en cada agregado por rango de fecha.
+CREATE INDEX ix_factura_fecha_hora ON factura(fecha_hora);
+CREATE INDEX ix_factura_estado_fecha ON factura(estado, fecha_hora);
+CREATE INDEX ix_factura_linea_producto ON factura_linea(producto_id);

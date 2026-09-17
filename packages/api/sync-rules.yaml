@@ -18,7 +18,15 @@ bucket_definitions:
       # usuario: lista explícita SIN pin_hash (§ RBAC-03) — un SELECT *
       # replicaría el hash del PIN de todo el personal a cada cliente.
       - SELECT id, nombre, rol, activo, permisos_json, created_at, updated_at, deleted_at FROM usuario
+      # usuario_seguridad NO se sincroniza a propósito: intentos_fallidos,
+      # bloqueado_hasta y ultimo_acceso son estado operativo de control de
+      # acceso (RBAC-01), no dato de negocio que el cliente necesite releer.
+      # packages/core/src/repos/backup-repo.ts ya la excluye del respaldo
+      # local por el mismo motivo; replicarla además expondría a cada caja
+      # cuántas veces falló el PIN de cada usuario y cuándo queda desbloqueado,
+      # información que solo le interesa al propio backend de auth.
       - SELECT * FROM caja
+      - SELECT * FROM instalacion
       - SELECT * FROM departamento
       - SELECT * FROM producto
       - SELECT * FROM cliente
