@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { nuevaDb, nuevaDbMigrada } from "./_ayuda.js";
 import { crearBackupRepo, type RespaldoCompleto } from "../src/repos/backup-repo.js";
 import { ValidacionError } from "../src/repos/producto-repo.js";
+import { crearUsuarioRepo } from "../src/repos/usuario-repo.js";
 import { newId, now } from "../src/ids.js";
 
 /**
@@ -180,5 +181,41 @@ describe("backup-repo", () => {
     const productos = await destino.all("SELECT * FROM producto");
     const productosOrigen = await origen.all("SELECT * FROM producto");
     expect(productos).toEqual(productosOrigen);
+  });
+
+  /**
+   * Casos de RBAC-03 (§ backup-repo.ts, nota de PLATAFORMA-03): ahora que
+   * usuario_seguridad existe y pin_hash puede tener valor real, el respaldo
+   * tiene que enmascarar el hash y dejar fuera la tabla de control de acceso.
+   */
+  it("exportarTodo devuelve la tabla usuario con pin_hash null en todas las filas", async () => {
+    const db = await nuevaDbMigrada();
+    const repo = crearUsuarioRepo(db);
+    const usuario = await repo.crear({ nombre: "Con Pin", rol: "cajero", pin: "1234" });
+
+    const backup = crearBackupRepo(db);
+    const respaldo = await backup.exportarTodo();
+
+    const filaSemilla = respaldo.tablas.usuario?.find((f) => f.id === "usuario-admin");
+    const filaNueva = respaldo.tablas.usuario?.find((f) => f.id === usuario.id);
+    expect(filaSemilla?.pin_hash).toBeNull();
+    expect(filaNueva?.pin_hash).toBeNull();
+
+    const filaRealEnBase = await db.get<{ pin_hash: string | null }>(
+      "SELECT pin_hash FROM usuario WHERE id=?",
+      [usuario.id],
+    );
+    expect(filaRealEnBase?.pin_hash).not.toBeNull();
+  });
+
+  it("exportarTodo no incluye la clave usuario_seguridad", async () => {
+    const db = await nuevaDbMigrada();
+    const repo = crearUsuarioRepo(db);
+    await repo.crear({ nombre: "Con Pin", rol: "cajero", pin: "1234" });
+
+    const backup = crearBackupRepo(db);
+    const respaldo = await backup.exportarTodo();
+
+    expect(respaldo.tablas.usuario_seguridad).toBeUndefined();
   });
 });
