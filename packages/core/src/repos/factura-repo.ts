@@ -9,6 +9,7 @@ import {
   type PagoInput,
 } from "../dominio/factura.js";
 import { evaluarDisponibilidad } from "../dominio/inventario.js";
+import { validarCargoCredito } from "../dominio/credito.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { ImpuestoTipo } from "../dominio/impuesto.js";
@@ -386,12 +387,16 @@ export function crearFacturaRepo(db: SqlDriver) {
 
     /** Elimina el ticket completo (factura + sus líneas), borrado lógico. */
     async eliminarTicket(facturaId: string): Promise<void> {
+      const factura = await this.obtener(facturaId);
       const ts = now();
       await db.run("UPDATE factura_linea SET deleted_at=?, updated_at=? WHERE factura_id=?", [
         ts, ts, facturaId,
       ]);
       await db.run("UPDATE factura SET deleted_at=?, updated_at=? WHERE id=?", [ts, ts, facturaId]);
-      await registrarAccion(db, { accion: "eliminar", entidad: "factura", entidadId: facturaId });
+      await registrarAccion(db, {
+        accion: "eliminar", entidad: "factura", entidadId: facturaId,
+        resumen: factura ? `Ticket #${factura.numero_interno} eliminado` : null,
+      });
     },
 
     /**
@@ -425,6 +430,36 @@ export function crearFacturaRepo(db: SqlDriver) {
         ]);
       }
 
+      const montoCredito = input.pagos
+        .filter((p) => p.metodo === "credito")
+        .reduce((s, p) => s + p.monto, 0);
+
+      if (montoCredito > 0) {
+        if (!factura.cliente_id) {
+          throw new ValidacionError([
+            { campo: "cliente_id", mensaje: "Para fiar hay que asignar un cliente al ticket." },
+          ]);
+        }
+
+        const cliente = await db.get<{ aplica_credito: number; limite_credito: number; saldo_credito: number }>(
+          "SELECT aplica_credito, limite_credito, saldo_credito FROM cliente WHERE id=? AND deleted_at IS NULL",
+          [factura.cliente_id],
+        );
+        if (!cliente) {
+          throw new ValidacionError([
+            { campo: "cliente_id", mensaje: "El cliente asignado al ticket no existe." },
+          ]);
+        }
+
+        const erroresCredito = validarCargoCredito({
+          aplicaCredito: cliente.aplica_credito === 1,
+          limiteCredito: cliente.limite_credito,
+          saldoActual: cliente.saldo_credito,
+          monto: montoCredito,
+        });
+        if (erroresCredito.length) throw new ValidacionError(erroresCredito);
+      }
+
       const ts = now();
       for (const p of input.pagos) {
         await db.run(
@@ -438,6 +473,13 @@ export function crearFacturaRepo(db: SqlDriver) {
          WHERE id=?`,
         [resultado.montoPagado, resultado.cambio, input.notas ?? factura.notas, ts, ts, facturaId],
       );
+
+      if (montoCredito > 0) {
+        await db.run(
+          "UPDATE cliente SET saldo_credito = saldo_credito + ?, updated_at=? WHERE id=?",
+          [montoCredito, ts, factura.cliente_id],
+        );
+      }
 
       await descontarExistenciaPorVenta(facturaId, lineas);
       await registrarAccion(db, {
