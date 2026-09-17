@@ -1,18 +1,19 @@
-// Pruebas del proveedor de sesión (§ PLATAFORMA-07, ola 2): `useSesion` sigue EXACTAMENTE
-// el molde de `useRepos`/`useAlertas` (lanza si falta el proveedor), pero ninguna
-// instalación existente necesita envolver la app en `<ProveedorSesion>` a mano — ver
-// `ProveedorSesionSiFalta` en `data/contexto.tsx`, que monta uno con `SESION_LOCAL` cuando
-// no encuentra ninguno por encima. La memoización de `ProveedorDatos` (`useMemo([db])`)
-// se prueba aparte, sin pasar por `useSesion`, porque ya no depende de la sesión.
+// Pruebas del proveedor de sesión (§ RBAC-05): `useSesion` sigue EXACTAMENTE el molde de
+// `useRepos`/`useAlertas` (lanza si falta el proveedor). A diferencia de PLATAFORMA-07,
+// `<ProveedorSesion db={db}>` ahora es OBLIGATORIO por encima de `<ProveedorDatos>` — ya no
+// existe el relleno `ProveedorSesionSiFalta` que montaba una sesión sin envolver el driver.
+// La memoización de `ProveedorDatos` (`useMemo([db envuelto])`) se prueba pasando por
+// `<ProveedorSesion>`, que es como se usa de verdad: la identidad de `repos` depende del
+// driver YA ENVUELTO, que es estable mientras `<ProveedorSesion>` no se desmonte.
 import { useState } from "react";
 import { render, fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { migrate, seed, type Repos } from "@sfr/core";
+import { migrate, seed, SESION_LOCAL, type Repos } from "@sfr/core";
 import { createNodeSqliteDriver } from "../../core/src/db/drivers/node-sqlite.js";
 import { AppShell } from "../src/AppShell.js";
 import { MODULOS } from "../src/navegacion/modulos.js";
 import { ProveedorDatos, useRepos } from "../src/data/contexto.js";
-import { useSesion } from "../src/sesion/contexto.js";
+import { ProveedorSesion, useSesion } from "../src/sesion/contexto.js";
 import { renderConDatos } from "./_render.js";
 
 function SondaSesion() {
@@ -56,9 +57,11 @@ describe("useSesion / ProveedorSesion", () => {
     }
 
     render(
-      <ProveedorDatos db={db}>
-        <Envoltorio />
-      </ProveedorDatos>,
+      <ProveedorSesion db={db} sesionInicial={SESION_LOCAL}>
+        <ProveedorDatos>
+          <Envoltorio />
+        </ProveedorDatos>
+      </ProveedorSesion>,
     );
     fireEvent.click(screen.getByText("rerender"));
 

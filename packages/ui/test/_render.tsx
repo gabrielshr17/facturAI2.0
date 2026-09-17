@@ -19,7 +19,7 @@
 // una abre su propia instancia de `node:sqlite` y ninguna la persiste a disco.
 import { render, type RenderResult } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { migrate, seed, crearRepos, type SqlDriver, type PortadorSesion } from "@sfr/core";
+import { migrate, seed, crearRepos, SESION_LOCAL, type SqlDriver, type PortadorSesion } from "@sfr/core";
 import { createNodeSqliteDriver } from "../../core/src/db/drivers/node-sqlite.js";
 import { ProveedorDatos, type Repos } from "../src/data/contexto.js";
 import { ProveedorSesion } from "../src/sesion/contexto.js";
@@ -38,18 +38,28 @@ export interface ResultadoRenderConDatos extends RenderResult {
  * `crearRepos(db)` (`@sfr/core`, § PLATAFORMA-07) reemplazó al literal de 18 repos que este
  * archivo construía a mano — ver el aviso que había aquí antes de esa tarea.
  *
- * `sesion`, si se pasa, monta un `<ProveedorSesion sesionInicial={sesion}>` POR FUERA de
- * `<ProveedorDatos>`: `ProveedorDatos` detecta que ya hay una sesión explícita por encima
- * (§ `ProveedorSesionSiFalta` en `data/contexto.tsx`) y no la pisa con `SESION_LOCAL`. Sin
- * este parámetro, el comportamiento es el de cualquier instalación real: `SESION_LOCAL`,
- * todos los módulos visibles.
+ * CORRECCIÓN DE ARQUITECTURA (§ RBAC-05): `<ProveedorSesion>` ahora es OBLIGATORIO por
+ * encima de `<ProveedorDatos>` — ya no existe el relleno `ProveedorSesionSiFalta` que
+ * montaba una sesión de mentira sin envolver el driver. `renderConDatos` siempre monta
+ * `<ProveedorSesion db={db} sesionInicial={sesion ?? SESION_LOCAL}>`: sin `sesion` explícita
+ * el comportamiento sigue siendo el de siempre (`SESION_LOCAL`, todos los módulos visibles),
+ * pero ahora el driver que reciben los repos SÍ está envuelto con `conSesion`, igual que en
+ * la app real — así una prueba que quiera comprobar el guardia de RBAC-04 desde la UI puede
+ * hacerlo pasando una sesión con permisos recortados.
+ *
+ * `repos` devuelto para inspección directa se sigue construyendo sobre el `db` CRUDO (no el
+ * envuelto): así una prueba puede leer/escribir sin que el guardia de permisos le estorbe,
+ * aunque la UI bajo prueba sí lo tenga activo.
  */
 export async function renderConDatos(ui: ReactElement, sesion?: PortadorSesion): Promise<ResultadoRenderConDatos> {
   const db = createNodeSqliteDriver();
   await migrate(db);
   await seed(db);
   const repos = crearRepos(db);
-  const arbol = <ProveedorDatos db={db}>{ui}</ProveedorDatos>;
-  const resultado = render(sesion ? <ProveedorSesion sesionInicial={sesion}>{arbol}</ProveedorSesion> : arbol);
+  const resultado = render(
+    <ProveedorSesion db={db} sesionInicial={sesion ?? SESION_LOCAL}>
+      <ProveedorDatos>{ui}</ProveedorDatos>
+    </ProveedorSesion>,
+  );
   return { ...resultado, db, repos };
 }
