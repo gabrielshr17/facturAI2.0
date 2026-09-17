@@ -21,4 +21,10 @@ export interface Producto extends Auditoria {
   politica_sin_existencia: PoliticaSinExistencia;
   activo: number; // 0 | 1
   favorito: number; // 0 | 1
+  /** Tercer nivel de precio (§ PRECIOS): "precio mayoreo" ya existe; este es el adicional. */
+  precio_2: number | null;
+  /** Cantidad mínima para que aplique el precio de mayoreo. */
+  cantidad_minima_mayoreo: number | null;
+  /** Umbral de existencia baja (§ BACKOFFICE-04: alerta de reposición). */
+  existencia_minima: number | null;
 }

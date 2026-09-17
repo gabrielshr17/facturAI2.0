@@ -101,6 +101,26 @@ describe("devolucionRepo — sin comprobante fiscal", () => {
     expect(historial.some((m) => m.tipo === "entrada" && m.cantidad === 2)).toBe(true);
   });
 
+  it("ida y vuelta: devolucion.metodo_devolucion y devolucion_linea.nivel_precio", async () => {
+    const facturas = crearFacturaRepo(db);
+    const devoluciones = crearDevolucionRepo(db);
+    const { facturaId, lineaId } = await ventaCobrada(facturas);
+
+    const d = await devoluciones.crear({
+      facturaId,
+      motivo: "Producto dañado",
+      metodoDevolucion: "efectivo",
+      lineas: [{ facturaLineaId: lineaId, cantidad: 1, nivelPrecio: "mayoreo" }],
+    });
+    expect(d.metodo_devolucion).toBe("efectivo");
+
+    const releida = await devoluciones.obtener(d.id);
+    expect(releida?.metodo_devolucion).toBe("efectivo");
+
+    const [linea] = await devoluciones.obtenerLineas(d.id);
+    expect(linea.nivel_precio).toBe("mayoreo");
+  });
+
   it("no restituye existencia si el inventario está apagado", async () => {
     const productos = crearProductoRepo(db);
     const facturas = crearFacturaRepo(db);

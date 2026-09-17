@@ -13,4 +13,11 @@ export interface Cliente extends Auditoria {
   saldo_credito: number;
   documento_tipo: "rnc" | "cedula" | null;
   documento_numero: string | null;
+  /** Nivel de precio preferido del cliente (§ PRECIOS: "normal" | "especial" | "mayoreo"). */
+  nivel_precio: string | null;
+  /** JSON con los niveles que este cliente puede usar, si se restringe. */
+  niveles_permitidos_json: string | null;
+  fecha_nacimiento: string | null;
+  /** Días de crédito propios del cliente (§ CRM), si difieren del default del negocio. */
+  dias_credito: number | null;
 }

@@ -60,6 +60,30 @@ describe("productoRepo — CRUD persiste en SQLite", () => {
     const repo = crearProductoRepo(db);
     await expect(repo.crear({ descripcion: "  " })).rejects.toBeInstanceOf(ValidacionError);
   });
+
+  it("ida y vuelta: columnas del censo (precio_2, cantidad_minima_mayoreo, existencia_minima)", async () => {
+    const repo = crearProductoRepo(db);
+    const p = await repo.crear({
+      descripcion: "Detergente",
+      precio_2: 120.5,
+      cantidad_minima_mayoreo: 12,
+      existencia_minima: 5,
+    });
+    expect(p.precio_2).toBe(120.5);
+    expect(p.cantidad_minima_mayoreo).toBe(12);
+    expect(p.existencia_minima).toBe(5);
+
+    const leido = await repo.obtener(p.id);
+    expect(leido?.precio_2).toBe(120.5);
+    expect(leido?.cantidad_minima_mayoreo).toBe(12);
+    expect(leido?.existencia_minima).toBe(5);
+
+    await repo.actualizar(p.id, { descripcion: "Detergente", precio_2: 200, cantidad_minima_mayoreo: 24, existencia_minima: 10 });
+    const actualizado = await repo.obtener(p.id);
+    expect(actualizado?.precio_2).toBe(200);
+    expect(actualizado?.cantidad_minima_mayoreo).toBe(24);
+    expect(actualizado?.existencia_minima).toBe(10);
+  });
 });
 
 describe("clienteRepo — CRUD y validaciones", () => {
@@ -93,6 +117,32 @@ describe("clienteRepo — CRUD y validaciones", () => {
       repo.crear({ nombre: "Empresa", documento_tipo: "rnc", documento_numero: "111111111" }),
     ).rejects.toBeInstanceOf(ValidacionError);
   });
+
+  it("ida y vuelta: columnas del censo (nivel_precio, niveles_permitidos_json, fecha_nacimiento, dias_credito)", async () => {
+    const repo = crearClienteRepo(db);
+    const c = await repo.crear({
+      nombre: "Ana",
+      nivel_precio: "mayoreo",
+      niveles_permitidos_json: '["normal","mayoreo"]',
+      fecha_nacimiento: "1990-05-01",
+      dias_credito: 30,
+    });
+    expect(c.nivel_precio).toBe("mayoreo");
+    expect(c.niveles_permitidos_json).toBe('["normal","mayoreo"]');
+    expect(c.fecha_nacimiento).toBe("1990-05-01");
+    expect(c.dias_credito).toBe(30);
+
+    const leido = await repo.obtener(c.id);
+    expect(leido?.nivel_precio).toBe("mayoreo");
+    expect(leido?.niveles_permitidos_json).toBe('["normal","mayoreo"]');
+    expect(leido?.fecha_nacimiento).toBe("1990-05-01");
+    expect(leido?.dias_credito).toBe(30);
+
+    await repo.actualizar(c.id, { nombre: "Ana", nivel_precio: "especial", dias_credito: 45 });
+    const actualizado = await repo.obtener(c.id);
+    expect(actualizado?.nivel_precio).toBe("especial");
+    expect(actualizado?.dias_credito).toBe(45);
+  });
 });
 
 describe("negocioRepo — configuración (singleton)", () => {
@@ -122,6 +172,43 @@ describe("negocioRepo — configuración (singleton)", () => {
     await expect(
       repo.guardar({ nombre_comercial: "X", ancho_impresora_default: 72 as 58 }),
     ).rejects.toBeInstanceOf(ValidacionError);
+  });
+
+  it("ida y vuelta: columnas del censo (desfase_horario_min, politica_costo, umbral_aviso_costo_pct, exige_caja_abierta, arqueo_ciego, umbral_diferencia_caja)", async () => {
+    const repo = crearNegocioRepo(db);
+    await repo.guardar({
+      nombre_comercial: "Mi Colmado",
+      desfase_horario_min: 15,
+      politica_costo: "avisar",
+      umbral_aviso_costo_pct: 10,
+      exige_caja_abierta: true,
+      arqueo_ciego: true,
+      umbral_diferencia_caja: 50,
+    });
+    let cfg = await repo.obtener();
+    expect(cfg?.desfase_horario_min).toBe(15);
+    expect(cfg?.politica_costo).toBe("avisar");
+    expect(cfg?.umbral_aviso_costo_pct).toBe(10);
+    expect(cfg?.exige_caja_abierta).toBe(1);
+    expect(cfg?.arqueo_ciego).toBe(1);
+    expect(cfg?.umbral_diferencia_caja).toBe(50);
+
+    await repo.guardar({
+      nombre_comercial: "Mi Colmado",
+      exige_caja_abierta: false,
+      arqueo_ciego: false,
+      umbral_diferencia_caja: 0,
+    });
+    cfg = await repo.obtener();
+    expect(cfg?.exige_caja_abierta).toBe(0);
+    expect(cfg?.arqueo_ciego).toBe(0);
+    expect(cfg?.umbral_diferencia_caja).toBe(0);
+  });
+
+  it("una fila nueva de negocio arranca con exige_caja_abierta en 0 (decisión 6: instalaciones apagadas por defecto)", async () => {
+    const repo = crearNegocioRepo(db);
+    const n = await repo.guardar({ nombre_comercial: "Recién instalado" });
+    expect(n.exige_caja_abierta).toBe(0);
   });
 });
 

@@ -22,6 +22,10 @@ export interface ClienteInput {
   limite_credito?: number;
   documento_tipo?: "rnc" | "cedula" | null;
   documento_numero?: string | null;
+  nivel_precio?: string | null;
+  niveles_permitidos_json?: string | null;
+  fecha_nacimiento?: string | null;
+  dias_credito?: number | null;
 }
 
 /** Valida un cliente (§5: nombre obligatorio, correo y documento con formato). */
@@ -42,6 +46,7 @@ export function validarCliente(input: ClienteInput): ErrorValidacion[] {
 
 const COLS = `id, nombre, apellidos, telefono, correo, direccion, comentarios,
   aplica_credito, limite_credito, saldo_credito, documento_tipo, documento_numero,
+  nivel_precio, niveles_permitidos_json, fecha_nacimiento, dias_credito,
   created_at, updated_at, deleted_at`;
 
 export function crearClienteRepo(db: SqlDriver) {
@@ -64,16 +69,21 @@ export function crearClienteRepo(db: SqlDriver) {
         saldo_credito: 0,
         documento_tipo: input.documento_tipo ?? null,
         documento_numero: input.documento_numero ?? null,
+        nivel_precio: input.nivel_precio ?? null,
+        niveles_permitidos_json: input.niveles_permitidos_json ?? null,
+        fecha_nacimiento: input.fecha_nacimiento ?? null,
+        dias_credito: input.dias_credito ?? null,
         created_at: ts,
         updated_at: ts,
         deleted_at: null,
       };
 
       await db.run(
-        `INSERT INTO cliente (${COLS}) VALUES (${Array(15).fill("?").join(",")})`,
+        `INSERT INTO cliente (${COLS}) VALUES (${Array(19).fill("?").join(",")})`,
         [
           c.id, c.nombre, c.apellidos, c.telefono, c.correo, c.direccion, c.comentarios,
           c.aplica_credito, c.limite_credito, c.saldo_credito, c.documento_tipo, c.documento_numero,
+          c.nivel_precio, c.niveles_permitidos_json, c.fecha_nacimiento, c.dias_credito,
           c.created_at, c.updated_at, c.deleted_at,
         ],
       );
@@ -90,7 +100,8 @@ export function crearClienteRepo(db: SqlDriver) {
       await db.run(
         `UPDATE cliente SET nombre=?, apellidos=?, telefono=?, correo=?, direccion=?,
            comentarios=?, aplica_credito=?, limite_credito=?, documento_tipo=?,
-           documento_numero=?, updated_at=?
+           documento_numero=?, nivel_precio=?, niveles_permitidos_json=?, fecha_nacimiento=?,
+           dias_credito=?, updated_at=?
          WHERE id=?`,
         [
           input.nombre.trim(),
@@ -103,6 +114,10 @@ export function crearClienteRepo(db: SqlDriver) {
           input.limite_credito ?? actual.limite_credito,
           input.documento_tipo ?? actual.documento_tipo,
           input.documento_numero ?? actual.documento_numero,
+          input.nivel_precio ?? actual.nivel_precio,
+          input.niveles_permitidos_json ?? actual.niveles_permitidos_json,
+          input.fecha_nacimiento ?? actual.fecha_nacimiento,
+          input.dias_credito ?? actual.dias_credito,
           now(), id,
         ],
       );

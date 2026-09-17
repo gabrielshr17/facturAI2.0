@@ -21,6 +21,9 @@ export interface ProductoInput {
   impuesto_tipo?: Producto["impuesto_tipo"];
   politica_sin_existencia?: Producto["politica_sin_existencia"];
   activo?: boolean;
+  precio_2?: number | null;
+  cantidad_minima_mayoreo?: number | null;
+  existencia_minima?: number | null;
 }
 
 /** Valida un producto. Devuelve lista de errores (vacía si es válido). */
@@ -48,6 +51,7 @@ export class ValidacionError extends Error {
 const COLS = `id, codigo_barra, descripcion, tipo_venta, unidad_medida, costo,
   pct_ganancia, precio_venta, precio_mayoreo, departamento_id, impuesto_tipo,
   tasa_impuesto, existencia, politica_sin_existencia, activo, favorito,
+  precio_2, cantidad_minima_mayoreo, existencia_minima,
   created_at, updated_at, deleted_at`;
 
 export function crearProductoRepo(db: SqlDriver) {
@@ -86,17 +90,21 @@ export function crearProductoRepo(db: SqlDriver) {
         politica_sin_existencia: input.politica_sin_existencia ?? "advertir",
         activo: input.activo === false ? 0 : 1,
         favorito: 0,
+        precio_2: input.precio_2 ?? null,
+        cantidad_minima_mayoreo: input.cantidad_minima_mayoreo ?? null,
+        existencia_minima: input.existencia_minima ?? null,
         created_at: ts,
         updated_at: ts,
         deleted_at: null,
       };
 
       await db.run(
-        `INSERT INTO producto (${COLS}) VALUES (${Array(19).fill("?").join(",")})`,
+        `INSERT INTO producto (${COLS}) VALUES (${Array(22).fill("?").join(",")})`,
         [
           p.id, p.codigo_barra, p.descripcion, p.tipo_venta, p.unidad_medida, p.costo,
           p.pct_ganancia, p.precio_venta, p.precio_mayoreo, p.departamento_id, p.impuesto_tipo,
           p.tasa_impuesto, p.existencia, p.politica_sin_existencia, p.activo, p.favorito,
+          p.precio_2, p.cantidad_minima_mayoreo, p.existencia_minima,
           p.created_at, p.updated_at, p.deleted_at,
         ],
       );
@@ -125,7 +133,8 @@ export function crearProductoRepo(db: SqlDriver) {
       await db.run(
         `UPDATE producto SET codigo_barra=?, descripcion=?, tipo_venta=?, unidad_medida=?,
            costo=?, pct_ganancia=?, precio_venta=?, precio_mayoreo=?, departamento_id=?,
-           impuesto_tipo=?, tasa_impuesto=?, politica_sin_existencia=?, activo=?, updated_at=?
+           impuesto_tipo=?, tasa_impuesto=?, politica_sin_existencia=?, activo=?,
+           precio_2=?, cantidad_minima_mayoreo=?, existencia_minima=?, updated_at=?
          WHERE id=?`,
         [
           input.codigo_barra ?? actual.codigo_barra,
@@ -138,6 +147,9 @@ export function crearProductoRepo(db: SqlDriver) {
           impuesto_tipo, tasa,
           input.politica_sin_existencia ?? actual.politica_sin_existencia,
           input.activo === false ? 0 : 1,
+          input.precio_2 ?? actual.precio_2,
+          input.cantidad_minima_mayoreo ?? actual.cantidad_minima_mayoreo,
+          input.existencia_minima ?? actual.existencia_minima,
           now(), id,
         ],
       );

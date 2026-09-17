@@ -10,6 +10,8 @@ export interface Devolucion extends Auditoria {
   itbis: number;
   total: number;
   comprobante_id: string | null; // Nota de Crédito (E34), NULL si la venta no fue fiscal
+  /** Cómo se devolvió el dinero (§ CAJA: efectivo mueve la gaveta; tarjeta/crédito no). */
+  metodo_devolucion: string | null;
 }
 
 export interface DevolucionLinea extends Auditoria {
@@ -24,4 +26,6 @@ export interface DevolucionLinea extends Auditoria {
   tasa_impuesto: number;
   monto_itbis: number;
   subtotal: number;
+  /** Nivel de precio de la línea original (§ PRECIOS), si se registró al devolver. */
+  nivel_precio: string | null;
 }

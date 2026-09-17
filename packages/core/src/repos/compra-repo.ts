@@ -23,6 +23,7 @@ export interface LineaCompraInput {
   costoUnitario: number;
   impuestoTipo: ImpuestoTipo;
   tasaImpuesto: number;
+  cantidadRecibida?: number | null;
 }
 
 export interface CompraInput {
@@ -32,6 +33,13 @@ export interface CompraInput {
   ncf_proveedor?: string | null;
   tieneComprobanteFiscal?: boolean;
   notas?: string | null;
+  condicion_pago?: string | null;
+  dias_credito?: number | null;
+  fecha_vencimiento?: string | null;
+  monto_pagado?: number | null;
+  estado_pago?: string | null;
+  estado_recepcion?: string | null;
+  fecha_recepcion?: string | null;
   lineas: LineaCompraInput[];
 }
 
@@ -51,10 +59,13 @@ function validarLineaCompra(input: LineaCompraInput) {
 
 const COLS_COMPRA = `id, fecha, proveedor_id, subtotal, itbis, total, ncf_proveedor,
   tiene_comprobante_fiscal, mes_ano_contable, estado_clasificacion, origen, notas,
+  condicion_pago, dias_credito, fecha_vencimiento, monto_pagado, estado_pago,
+  estado_recepcion, fecha_recepcion,
   created_at, updated_at, deleted_at`;
 
 const COLS_LINEA = `id, compra_id, producto_id, descripcion, cantidad, costo_unitario,
-  impuesto_tipo, tasa_impuesto, monto_itbis, subtotal, created_at, updated_at, deleted_at`;
+  impuesto_tipo, tasa_impuesto, monto_itbis, subtotal, cantidad_recibida,
+  created_at, updated_at, deleted_at`;
 
 export function crearCompraRepo(db: SqlDriver) {
   /** Actualiza el costo del producto (siempre) y la existencia (solo si inventario activo). */
@@ -118,16 +129,25 @@ export function crearCompraRepo(db: SqlDriver) {
         estado_clasificacion: tieneComprobanteFiscal ? "con_fiscal" : "sin_fiscal",
         origen: "manual",
         notas: input.notas ?? null,
+        condicion_pago: input.condicion_pago ?? null,
+        dias_credito: input.dias_credito ?? null,
+        fecha_vencimiento: input.fecha_vencimiento ?? null,
+        monto_pagado: input.monto_pagado ?? null,
+        estado_pago: input.estado_pago ?? null,
+        estado_recepcion: input.estado_recepcion ?? null,
+        fecha_recepcion: input.fecha_recepcion ?? null,
         created_at: ts,
         updated_at: ts,
         deleted_at: null,
       };
 
       await db.run(
-        `INSERT INTO compra (${COLS_COMPRA}) VALUES (${Array(15).fill("?").join(",")})`,
+        `INSERT INTO compra (${COLS_COMPRA}) VALUES (${Array(22).fill("?").join(",")})`,
         [
           c.id, c.fecha, c.proveedor_id, c.subtotal, c.itbis, c.total, c.ncf_proveedor,
           c.tiene_comprobante_fiscal, c.mes_ano_contable, c.estado_clasificacion, c.origen, c.notas,
+          c.condicion_pago, c.dias_credito, c.fecha_vencimiento, c.monto_pagado, c.estado_pago,
+          c.estado_recepcion, c.fecha_recepcion,
           c.created_at, c.updated_at, c.deleted_at,
         ],
       );
@@ -145,16 +165,17 @@ export function crearCompraRepo(db: SqlDriver) {
           tasa_impuesto: l.tasaImpuesto,
           monto_itbis: calc.montoItbis,
           subtotal: calc.subtotal,
+          cantidad_recibida: l.cantidadRecibida ?? null,
           created_at: ts,
           updated_at: ts,
           deleted_at: null,
         };
         await db.run(
-          `INSERT INTO compra_linea (${COLS_LINEA}) VALUES (${Array(13).fill("?").join(",")})`,
+          `INSERT INTO compra_linea (${COLS_LINEA}) VALUES (${Array(14).fill("?").join(",")})`,
           [
             linea.id, linea.compra_id, linea.producto_id, linea.descripcion, linea.cantidad,
             linea.costo_unitario, linea.impuesto_tipo, linea.tasa_impuesto, linea.monto_itbis,
-            linea.subtotal, linea.created_at, linea.updated_at, linea.deleted_at,
+            linea.subtotal, linea.cantidad_recibida, linea.created_at, linea.updated_at, linea.deleted_at,
           ],
         );
       }
