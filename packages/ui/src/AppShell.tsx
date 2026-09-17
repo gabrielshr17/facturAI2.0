@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { Sun, Moon, Menu, LogOut } from "lucide-react";
 import { Marca } from "./componentes/Marca.js";
 import { ErrorBoundary } from "./componentes/ErrorBoundary.js";
+import { CambioRapidoUsuario } from "./componentes/CambioRapidoUsuario.js";
 import { ProveedorAlertas } from "./contexto/Alertas.js";
 import { useSesion } from "./sesion/contexto.js";
 import { useRepos } from "./data/contexto.js";
@@ -293,6 +294,11 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
           <Componente />
         </ErrorBoundary>
       </main>
+      {/* Ctrl+U, global sin importar el módulo activo (§ RBAC-07 parte C). Vive DENTRO
+          de este `<ProveedorAlertas>` (montado arriba, no consumido por `AppShell`
+          mismo) porque el modal necesita `useAlertas()` para el mensaje de bloqueo
+          por ticket abierto. Ver la cabecera de `CambioRapidoUsuario.tsx`. */}
+      <CambioRapidoUsuario />
     </div>
     </ProveedorAlertas>
   );
