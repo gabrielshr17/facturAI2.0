@@ -314,6 +314,99 @@ CREATE TABLE comprobante_archivo (
 );
 CREATE INDEX ix_comprobante_archivo_compra ON comprobante_archivo(compra_id);
 
+-- Devoluciones (§ Ventas, migración 7) -------------------------------------
+CREATE TABLE devolucion (
+  id              TEXT PRIMARY KEY,
+  factura_id      TEXT NOT NULL REFERENCES factura(id),
+  fecha           TIMESTAMPTZ NOT NULL,
+  motivo          TEXT,
+  subtotal        NUMERIC(12,2) NOT NULL DEFAULT 0,
+  itbis           NUMERIC(12,2) NOT NULL DEFAULT 0,
+  total           NUMERIC(12,2) NOT NULL DEFAULT 0,
+  comprobante_id  TEXT REFERENCES comprobante_fiscal(id), -- NC E34, NULL si venta no fiscal
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at      TIMESTAMPTZ
+);
+CREATE INDEX ix_devolucion_factura ON devolucion(factura_id);
+
+CREATE TABLE devolucion_linea (
+  id                TEXT PRIMARY KEY,
+  devolucion_id     TEXT NOT NULL REFERENCES devolucion(id),
+  factura_linea_id  TEXT NOT NULL REFERENCES factura_linea(id),
+  producto_id       TEXT REFERENCES producto(id),
+  descripcion       TEXT NOT NULL,
+  cantidad          NUMERIC(14,4) NOT NULL,
+  precio_unitario   NUMERIC(12,2) NOT NULL,
+  impuesto_tipo     TEXT NOT NULL,
+  tasa_impuesto     NUMERIC(5,4) NOT NULL,
+  monto_itbis       NUMERIC(12,2) NOT NULL,
+  subtotal          NUMERIC(12,2) NOT NULL,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at        TIMESTAMPTZ
+);
+CREATE INDEX ix_devolucion_linea_devolucion ON devolucion_linea(devolucion_id);
+CREATE INDEX ix_devolucion_linea_factura_linea ON devolucion_linea(factura_linea_id);
+
+-- Promociones (§ Fase 3, migración 8) ----------------------------------------
+CREATE TABLE promocion (
+  id               TEXT PRIMARY KEY,
+  nombre           TEXT NOT NULL,
+  tipo             TEXT NOT NULL, -- porcentaje|monto_fijo
+  valor            NUMERIC(12,2) NOT NULL,
+  aplica_a         TEXT NOT NULL DEFAULT 'producto', -- producto|departamento|todo
+  producto_id      TEXT REFERENCES producto(id),
+  departamento_id  TEXT REFERENCES departamento(id),
+  fecha_inicio     DATE NOT NULL,
+  fecha_fin        DATE NOT NULL,
+  activa           BOOLEAN NOT NULL DEFAULT true,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at       TIMESTAMPTZ
+);
+CREATE INDEX ix_promocion_producto ON promocion(producto_id);
+CREATE INDEX ix_promocion_departamento ON promocion(departamento_id);
+CREATE INDEX ix_promocion_vigencia ON promocion(fecha_inicio, fecha_fin);
+
+-- Cotizaciones (§ Ventas, migración 10) --------------------------------------
+CREATE TABLE cotizacion (
+  id                TEXT PRIMARY KEY,
+  numero_interno    INTEGER,
+  fecha_hora        TIMESTAMPTZ NOT NULL,
+  fecha_vencimiento DATE NOT NULL,
+  cliente_id        TEXT REFERENCES cliente(id),
+  usuario_id        TEXT REFERENCES usuario(id),
+  subtotal_gravado  NUMERIC(12,2) NOT NULL DEFAULT 0,
+  subtotal_exento   NUMERIC(12,2) NOT NULL DEFAULT 0,
+  total_itbis       NUMERIC(12,2) NOT NULL DEFAULT 0,
+  total             NUMERIC(12,2) NOT NULL DEFAULT 0,
+  notas             TEXT,
+  estado            TEXT NOT NULL DEFAULT 'vigente', -- vigente|convertida|anulada
+  factura_id        TEXT REFERENCES factura(id), -- si se convirtió en venta
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at        TIMESTAMPTZ
+);
+CREATE INDEX ix_cotizacion_fecha ON cotizacion(fecha_hora);
+
+CREATE TABLE cotizacion_linea (
+  id              TEXT PRIMARY KEY,
+  cotizacion_id   TEXT NOT NULL REFERENCES cotizacion(id),
+  producto_id     TEXT REFERENCES producto(id),
+  descripcion     TEXT NOT NULL,
+  cantidad        NUMERIC(14,4) NOT NULL DEFAULT 1,
+  precio_unitario NUMERIC(12,2) NOT NULL DEFAULT 0,
+  impuesto_tipo   TEXT NOT NULL DEFAULT 'itbis18',
+  tasa_impuesto   NUMERIC(5,4) NOT NULL DEFAULT 0.18,
+  monto_itbis     NUMERIC(12,2) NOT NULL DEFAULT 0,
+  subtotal        NUMERIC(12,2) NOT NULL DEFAULT 0,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at      TIMESTAMPTZ
+);
+CREATE INDEX ix_cotizacion_linea_cotizacion ON cotizacion_linea(cotizacion_id);
+
 -- Bitácora (pendiente en el modo local, ver plan.md §"Caja y auditoría") ----
 CREATE TABLE bitacora_accion (
   id          TEXT PRIMARY KEY,
