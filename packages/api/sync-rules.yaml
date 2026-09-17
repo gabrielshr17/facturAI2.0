@@ -15,7 +15,9 @@ bucket_definitions:
   mostrador:
     data:
       - SELECT * FROM negocio
-      - SELECT * FROM usuario
+      # usuario: lista explícita SIN pin_hash (§ RBAC-03) — un SELECT *
+      # replicaría el hash del PIN de todo el personal a cada cliente.
+      - SELECT id, nombre, rol, activo, permisos_json, created_at, updated_at, deleted_at FROM usuario
       - SELECT * FROM caja
       - SELECT * FROM departamento
       - SELECT * FROM producto

@@ -11,11 +11,16 @@ import { registrarAccion } from "./bitacora-repo.js";
  * del respaldo del cliente sin ningún aviso. El descubrimiento por
  * `sqlite_master` es genérico a propósito: no sabe nada de tablas
  * específicas, solo excluye `_migracion` (metadato del migrador, no dato de
- * negocio) y las internas `sqlite_%`. Nota para RBAC-03: cuando exista la
- * tabla `usuario_seguridad` (banda 20-29), esa tarea es la responsable de
- * excluirla del respaldo y de forzar `pin_hash` a `null` en `usuario` al
- * exportar — aquí no se implementa porque la tabla no existe todavía y
- * escribir esa lógica ahora sería adivinar sobre algo imposible de probar.
+ * negocio) y las internas `sqlite_%`. § RBAC-03 (banda 20-29):
+ * `usuario_seguridad` ya existe (control de acceso: intentos fallidos,
+ * bloqueo) y se excluye del respaldo aparte — es estado operativo, no dato
+ * de negocio, y restaurarlo en otra instalación no tiene sentido. `usuario`
+ * SIGUE exportándose (excluirla dejaría un negocio sin usuarios tras
+ * restaurar en una máquina nueva), pero con `pin_hash` forzado a `null` en
+ * cada fila: el botón de respaldo (Configuración) baja el archivo como JSON
+ * descargable, y ahora que `pin_hash` tiene valor real (RBAC-03 se lo da por
+ * primera vez), un volcado sin esta máscara entregaría los hashes de todo
+ * el personal a cualquiera que lo abra.
  *
  * `importarTodo` exige `db.enTransaccion` (solo lo ofrecen node:sqlite y
  * sql.js, ver `db/driver.ts`): restaurar sin atomicidad real es demasiado
@@ -40,9 +45,17 @@ export interface RespaldoCompleto {
   tablas: Record<string, Record<string, unknown>[]>;
 }
 
+/**
+ * `usuario_seguridad` se excluye aquí, no en `exportarTodo`, para que
+ * `importarTodo` también la rechace si un respaldo viejo (de antes de esta
+ * tarea) la incluyera: `tablasBase` (calculada con esta misma función) ya no
+ * la reconocería como tabla válida del destino.
+ */
 async function listarTablas(db: SqlDriver): Promise<string[]> {
   const filas = await db.all<{ name: string }>(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name <> '_migracion' ORDER BY name",
+    `SELECT name FROM sqlite_master
+     WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('_migracion', 'usuario_seguridad')
+     ORDER BY name`,
   );
   return filas.map((f) => f.name);
 }
@@ -58,7 +71,9 @@ export function crearBackupRepo(db: SqlDriver) {
       const nombresTablas = await listarTablas(db);
       const tablas: Record<string, Record<string, unknown>[]> = {};
       for (const tabla of nombresTablas) {
-        tablas[tabla] = await db.all(`SELECT * FROM ${tabla}`);
+        const filas = await db.all<Record<string, unknown>>(`SELECT * FROM ${tabla}`);
+        tablas[tabla] =
+          tabla === "usuario" ? filas.map((fila) => ({ ...fila, pin_hash: null })) : filas;
       }
       return {
         version: 1,
