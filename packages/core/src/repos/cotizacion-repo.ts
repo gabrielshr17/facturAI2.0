@@ -2,6 +2,7 @@ import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
 import { tieneValor, type ErrorValidacion } from "../dominio/validacion.js";
 import { calcularLinea, calcularTotales, type LineaInput } from "../dominio/factura.js";
+import { usuarioDe } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import type { ImpuestoTipo } from "../dominio/impuesto.js";
 import type { Cotizacion, CotizacionLinea } from "./tipos.js";
@@ -98,7 +99,7 @@ export function crearCotizacionRepo(db: SqlDriver) {
         fecha_hora: ts,
         fecha_vencimiento: sumarDias(ts, input.diasVigencia ?? 15),
         cliente_id: input.cliente_id ?? null,
-        usuario_id: input.usuario_id ?? null,
+        usuario_id: input.usuario_id ?? usuarioDe(db),
         subtotal_gravado: t.subtotalGravado,
         subtotal_exento: t.subtotalExento,
         total_itbis: t.totalItbis,

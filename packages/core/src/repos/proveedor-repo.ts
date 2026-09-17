@@ -1,6 +1,7 @@
 import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
 import { tieneValor, normalizar, esCorreoValido, type ErrorValidacion } from "../dominio/validacion.js";
+import { exigirPermiso } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { Proveedor } from "./tipos.js";
@@ -72,6 +73,7 @@ export function crearProveedorRepo(db: SqlDriver) {
     },
 
     async eliminar(id: string): Promise<void> {
+      exigirPermiso(db, "proveedor.eliminar");
       const actual = await this.obtener(id);
       await db.run("UPDATE proveedor SET deleted_at=?, updated_at=? WHERE id=?", [now(), now(), id]);
       await registrarAccion(db, {

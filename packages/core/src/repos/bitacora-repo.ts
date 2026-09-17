@@ -1,4 +1,5 @@
 import type { SqlDriver } from "../db/driver.js";
+import { usuarioDe } from "../db/sesion.js";
 import { newId, now } from "../ids.js";
 import type { BitacoraAccion, OrigenAccion } from "./tipos.js";
 
@@ -31,11 +32,16 @@ const COLS = `id, usuario_id, origen, accion, entidad, entidad_id, resumen, conf
  * Función compartida (no atada al closure del repo) para que otros repos
  * registren una acción sin necesidad de instanciar `crearBitacoraRepo` —
  * mismo patrón que `ValidacionError`, compartida directamente entre repos.
+ *
+ * `usuarioId` explícito en el input SIEMPRE gana sobre el de la sesión
+ * adjunta al driver (§ RBAC-04): un caller que ya sabe quién operó (por
+ * ejemplo, un cobro autorizado por otro usuario) no debe perder ese dato
+ * porque la sesión activa sea otra.
  */
 export async function registrarAccion(db: SqlDriver, input: RegistrarAccionInput): Promise<BitacoraAccion> {
   const registro: BitacoraAccion = {
     id: newId(),
-    usuario_id: input.usuarioId ?? null,
+    usuario_id: input.usuarioId ?? usuarioDe(db),
     origen: input.origen ?? "app",
     accion: input.accion,
     entidad: input.entidad,
