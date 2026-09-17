@@ -1,3 +1,35 @@
+/**
+ * `crearRepos(db)` compone el objeto de repos que consume `packages/ui/src/data/contexto.tsx`
+ * a partir de `REGISTRO_REPOS` (`./registro.js`), para que ningún área tenga que volver a
+ * editar la lista de 18+ repos a mano. `proveedorFiscal` se añade aparte porque su fábrica no
+ * toma `SqlDriver` (§ registro.ts). El único `as Repos` de este archivo existe porque
+ * `Object.fromEntries` no puede inferir un tipo más preciso que `Record<string, unknown>`
+ * a partir de un `Object.entries` en tiempo de ejecución: el tipo `Repos` (mapeado 1 a 1
+ * desde `REGISTRO_REPOS`) es la fuente de verdad, no el cast.
+ */
+import type { SqlDriver } from "../db/driver.js";
+import { crearProveedorFiscalSimulado, type ProveedorFiscal } from "../fiscal/proveedor.js";
+import { REGISTRO_REPOS } from "./registro.js";
+
+export type Repos = {
+  [K in keyof typeof REGISTRO_REPOS]: ReturnType<(typeof REGISTRO_REPOS)[K]>;
+} & {
+  /**
+   * *** SIMULADO — no transmite nada real a la DGII. *** Placeholder hasta decidir PAC vs
+   * integración directa. Sustituir aquí por la implementación real cuando esté disponible.
+   */
+  proveedorFiscal: ProveedorFiscal;
+};
+
+export function crearRepos(db: SqlDriver): Repos {
+  const entradas = Object.entries(REGISTRO_REPOS) as Array<
+    [keyof typeof REGISTRO_REPOS, (db: SqlDriver) => unknown]
+  >;
+  const repos = Object.fromEntries(entradas.map(([nombre, fabrica]) => [nombre, fabrica(db)]));
+  return { ...repos, proveedorFiscal: crearProveedorFiscalSimulado() } as Repos;
+}
+
+export { REGISTRO_REPOS } from "./registro.js";
 export * from "./tipos.js";
 export {
   crearProductoRepo,

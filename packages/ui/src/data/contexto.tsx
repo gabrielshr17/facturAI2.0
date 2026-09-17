@@ -1,85 +1,53 @@
-import { createContext, useContext, type ReactNode } from "react";
-import {
-  type SqlDriver,
-  type ProveedorFiscal,
-  crearProductoRepo,
-  crearClienteRepo,
-  crearDepartamentoRepo,
-  crearNegocioRepo,
-  crearFacturaRepo,
-  crearSecuenciaNcfRepo,
-  crearComprobanteFiscalRepo,
-  crearProveedorFiscalSimulado,
-  crearCorteCajaRepo,
-  crearMovimientoInventarioRepo,
-  crearProveedorRepo,
-  crearCompraRepo,
-  crearComprobanteArchivoRepo,
-  crearBitacoraRepo,
-  crearDevolucionRepo,
-  crearReportesRepo,
-  crearPromocionRepo,
-  crearBackupRepo,
-  crearCotizacionRepo,
-} from "@sfr/core";
+/**
+ * Proveedor de repos (§ PLATAFORMA-07, ola 2).
+ *
+ * Antes, `Repos` y `ProveedorDatos` enumeraban los ~18 repos a mano, y el objeto de
+ * repos se construía como literal en el cuerpo del render SIN `useMemo`: en cuanto este
+ * componente re-renderizara, cambiaba la identidad de `repos` para los ~16 archivos que
+ * llaman `useRepos`, disparando en cascada cada `useEffect([repo])` (Reportes, CorteCaja
+ * y Compras entrarían en bucle de consultas). Ahora la construcción vive en
+ * `crearRepos(db)` (`@sfr/core`, alimentada por `repos/registro.ts`), y este archivo solo
+ * memoriza.
+ *
+ * La dependencia del `useMemo` es ÚNICAMENTE `[db]`, a propósito — NO `[db, sesion]`.
+ * `crearRepos(db)` todavía no acepta sesión (ningún repo individual la acepta hasta
+ * RBAC-04, que la pega al driver); meter `sesion` en las dependencias reconstruiría las
+ * factorías en cada cambio de sesión sin ganar nada hoy, y es exactamente la cascada de
+ * re-render que este refactor busca evitar. La sesión activa se lee aparte, con
+ * `useSesion()`, y solo la consume `AppShell` para filtrar módulos — no los repos.
+ *
+ * `ProveedorDatos` también resuelve la sesión para el árbol que envuelve: si ya hay un
+ * `<ProveedorSesion>` explícito por encima (como en las pruebas que fijan una sesión de
+ * prueba), lo respeta tal cual; si no lo hay —el caso de TODAS las instalaciones hoy,
+ * porque RBAC-05 (pantalla de acceso por PIN) todavía no existe— monta uno por defecto
+ * con `SESION_LOCAL`, para que ni `packages/web/src/main.tsx` ni
+ * `packages/desktop/src/main.tsx` necesiten cambiar una sola línea.
+ */
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { crearRepos, type SqlDriver, type Repos as ReposCore } from "@sfr/core";
+import { ProveedorSesion, useSesionOpcional } from "../sesion/contexto.js";
 
-/** Conjunto de repos disponibles para las pantallas. */
-export interface Repos {
-  producto: ReturnType<typeof crearProductoRepo>;
-  cliente: ReturnType<typeof crearClienteRepo>;
-  departamento: ReturnType<typeof crearDepartamentoRepo>;
-  negocio: ReturnType<typeof crearNegocioRepo>;
-  factura: ReturnType<typeof crearFacturaRepo>;
-  secuenciaNcf: ReturnType<typeof crearSecuenciaNcfRepo>;
-  comprobanteFiscal: ReturnType<typeof crearComprobanteFiscalRepo>;
-  corteCaja: ReturnType<typeof crearCorteCajaRepo>;
-  movimientoInventario: ReturnType<typeof crearMovimientoInventarioRepo>;
-  proveedor: ReturnType<typeof crearProveedorRepo>;
-  compra: ReturnType<typeof crearCompraRepo>;
-  comprobanteArchivo: ReturnType<typeof crearComprobanteArchivoRepo>;
-  bitacora: ReturnType<typeof crearBitacoraRepo>;
-  devolucion: ReturnType<typeof crearDevolucionRepo>;
-  reportes: ReturnType<typeof crearReportesRepo>;
-  promocion: ReturnType<typeof crearPromocionRepo>;
-  backup: ReturnType<typeof crearBackupRepo>;
-  cotizacion: ReturnType<typeof crearCotizacionRepo>;
-  /**
-   * *** SIMULADO — no transmite nada real a la DGII. *** Placeholder hasta
-   * decidir PAC vs integración directa (ver plan.md). Sustituir aquí por la
-   * implementación real cuando esté disponible.
-   */
-  proveedorFiscal: ProveedorFiscal;
-}
+export type Repos = ReposCore;
 
 const ReposContext = createContext<Repos | null>(null);
+
+function ProveedorSesionSiFalta({ children }: { children: ReactNode }) {
+  const existente = useSesionOpcional();
+  if (existente) return <>{children}</>;
+  return <ProveedorSesion>{children}</ProveedorSesion>;
+}
 
 /**
  * Provee los repos a partir de un `SqlDriver` ya migrado. Cada shell (PWA,
  * escritorio) crea su driver y lo pasa aquí; las pantallas son idénticas.
  */
 export function ProveedorDatos({ db, children }: { db: SqlDriver; children: ReactNode }) {
-  const repos: Repos = {
-    producto: crearProductoRepo(db),
-    cliente: crearClienteRepo(db),
-    departamento: crearDepartamentoRepo(db),
-    negocio: crearNegocioRepo(db),
-    factura: crearFacturaRepo(db),
-    secuenciaNcf: crearSecuenciaNcfRepo(db),
-    comprobanteFiscal: crearComprobanteFiscalRepo(db),
-    corteCaja: crearCorteCajaRepo(db),
-    movimientoInventario: crearMovimientoInventarioRepo(db),
-    proveedor: crearProveedorRepo(db),
-    compra: crearCompraRepo(db),
-    comprobanteArchivo: crearComprobanteArchivoRepo(db),
-    bitacora: crearBitacoraRepo(db),
-    devolucion: crearDevolucionRepo(db),
-    reportes: crearReportesRepo(db),
-    promocion: crearPromocionRepo(db),
-    backup: crearBackupRepo(db),
-    cotizacion: crearCotizacionRepo(db),
-    proveedorFiscal: crearProveedorFiscalSimulado(),
-  };
-  return <ReposContext.Provider value={repos}>{children}</ReposContext.Provider>;
+  const repos = useMemo(() => crearRepos(db), [db]);
+  return (
+    <ProveedorSesionSiFalta>
+      <ReposContext.Provider value={repos}>{children}</ReposContext.Provider>
+    </ProveedorSesionSiFalta>
+  );
 }
 
 export function useRepos(): Repos {

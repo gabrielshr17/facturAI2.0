@@ -19,60 +19,10 @@
 // una abre su propia instancia de `node:sqlite` y ninguna la persiste a disco.
 import { render, type RenderResult } from "@testing-library/react";
 import type { ReactElement } from "react";
-import {
-  migrate,
-  seed,
-  type SqlDriver,
-  crearProductoRepo,
-  crearClienteRepo,
-  crearDepartamentoRepo,
-  crearNegocioRepo,
-  crearFacturaRepo,
-  crearSecuenciaNcfRepo,
-  crearComprobanteFiscalRepo,
-  crearProveedorFiscalSimulado,
-  crearCorteCajaRepo,
-  crearMovimientoInventarioRepo,
-  crearProveedorRepo,
-  crearCompraRepo,
-  crearComprobanteArchivoRepo,
-  crearBitacoraRepo,
-  crearDevolucionRepo,
-  crearReportesRepo,
-  crearPromocionRepo,
-  crearBackupRepo,
-  crearCotizacionRepo,
-} from "@sfr/core";
+import { migrate, seed, crearRepos, type SqlDriver, type PortadorSesion } from "@sfr/core";
 import { createNodeSqliteDriver } from "../../core/src/db/drivers/node-sqlite.js";
 import { ProveedorDatos, type Repos } from "../src/data/contexto.js";
-
-// `crearRepos(db)` todavía no existe (llega en PLATAFORMA-07, el andamio de
-// `repos/registro.ts`): mientras tanto se construye aquí el mismo literal de 18 repos que
-// hoy vive en `<ProveedorDatos>`. Cuando ese andamio aterrice, esta función se reemplaza por
-// una sola llamada a `crearRepos(db)` y el resto de este archivo no cambia.
-function crearReposDePrueba(db: SqlDriver): Repos {
-  return {
-    producto: crearProductoRepo(db),
-    cliente: crearClienteRepo(db),
-    departamento: crearDepartamentoRepo(db),
-    negocio: crearNegocioRepo(db),
-    factura: crearFacturaRepo(db),
-    secuenciaNcf: crearSecuenciaNcfRepo(db),
-    comprobanteFiscal: crearComprobanteFiscalRepo(db),
-    corteCaja: crearCorteCajaRepo(db),
-    movimientoInventario: crearMovimientoInventarioRepo(db),
-    proveedor: crearProveedorRepo(db),
-    compra: crearCompraRepo(db),
-    comprobanteArchivo: crearComprobanteArchivoRepo(db),
-    bitacora: crearBitacoraRepo(db),
-    devolucion: crearDevolucionRepo(db),
-    reportes: crearReportesRepo(db),
-    promocion: crearPromocionRepo(db),
-    backup: crearBackupRepo(db),
-    cotizacion: crearCotizacionRepo(db),
-    proveedorFiscal: crearProveedorFiscalSimulado(),
-  };
-}
+import { ProveedorSesion } from "../src/sesion/contexto.js";
 
 export interface ResultadoRenderConDatos extends RenderResult {
   db: SqlDriver;
@@ -84,12 +34,22 @@ export interface ResultadoRenderConDatos extends RenderResult {
  * sembrada. Devuelve, además de lo habitual de `render()`, el `db` y los `repos` ya
  * construidos, para que una prueba pueda inspeccionar o mutar el estado sin tener que armar
  * un componente-sonda cada vez.
+ *
+ * `crearRepos(db)` (`@sfr/core`, § PLATAFORMA-07) reemplazó al literal de 18 repos que este
+ * archivo construía a mano — ver el aviso que había aquí antes de esa tarea.
+ *
+ * `sesion`, si se pasa, monta un `<ProveedorSesion sesionInicial={sesion}>` POR FUERA de
+ * `<ProveedorDatos>`: `ProveedorDatos` detecta que ya hay una sesión explícita por encima
+ * (§ `ProveedorSesionSiFalta` en `data/contexto.tsx`) y no la pisa con `SESION_LOCAL`. Sin
+ * este parámetro, el comportamiento es el de cualquier instalación real: `SESION_LOCAL`,
+ * todos los módulos visibles.
  */
-export async function renderConDatos(ui: ReactElement): Promise<ResultadoRenderConDatos> {
+export async function renderConDatos(ui: ReactElement, sesion?: PortadorSesion): Promise<ResultadoRenderConDatos> {
   const db = createNodeSqliteDriver();
   await migrate(db);
   await seed(db);
-  const repos = crearReposDePrueba(db);
-  const resultado = render(<ProveedorDatos db={db}>{ui}</ProveedorDatos>);
+  const repos = crearRepos(db);
+  const arbol = <ProveedorDatos db={db}>{ui}</ProveedorDatos>;
+  const resultado = render(sesion ? <ProveedorSesion sesionInicial={sesion}>{arbol}</ProveedorSesion> : arbol);
   return { ...resultado, db, repos };
 }

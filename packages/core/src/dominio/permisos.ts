@@ -216,3 +216,18 @@ export class PermisoError extends Error {
     this.name = "PermisoError";
   }
 }
+
+/**
+ * Sesión por defecto que reproduce el comportamiento actual en instalaciones sin login
+ * (§ PLATAFORMA-07, ola 2): rol `superadmin` con todos los permisos, para no bloquear
+ * ningún módulo ni acción hasta que RBAC-04 (guardia en los repos) y RBAC-05 (proveedor
+ * de sesión real con pantalla de acceso por PIN) traigan usuarios reales. `useSesion()`
+ * de `packages/ui/src/sesion/contexto.tsx` usa este valor como default del contexto, y
+ * `crearRepos(db)` de `packages/core/src/repos/index.ts` NO la consume todavía: ningún
+ * repo acepta sesión hasta RBAC-04.
+ */
+export const SESION_LOCAL: PortadorSesion = {
+  usuarioId: null,
+  rol: "superadmin",
+  permisos: new Set(PERMISOS),
+};
