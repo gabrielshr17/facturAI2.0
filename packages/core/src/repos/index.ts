@@ -140,3 +140,13 @@ export {
   type FiltroCotizaciones,
   type CotizacionRepo,
 } from "./cotizacion-repo.js";
+export {
+  crearCajaRepo,
+  validarCaja,
+  type CajaInput,
+  type CajaRepo,
+} from "./caja-repo.js";
+export {
+  crearInstalacionRepo,
+  type InstalacionRepo,
+} from "./instalacion-repo.js";
