@@ -54,3 +54,16 @@ export {
   SESION_LOCAL,
 } from "./permisos.js";
 export { hashearPin, verificarPin, CriptoNoDisponibleError } from "./pin.js";
+export {
+  DESFASE_RD_MIN,
+  fechaLocalDeInstante,
+  horaLocalDeInstante,
+  inicioDiaUtc,
+  finDiaUtcExclusivo,
+  rangoUtc,
+  modificadorSqlite,
+  hoyLocal,
+  primerDiaDelMesLocal,
+  periodoAnterior,
+  mesAnteriorDe,
+} from "./periodo.js";
