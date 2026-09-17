@@ -8,5 +8,6 @@ export { Ventas } from "./pantallas/Ventas.js";
 export { Productos } from "./pantallas/Productos.js";
 export { Clientes } from "./pantallas/Clientes.js";
 export { Configuracion } from "./pantallas/Configuracion.js";
+export { Personal } from "./pantallas/Personal.js";
 export { configurarAdaptadorImpresora, type AdaptadorImpresora } from "./impresion/termica.js";
 export { configurarAdaptadorImpresoraTexto, type AdaptadorImpresoraTexto } from "./impresion/termica.js";
