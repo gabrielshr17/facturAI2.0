@@ -24,6 +24,7 @@ export interface AbrirTicketInput {
   caja_id?: string | null;
   usuario_id?: string | null;
   cliente_id?: string | null;
+  prefijo_caja?: string | null;
 }
 
 export interface FiltroFacturasCobradas {
@@ -53,6 +54,8 @@ export interface AgregarLineaInput {
   esMayoreo?: boolean;
   impuestoTipo: ImpuestoTipo;
   tasaImpuesto: number;
+  nivelPrecio?: string | null;
+  costoUnitario?: number | null;
 }
 
 function validarLinea(input: AgregarLineaInput): ErrorValidacion[] {
@@ -82,10 +85,11 @@ function validarPagos(pagos: PagoInput[]): ErrorValidacion[] {
 
 const COLS_FACTURA = `id, numero_interno, fecha_hora, cliente_id, caja_id, usuario_id, tipo,
   subtotal_gravado, subtotal_exento, total_itbis, total, monto_pagado, cambio, notas, estado,
-  comprobante_id, created_at, updated_at, deleted_at`;
+  comprobante_id, prefijo_caja, created_at, updated_at, deleted_at`;
 
 const COLS_LINEA = `id, factura_id, producto_id, descripcion, cantidad, precio_unitario,
-  es_mayoreo, impuesto_tipo, tasa_impuesto, monto_itbis, subtotal, created_at, updated_at, deleted_at`;
+  es_mayoreo, impuesto_tipo, tasa_impuesto, monto_itbis, subtotal, nivel_precio, costo_unitario,
+  created_at, updated_at, deleted_at`;
 
 const COLS_PAGO = `id, factura_id, metodo, monto, referencia, created_at, updated_at, deleted_at`;
 
@@ -192,17 +196,18 @@ export function crearFacturaRepo(db: SqlDriver) {
         notas: null,
         estado: "abierta",
         comprobante_id: null,
+        prefijo_caja: input.prefijo_caja ?? null,
         created_at: ts,
         updated_at: ts,
         deleted_at: null,
       };
 
       await db.run(
-        `INSERT INTO factura (${COLS_FACTURA}) VALUES (${Array(19).fill("?").join(",")})`,
+        `INSERT INTO factura (${COLS_FACTURA}) VALUES (${Array(20).fill("?").join(",")})`,
         [
           f.id, f.numero_interno, f.fecha_hora, f.cliente_id, f.caja_id, f.usuario_id, f.tipo,
           f.subtotal_gravado, f.subtotal_exento, f.total_itbis, f.total, f.monto_pagado, f.cambio,
-          f.notas, f.estado, f.comprobante_id, f.created_at, f.updated_at, f.deleted_at,
+          f.notas, f.estado, f.comprobante_id, f.prefijo_caja, f.created_at, f.updated_at, f.deleted_at,
         ],
       );
       return f;
@@ -258,16 +263,19 @@ export function crearFacturaRepo(db: SqlDriver) {
         tasa_impuesto: input.tasaImpuesto,
         monto_itbis: calc.montoItbis,
         subtotal: calc.subtotal,
+        nivel_precio: input.nivelPrecio ?? null,
+        costo_unitario: input.costoUnitario ?? null,
         created_at: ts,
         updated_at: ts,
         deleted_at: null,
       };
 
       await db.run(
-        `INSERT INTO factura_linea (${COLS_LINEA}) VALUES (${Array(14).fill("?").join(",")})`,
+        `INSERT INTO factura_linea (${COLS_LINEA}) VALUES (${Array(16).fill("?").join(",")})`,
         [
           l.id, l.factura_id, l.producto_id, l.descripcion, l.cantidad, l.precio_unitario,
           l.es_mayoreo, l.impuesto_tipo, l.tasa_impuesto, l.monto_itbis, l.subtotal,
+          l.nivel_precio, l.costo_unitario,
           l.created_at, l.updated_at, l.deleted_at,
         ],
       );

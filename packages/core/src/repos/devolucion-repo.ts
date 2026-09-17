@@ -18,11 +18,13 @@ import type { Devolucion, DevolucionLinea, FacturaLinea } from "./tipos.js";
 export interface LineaDevolucionInput {
   facturaLineaId: string;
   cantidad: number;
+  nivelPrecio?: string | null;
 }
 
 export interface DevolucionInput {
   facturaId: string;
   motivo?: string | null;
+  metodoDevolucion?: string | null;
   lineas: LineaDevolucionInput[];
 }
 
@@ -36,16 +38,18 @@ interface LineaPreparada {
   tasaImpuesto: number;
   montoItbis: number;
   subtotal: number;
+  nivelPrecio: string | null;
 }
 
 const COLS_FACTURA_LINEA = `id, factura_id, producto_id, descripcion, cantidad, precio_unitario,
   es_mayoreo, impuesto_tipo, tasa_impuesto, monto_itbis, subtotal, created_at, updated_at, deleted_at`;
 
 const COLS_DEVOLUCION = `id, factura_id, fecha, motivo, subtotal, itbis, total, comprobante_id,
-  created_at, updated_at, deleted_at`;
+  metodo_devolucion, created_at, updated_at, deleted_at`;
 
 const COLS_LINEA = `id, devolucion_id, factura_linea_id, producto_id, descripcion, cantidad,
-  precio_unitario, impuesto_tipo, tasa_impuesto, monto_itbis, subtotal, created_at, updated_at, deleted_at`;
+  precio_unitario, impuesto_tipo, tasa_impuesto, monto_itbis, subtotal, nivel_precio,
+  created_at, updated_at, deleted_at`;
 
 /**
  * Valida la devolución (factura cobrada, líneas pertenecen a esa factura,
@@ -102,6 +106,7 @@ export async function prepararDevolucion(
       tasaImpuesto: linea.tasa_impuesto,
       montoItbis: calc.montoItbis,
       subtotal: calc.subtotal,
+      nivelPrecio: li.nivelPrecio ?? null,
     });
   }
 
@@ -158,13 +163,17 @@ export function crearDevolucionRepo(db: SqlDriver) {
         itbis: preparada.totalItbis,
         total: preparada.total,
         comprobante_id: null,
+        metodo_devolucion: input.metodoDevolucion ?? null,
         created_at: ts,
         updated_at: ts,
         deleted_at: null,
       };
       await db.run(
-        `INSERT INTO devolucion (${COLS_DEVOLUCION}) VALUES (${Array(11).fill("?").join(",")})`,
-        [d.id, d.factura_id, d.fecha, d.motivo, d.subtotal, d.itbis, d.total, d.comprobante_id, d.created_at, d.updated_at, d.deleted_at],
+        `INSERT INTO devolucion (${COLS_DEVOLUCION}) VALUES (${Array(12).fill("?").join(",")})`,
+        [
+          d.id, d.factura_id, d.fecha, d.motivo, d.subtotal, d.itbis, d.total, d.comprobante_id,
+          d.metodo_devolucion, d.created_at, d.updated_at, d.deleted_at,
+        ],
       );
 
       for (const l of preparada.lineas) {
@@ -180,16 +189,18 @@ export function crearDevolucionRepo(db: SqlDriver) {
           tasa_impuesto: l.tasaImpuesto,
           monto_itbis: l.montoItbis,
           subtotal: l.subtotal,
+          nivel_precio: l.nivelPrecio,
           created_at: ts,
           updated_at: ts,
           deleted_at: null,
         };
         await db.run(
-          `INSERT INTO devolucion_linea (${COLS_LINEA}) VALUES (${Array(14).fill("?").join(",")})`,
+          `INSERT INTO devolucion_linea (${COLS_LINEA}) VALUES (${Array(15).fill("?").join(",")})`,
           [
             linea.id, linea.devolucion_id, linea.factura_linea_id, linea.producto_id, linea.descripcion,
             linea.cantidad, linea.precio_unitario, linea.impuesto_tipo, linea.tasa_impuesto,
-            linea.monto_itbis, linea.subtotal, linea.created_at, linea.updated_at, linea.deleted_at,
+            linea.monto_itbis, linea.subtotal, linea.nivel_precio,
+            linea.created_at, linea.updated_at, linea.deleted_at,
           ],
         );
       }

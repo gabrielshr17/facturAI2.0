@@ -26,6 +26,15 @@ export interface Compra extends Auditoria {
   estado_clasificacion: EstadoClasificacionCompra;
   origen: OrigenCompra;
   notas: string | null;
+  /** Condición de pago pactada con el proveedor (§ COMPRAS: cuentas por pagar). */
+  condicion_pago: string | null;
+  dias_credito: number | null;
+  fecha_vencimiento: string | null;
+  monto_pagado: number | null;
+  estado_pago: string | null;
+  /** Estado de recepción física de la mercancía (§ COMPRAS: recepción parcial). */
+  estado_recepcion: string | null;
+  fecha_recepcion: string | null;
 }
 
 export interface CompraLinea extends Auditoria {
@@ -39,6 +48,8 @@ export interface CompraLinea extends Auditoria {
   tasa_impuesto: number;
   monto_itbis: number;
   subtotal: number;
+  /** Cantidad físicamente recibida (§ COMPRAS: recepción parcial). */
+  cantidad_recibida: number | null;
 }
 
 export type EstadoRevisionComprobante = "auto" | "confirmado_usuario" | "pendiente";

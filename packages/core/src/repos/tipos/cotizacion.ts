@@ -32,4 +32,6 @@ export interface CotizacionLinea extends Auditoria {
   tasa_impuesto: number;
   monto_itbis: number;
   subtotal: number;
+  /** Nivel de precio ofrecido (§ PRECIOS), para que sobreviva si se convierte en venta. */
+  nivel_precio: string | null;
 }

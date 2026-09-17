@@ -22,6 +22,8 @@ export interface Factura extends Auditoria {
   notas: string | null;
   estado: EstadoFactura;
   comprobante_id: string | null;
+  /** Prefijo de la caja que emitió el ticket (§ MULTICAJA: numeración C1-000123). */
+  prefijo_caja: string | null;
 }
 
 export interface FacturaLinea extends Auditoria {
@@ -36,6 +38,10 @@ export interface FacturaLinea extends Auditoria {
   tasa_impuesto: number;
   monto_itbis: number;
   subtotal: number;
+  /** Nivel de precio cobrado en esta línea (§ PRECIOS). */
+  nivel_precio: string | null;
+  /** Costo del producto al momento de la venta (§ margen real, BACKOFFICE/COMPRAS). */
+  costo_unitario: number | null;
 }
 
 export interface Pago extends Auditoria {

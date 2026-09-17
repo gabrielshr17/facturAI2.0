@@ -141,6 +141,29 @@ describe("facturaRepo — armar ticket (§7.1)", () => {
       repo.agregarLinea(t.id, { descripcion: "X", cantidad: 0, precioUnitario: 10, impuestoTipo: "exento", tasaImpuesto: 0 }),
     ).rejects.toBeInstanceOf(ValidacionError);
   });
+
+  it("ida y vuelta: factura.prefijo_caja y factura_linea.nivel_precio/costo_unitario", async () => {
+    const repo = crearFacturaRepo(db);
+    const t = await repo.abrirTicket({ prefijo_caja: "C1" });
+    expect(t.prefijo_caja).toBe("C1");
+    expect((await repo.obtener(t.id))?.prefijo_caja).toBe("C1");
+
+    const linea = await repo.agregarLinea(t.id, {
+      descripcion: "Arroz 5lb",
+      cantidad: 1,
+      precioUnitario: 59,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
+      nivelPrecio: "mayoreo",
+      costoUnitario: 40,
+    });
+    expect(linea.nivel_precio).toBe("mayoreo");
+    expect(linea.costo_unitario).toBe(40);
+
+    const [leida] = await repo.obtenerLineas(t.id);
+    expect(leida.nivel_precio).toBe("mayoreo");
+    expect(leida.costo_unitario).toBe(40);
+  });
 });
 
 describe("facturaRepo — cobrar (§7.2)", () => {

@@ -19,6 +19,12 @@ export interface NegocioInput {
   ancho_impresora_default?: 58 | 80;
   redondeo_centavo?: boolean;
   inventario_activo?: boolean;
+  desfase_horario_min?: number | null;
+  politica_costo?: string | null;
+  umbral_aviso_costo_pct?: number | null;
+  exige_caja_abierta?: boolean;
+  arqueo_ciego?: boolean | null;
+  umbral_diferencia_caja?: number | null;
 }
 
 export function validarNegocio(input: NegocioInput): ErrorValidacion[] {
@@ -40,6 +46,8 @@ export function validarNegocio(input: NegocioInput): ErrorValidacion[] {
 
 const COLS = `id, nombre_comercial, razon_social, rnc, direccion, telefono, correo,
   logo_ruta, regimen, ancho_impresora_default, redondeo_centavo, inventario_activo,
+  desfase_horario_min, politica_costo, umbral_aviso_costo_pct, exige_caja_abierta,
+  arqueo_ciego, umbral_diferencia_caja,
   created_at, updated_at, deleted_at`;
 
 export function crearNegocioRepo(db: SqlDriver) {
@@ -73,16 +81,25 @@ export function crearNegocioRepo(db: SqlDriver) {
           ancho_impresora_default: input.ancho_impresora_default ?? 80,
           redondeo_centavo: input.redondeo_centavo === false ? 0 : 1,
           inventario_activo: input.inventario_activo ? 1 : 0,
+          desfase_horario_min: input.desfase_horario_min ?? null,
+          politica_costo: input.politica_costo ?? null,
+          umbral_aviso_costo_pct: input.umbral_aviso_costo_pct ?? null,
+          exige_caja_abierta: input.exige_caja_abierta ? 1 : 0,
+          arqueo_ciego: input.arqueo_ciego == null ? null : (input.arqueo_ciego ? 1 : 0),
+          umbral_diferencia_caja: input.umbral_diferencia_caja ?? null,
           created_at: ts,
           updated_at: ts,
           deleted_at: null,
         };
         await db.run(
-          `INSERT INTO negocio (${COLS}) VALUES (${Array(15).fill("?").join(",")})`,
+          `INSERT INTO negocio (${COLS}) VALUES (${Array(21).fill("?").join(",")})`,
           [
             n.id, n.nombre_comercial, n.razon_social, n.rnc, n.direccion, n.telefono, n.correo,
             n.logo_ruta, n.regimen, n.ancho_impresora_default, n.redondeo_centavo,
-            n.inventario_activo, n.created_at, n.updated_at, n.deleted_at,
+            n.inventario_activo,
+            n.desfase_horario_min, n.politica_costo, n.umbral_aviso_costo_pct,
+            n.exige_caja_abierta, n.arqueo_ciego, n.umbral_diferencia_caja,
+            n.created_at, n.updated_at, n.deleted_at,
           ],
         );
         return n;
@@ -91,6 +108,8 @@ export function crearNegocioRepo(db: SqlDriver) {
       await db.run(
         `UPDATE negocio SET nombre_comercial=?, razon_social=?, rnc=?, direccion=?, telefono=?,
            correo=?, regimen=?, ancho_impresora_default=?, redondeo_centavo=?, inventario_activo=?,
+           desfase_horario_min=?, politica_costo=?, umbral_aviso_costo_pct=?,
+           exige_caja_abierta=?, arqueo_ciego=?, umbral_diferencia_caja=?,
            updated_at=?
          WHERE id=?`,
         [
@@ -104,6 +123,14 @@ export function crearNegocioRepo(db: SqlDriver) {
           input.ancho_impresora_default ?? actual.ancho_impresora_default,
           input.redondeo_centavo === false ? 0 : 1,
           input.inventario_activo ? 1 : 0,
+          input.desfase_horario_min ?? actual.desfase_horario_min,
+          input.politica_costo ?? actual.politica_costo,
+          input.umbral_aviso_costo_pct ?? actual.umbral_aviso_costo_pct,
+          input.exige_caja_abierta !== undefined ? (input.exige_caja_abierta ? 1 : 0) : actual.exige_caja_abierta,
+          input.arqueo_ciego !== undefined
+            ? (input.arqueo_ciego == null ? null : (input.arqueo_ciego ? 1 : 0))
+            : actual.arqueo_ciego,
+          input.umbral_diferencia_caja ?? actual.umbral_diferencia_caja,
           ts, actual.id,
         ],
       );

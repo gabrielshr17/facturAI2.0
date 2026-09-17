@@ -22,6 +22,7 @@ export interface LineaCotizacionInput {
   precioUnitario: number;
   impuestoTipo: ImpuestoTipo;
   tasaImpuesto: number;
+  nivelPrecio?: string | null;
 }
 
 export interface CrearCotizacionInput {
@@ -68,7 +69,8 @@ const COLS_COTIZACION = `id, numero_interno, fecha_hora, fecha_vencimiento, clie
   created_at, updated_at, deleted_at`;
 
 const COLS_LINEA = `id, cotizacion_id, producto_id, descripcion, cantidad, precio_unitario,
-  impuesto_tipo, tasa_impuesto, monto_itbis, subtotal, created_at, updated_at, deleted_at`;
+  impuesto_tipo, tasa_impuesto, monto_itbis, subtotal, nivel_precio,
+  created_at, updated_at, deleted_at`;
 
 export function crearCotizacionRepo(db: SqlDriver) {
   const repo = {
@@ -135,16 +137,17 @@ export function crearCotizacionRepo(db: SqlDriver) {
           tasa_impuesto: l.tasaImpuesto,
           monto_itbis: calc.montoItbis,
           subtotal: calc.subtotal,
+          nivel_precio: l.nivelPrecio ?? null,
           created_at: ts,
           updated_at: ts,
           deleted_at: null,
         };
         await db.run(
-          `INSERT INTO cotizacion_linea (${COLS_LINEA}) VALUES (${Array(13).fill("?").join(",")})`,
+          `INSERT INTO cotizacion_linea (${COLS_LINEA}) VALUES (${Array(14).fill("?").join(",")})`,
           [
             linea.id, linea.cotizacion_id, linea.producto_id, linea.descripcion, linea.cantidad,
             linea.precio_unitario, linea.impuesto_tipo, linea.tasa_impuesto, linea.monto_itbis,
-            linea.subtotal, linea.created_at, linea.updated_at, linea.deleted_at,
+            linea.subtotal, linea.nivel_precio, linea.created_at, linea.updated_at, linea.deleted_at,
           ],
         );
       }

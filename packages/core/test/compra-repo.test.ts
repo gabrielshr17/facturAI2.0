@@ -139,4 +139,40 @@ describe("compraRepo — registrar compra (§ Compras e inventario)", () => {
     const porPeriodo = await compras.listar({ desde: "2026-07-01", hasta: "2026-07-31" });
     expect(porPeriodo.map((c) => c.id)).toEqual([c1.id]);
   });
+
+  it("ida y vuelta: columnas del censo de compra y compra_linea", async () => {
+    const compras = crearCompraRepo(db);
+    const compra = await compras.crear({
+      condicion_pago: "credito_30",
+      dias_credito: 30,
+      fecha_vencimiento: "2026-08-15",
+      monto_pagado: 100,
+      estado_pago: "parcial",
+      estado_recepcion: "completa",
+      fecha_recepcion: "2026-07-16",
+      lineas: [
+        { descripcion: "Arroz 5lb", cantidad: 10, costoUnitario: 40, impuestoTipo: "itbis18", tasaImpuesto: 0.18, cantidadRecibida: 8 },
+      ],
+    });
+
+    expect(compra.condicion_pago).toBe("credito_30");
+    expect(compra.dias_credito).toBe(30);
+    expect(compra.fecha_vencimiento).toBe("2026-08-15");
+    expect(compra.monto_pagado).toBe(100);
+    expect(compra.estado_pago).toBe("parcial");
+    expect(compra.estado_recepcion).toBe("completa");
+    expect(compra.fecha_recepcion).toBe("2026-07-16");
+
+    const releida = await compras.obtener(compra.id);
+    expect(releida?.condicion_pago).toBe("credito_30");
+    expect(releida?.dias_credito).toBe(30);
+    expect(releida?.fecha_vencimiento).toBe("2026-08-15");
+    expect(releida?.monto_pagado).toBe(100);
+    expect(releida?.estado_pago).toBe("parcial");
+    expect(releida?.estado_recepcion).toBe("completa");
+    expect(releida?.fecha_recepcion).toBe("2026-07-16");
+
+    const [linea] = await compras.obtenerLineas(compra.id);
+    expect(linea.cantidad_recibida).toBe(8);
+  });
 });
