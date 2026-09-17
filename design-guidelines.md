@@ -139,9 +139,18 @@ Prefijo de moneda `RD$` con espacio: `RD$ 1,600.00`.
 | Modal encima de otro modal (`ModalConfirmarCambios`) | 150 |
 | Fondo del cajón / cajón de navegación | 290 / 300 |
 | Enlace "saltar al contenido" | 400 |
-| `confirmar()` / `avisar()` / `elegir()` — siempre lo más alto | 500 |
+| `confirmar()` / `avisar()` / `elegir()` | 500 |
+| Pantalla de Acceso (selección de usuario + teclado de PIN) | 600 |
+| Modal de "definir PIN" del primer arranque, siempre por encima de Acceso | 650 |
 
-Un modal nuevo entra en 100 salvo que tenga que aparecer sobre otro.
+Un modal nuevo entra en 100 salvo que tenga que aparecer sobre otro. La pantalla de
+Acceso (§ RBAC-05) reemplaza a `<AppShell>` entero mientras no hay sesión — no es un
+modal sobre la app, es la app — pero se le asigna 600, por encima de
+`useAlertas()` (500), porque una instalación recién actualizada puede quedar con un
+`avisar()` en vuelo (p. ej. un error de conexión disparado antes del login) y el
+aviso no debe quedar tapado por la pantalla de acceso que aparece encima. El modal
+de "definir tu PIN" del primer arranque vive DENTRO de Acceso pero se declara un
+peldaño más arriba (650) por la misma razón, un nivel más.
 
 ---
 
@@ -279,6 +288,24 @@ Es la característica más importante del producto, no un extra de accesibilidad
 | `Supr` | Eliminar la fila resaltada |
 | `↑ ↓` | Mover el foco entre campos / mover la fila resaltada |
 | `← →` | Recorrer las acciones de la fila resaltada |
+
+### Pantalla de Acceso (§ RBAC-05)
+
+La pantalla de Acceso (selección de usuario + PIN) es operable sin mouse de punta a
+punta, con las mismas convenciones que el resto de la app y sin inventar atajos
+nuevos que choquen con lo de arriba:
+
+| Tecla | Significado |
+|---|---|
+| `Tab` / `Shift+Tab` | Moverse entre la lista de usuarios y el teclado numérico |
+| `0…9` | Escribir el dígito correspondiente del PIN (teclado físico, no solo táctil) |
+| `Retroceso` | Borrar el último dígito del PIN |
+| `Enter` | Confirmar el PIN (igual que pulsar el botón "Entrar") |
+| `Esc` | Volver a la selección de usuario desde el teclado de PIN |
+
+No hay atajo global para "abrir Acceso" ni para "cerrar sesión" desde dentro de
+`AppShell` en esta tarea (RBAC-05): cerrar sesión es un botón de la cabecera, sin
+tecla dedicada, para no competir con `Alt+1…9` de navegación entre módulos.
 
 En Ventas, además: `F5` cotizar, `F7` producto suelto, `F8` mayoreo, `F9` consulta
 de precio, `F12` cobrar, `Insert` cantidad específica, `+`/`-` cantidad de la línea

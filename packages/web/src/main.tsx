@@ -1,9 +1,21 @@
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { AppShell, ProveedorDatos } from "@sfr/ui";
-import { migrate, seed, type SqlDriver } from "@sfr/core";
+import { AppShell, ProveedorDatos, ProveedorSesion, Acceso, useSesion } from "@sfr/ui";
+import { migrate, seed, crearUsuarioRepo, type SqlDriver } from "@sfr/core";
 import { crearSqlJsDriver } from "./db/sqljs-driver.js";
 import "@sfr/ui/estilos-globales.css";
+
+/**
+ * Compuerta de sesión (§ RBAC-05): mientras `autenticado` es `false` la app entera
+ * es la pantalla de Acceso, no un módulo más — `AppShell` (y con él, `Ventas`, la
+ * bitácora, etc.) no se monta hasta que hay una sesión real. Vive DENTRO de
+ * `<ProveedorDatos>` porque `<Acceso>` necesita `usuarioRepo.listar()` /
+ * `.autenticar()` igual que cualquier pantalla.
+ */
+function Compuerta({ plataforma }: { plataforma: "Web" | "Escritorio" }) {
+  const { autenticado } = useSesion();
+  return autenticado ? <AppShell plataforma={plataforma} /> : <Acceso />;
+}
 
 /**
  * Arranque de la PWA: inicializa SQLite (sql.js + IndexedDB), aplica migraciones
@@ -41,10 +53,21 @@ function App() {
   if (!db) {
     return <div style={{ padding: 24, fontFamily: "system-ui", color: "#6b7280" }}>Cargando base de datos…</div>;
   }
+  // Re-validación contra la base (criterio de aceptación de RBAC-05): una marca de
+  // `sessionStorage` de un usuario que se desactivó o eliminó mientras la pestaña
+  // estaba abierta NO se acepta a ciegas. `crearUsuarioRepo(db)` usa el driver CRUDO
+  // a propósito: la restauración de sesión ocurre ANTES de que exista cualquier
+  // sesión que el guardia de RBAC-04 pudiera exigir.
+  async function revalidarUsuarioActivo(usuarioId: string): Promise<boolean> {
+    const fila = await crearUsuarioRepo(db!).obtener(usuarioId);
+    return fila?.activo === 1;
+  }
   return (
-    <ProveedorDatos db={db}>
-      <AppShell plataforma="Web" />
-    </ProveedorDatos>
+    <ProveedorSesion db={db} revalidarUsuarioActivo={revalidarUsuarioActivo}>
+      <ProveedorDatos>
+        <Compuerta plataforma="Web" />
+      </ProveedorDatos>
+    </ProveedorSesion>
   );
 }
 
