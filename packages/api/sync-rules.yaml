@@ -31,6 +31,11 @@ bucket_definitions:
       - SELECT * FROM compra
       - SELECT * FROM compra_linea
       - SELECT * FROM comprobante_archivo
+      - SELECT * FROM devolucion
+      - SELECT * FROM devolucion_linea
+      - SELECT * FROM promocion
+      - SELECT * FROM cotizacion
+      - SELECT * FROM cotizacion_linea
       # bitacora_accion: normalmente de solo-escritura/auditoría, no hace
       # falta que el cliente la lea de vuelta salvo para mostrarla en una
       # pantalla de auditoría (evaluar si conviene un bucket aparte).
