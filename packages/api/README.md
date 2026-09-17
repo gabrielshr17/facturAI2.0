@@ -13,29 +13,41 @@ proyecto real de Supabase ni de PowerSync todavía**:
   configurados (`supabaseConfigurado`/`powersyncConfigurado`), no si están
   *funcionando*.
 - Auth (`src/plugins/auth.ts`): sin credenciales, todas las solicitudes pasan
-  como un usuario de desarrollo fijo (`dev-local`). Con credenciales
-  presentes pero sin cliente Supabase implementado, responde `501` en vez de
-  fingir que validó el token — **no hay verificación real de JWT todavía**.
+  como un usuario de desarrollo fijo (`dev-local`) — modo esperado en 100%
+  local, nunca en producción. **Con credenciales presentes, la verificación
+  de JWT contra Supabase Auth ya está implementada** (`@supabase/supabase-js`,
+  `supabase.auth.getUser(token)`): token ausente, inválido o un fallo de red
+  al verificarlo responden `401` explícito, nunca se asume válido. Ver
+  `test/auth.test.ts` para los casos cubiertos (mock de `@supabase/supabase-js`).
 - `POST /fiscal/transmitir` (§ Módulo fiscal): responde `501` siempre. Sigue
   pendiente la decisión "PAC certificado vs. integración directa a la DGII"
   (ver `plan.md`, "Decisiones aún pendientes"). El cliente hoy usa
   `crearProveedorFiscalSimulado()` de `@sfr/core` para desarrollo.
 - `db/schema.sql`: traducción a Postgres de las migraciones SQLite de
-  `@sfr/core`, lista para correr contra el Postgres de un proyecto Supabase
-  cuando exista (no se ejecuta sola).
+  `@sfr/core` (bandas 00-base, 11-compartido, 20-rbac, 30-multicaja y
+  80-backoffice; 40/50/60/70 siguen vacías en `@sfr/core` y no tienen nada
+  que traducir todavía), lista para correr contra el Postgres de un proyecto
+  Supabase cuando exista (no se ejecuta sola).
 - `sync-rules.yaml`: reglas de PowerSync de referencia (bucket único,
   asumiendo negocio single-tenant); se sube al dashboard de PowerSync cuando
-  haya un proyecto.
+  haya un proyecto. `usuario_seguridad` queda fuera a propósito (mismo
+  criterio que `packages/core/src/repos/backup-repo.ts`): es estado
+  operativo de control de acceso, no dato de negocio que el cliente necesite
+  releer.
 
 ## Qué falta para activarlo de verdad
 
 1. Crear un proyecto de **Supabase** → copiar `SUPABASE_URL` y
    `SUPABASE_SERVICE_ROLE_KEY` a `.env` (ver `.env.example`).
-2. Correr `db/schema.sql` contra el Postgres de ese proyecto.
-3. Implementar la verificación real de JWT en `src/plugins/auth.ts` (paquete
-   `@supabase/supabase-js`, `supabase.auth.getUser(token)`).
-4. Crear un proyecto de **PowerSync**, apuntarlo al mismo Postgres, subir
+2. Correr `db/schema.sql` contra el Postgres de ese proyecto y confirmar que
+   no hay errores de sintaxis que solo un Postgres real detecta (la
+   traducción se hizo a mano, sin ejecutarla todavía contra un servidor).
+3. Crear un proyecto de **PowerSync**, apuntarlo al mismo Postgres, subir
    `sync-rules.yaml`, y copiar `POWERSYNC_URL` a `.env`.
+4. Probar el login real de punta a punta con un usuario de prueba de
+   Supabase Auth (crear el usuario, pedirle un JWT, mandarlo en
+   `Authorization: Bearer <token>` a una ruta protegida) — los tests de hoy
+   solo cubren la lógica con un mock, no un proyecto real.
 5. Implementar `POST /fiscal/transmitir` una vez decidido PAC vs. DGII
    directo (certificado digital, custodia de credenciales, etc. — ver
    `plan.md`).
