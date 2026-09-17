@@ -36,6 +36,7 @@ import { crearBackupRepo } from "./backup-repo.js";
 import { crearCotizacionRepo } from "./cotizacion-repo.js";
 import { crearCajaRepo } from "./caja-repo.js";
 import { crearInstalacionRepo } from "./instalacion-repo.js";
+import { crearUsuarioRepo } from "./usuario-repo.js";
 
 export const REGISTRO_REPOS = {
   producto: crearProductoRepo,
@@ -58,4 +59,5 @@ export const REGISTRO_REPOS = {
   cotizacion: crearCotizacionRepo,
   caja: crearCajaRepo,
   instalacion: crearInstalacionRepo,
+  usuario: crearUsuarioRepo,
 } as const satisfies Record<string, (db: SqlDriver) => unknown>;

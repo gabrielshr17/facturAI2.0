@@ -150,3 +150,12 @@ export {
   crearInstalacionRepo,
   type InstalacionRepo,
 } from "./instalacion-repo.js";
+export {
+  crearUsuarioRepo,
+  validarUsuario,
+  type UsuarioInput,
+  type CambiarPinInput,
+  type AutenticarInput,
+  type ResultadoAutenticacion,
+  type UsuarioRepo,
+} from "./usuario-repo.js";
