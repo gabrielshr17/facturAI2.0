@@ -1,5 +1,5 @@
 import Database from "@tauri-apps/plugin-sql";
-import type { SqlDriver } from "@sfr/core";
+import { partirStatements, type SqlDriver } from "@sfr/core";
 
 /**
  * Driver SqlDriver para el escritorio (Tauri), sobre `tauri-plugin-sql`
@@ -9,17 +9,23 @@ import type { SqlDriver } from "@sfr/core";
  * `execute()` de sqlx solo acepta un statement por llamada, a diferencia de
  * `db.run()` de sql.js/node:sqlite (que aceptan un lote de statements
  * separados por `;`). Como las migraciones de `core` llegan como un solo
- * string con varios `CREATE TABLE`/`ALTER TABLE`, `exec()` los separa aquí.
+ * string con varios `CREATE TABLE`/`ALTER TABLE`, `exec()` los separa aquí
+ * con `partirStatements` de core (ya no un `split(";")` ingenuo: ese split
+ * rompía un ';' dentro de un literal, de un comentario `--` o de un trigger).
+ *
+ * NO implementa `enTransaccion` a propósito: `db.execute()` de
+ * `tauri-plugin-sql` corre contra un *pool* de conexiones de sqlx, y cada
+ * llamada puede tomar una conexión distinta del pool. Un `BEGIN` emitido por
+ * una llamada no envolvería las siguientes si sqlx sirve alguna desde otra
+ * conexión — sería una transacción de mentira, peor que no tener ninguna
+ * (rollback que no revierte nada y una conexión del pool con una transacción
+ * abierta colgada). migrator.ts ya contempla este caso: si `enTransaccion` es
+ * `undefined`, aplica el SQL sin transacción, con la garantía más débil de
+ * "cada statement es idempotente por separado" en vez de atomicidad real.
  */
 export async function crearTauriSqlDriver(): Promise<SqlDriver> {
   const db = await Database.load("sqlite:sfr.db");
-
-  function partirStatements(sql: string): string[] {
-    return sql
-      .split(";")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-  }
+  await db.execute("PRAGMA foreign_keys = ON;");
 
   return {
     async exec(sql) {
