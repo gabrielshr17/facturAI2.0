@@ -119,5 +119,26 @@ export async function crearSqlJsDriver(): Promise<SqlDriver> {
       await guardarBytes(db.export());
       db.close();
     },
+    // BEGIN/COMMIT/ROLLBACK sobre esta misma instancia de `db` (única, no hay
+    // pool): a diferencia de Tauri, aquí sí envuelven de verdad todo lo que
+    // `fn` haga. El rollback no puede dejar programado el guardado de un
+    // esquema a medias porque `persistir()` no captura los bytes al agendar
+    // el timer, sino al disparar (`db.export()` corre dentro del callback de
+    // `setTimeout`): para cuando el debounce realmente exporta, el ROLLBACK ya
+    // devolvió `db` a su estado previo, así que lo que se guarda en IndexedDB
+    // siempre es el estado real post-transacción, nunca el intermedio.
+    async enTransaccion<T>(fn: () => Promise<T>): Promise<T> {
+      db.exec("BEGIN;");
+      try {
+        const resultado = await fn();
+        db.exec("COMMIT;");
+        persistir();
+        return resultado;
+      } catch (error) {
+        db.exec("ROLLBACK;");
+        persistir();
+        throw error;
+      }
+    },
   };
 }

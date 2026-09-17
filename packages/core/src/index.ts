@@ -1,6 +1,7 @@
 export type { SqlDriver } from "./db/driver.js";
 export { migrations, type Migration } from "./db/migrations.js";
-export { migrate } from "./db/migrator.js";
+export { migrate, aplicarMigraciones } from "./db/migrator.js";
+export { partirStatements } from "./db/sql-statements.js";
 export { RANGOS_MIGRACION, type RangoMigracion } from "./db/rangos-migracion.js";
 export { seed } from "./db/seed.js";
 // Nota: `createNodeSqliteDriver` NO se exporta aquí a propósito. Usa `node:sqlite`

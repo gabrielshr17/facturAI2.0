@@ -39,5 +39,19 @@ export function createNodeSqliteDriver(path = ":memory:"): SqlDriver {
     async close() {
       db.close();
     },
+    // Conexión única y síncrona por debajo del `async`: BEGIN/COMMIT/ROLLBACK
+    // envuelven de verdad todo lo que `fn` haga con este mismo `db`, a
+    // diferencia del pool de conexiones de Tauri (ver driver.ts).
+    async enTransaccion<T>(fn: () => Promise<T>): Promise<T> {
+      db.exec("BEGIN;");
+      try {
+        const resultado = await fn();
+        db.exec("COMMIT;");
+        return resultado;
+      } catch (error) {
+        db.exec("ROLLBACK;");
+        throw error;
+      }
+    },
   };
 }
