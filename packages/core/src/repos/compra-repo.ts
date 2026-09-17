@@ -1,6 +1,7 @@
 import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
 import { calcularLinea, calcularTotales, type LineaInput } from "../dominio/factura.js";
+import { exigirPermiso } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { ImpuestoTipo } from "../dominio/impuesto.js";
@@ -98,6 +99,7 @@ export function crearCompraRepo(db: SqlDriver) {
 
   const repo = {
     async crear(input: CompraInput): Promise<Compra> {
+      exigirPermiso(db, "compra.registrar");
       if (input.lineas.length === 0) {
         throw new ValidacionError([{ campo: "lineas", mensaje: "La compra debe tener al menos un artículo." }]);
       }

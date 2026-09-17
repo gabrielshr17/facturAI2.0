@@ -2,6 +2,7 @@ import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
 import { calcularCorteCaja } from "../dominio/caja.js";
 import { tieneValor, type ErrorValidacion } from "../dominio/validacion.js";
+import { exigirPermiso, usuarioDe } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { CorteCaja } from "./tipos.js";
@@ -87,6 +88,7 @@ export function crearCorteCajaRepo(db: SqlDriver) {
 
     /** Calcula el resumen del período y registra el corte (cerrado) con el efectivo contado. */
     async registrarCorte(input: RegistrarCorteInput): Promise<CorteCaja> {
+      exigirPermiso(db, "caja.cerrar");
       const errores = validarPeriodo(input.desde, input.hasta);
       if (input.montoInicial < 0) {
         errores.push({ campo: "montoInicial", mensaje: "El monto inicial no puede ser negativo." });
@@ -107,7 +109,7 @@ export function crearCorteCajaRepo(db: SqlDriver) {
       const c: CorteCaja = {
         id: newId(),
         caja_id: input.cajaId ?? null,
-        usuario_id: input.usuarioId ?? null,
+        usuario_id: input.usuarioId ?? usuarioDe(db),
         fecha_apertura: input.desde,
         fecha_cierre: input.hasta,
         monto_inicial: input.montoInicial,

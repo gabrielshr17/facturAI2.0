@@ -1,6 +1,7 @@
 import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
 import { calcularLinea, calcularTotales, type LineaInput } from "../dominio/factura.js";
+import { exigirPermiso } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { ImpuestoTipo } from "../dominio/impuesto.js";
@@ -151,6 +152,7 @@ export function crearDevolucionRepo(db: SqlDriver) {
      * comprobante fiscal, usar `registrarDevolucionConFiscal` en su lugar.
      */
     async crear(input: DevolucionInput): Promise<Devolucion> {
+      exigirPermiso(db, "devolucion.registrar");
       const preparada = await prepararDevolucion(db, input);
       const ts = now();
 

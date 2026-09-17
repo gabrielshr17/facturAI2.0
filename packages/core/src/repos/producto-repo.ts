@@ -3,6 +3,7 @@ import { newId, now } from "../ids.js";
 import { tieneValor, normalizar, type ErrorValidacion } from "../dominio/validacion.js";
 import { tasaDe } from "../dominio/impuesto.js";
 import { calcularPrecioVenta } from "../dominio/precio.js";
+import { exigirPermiso } from "../db/sesion.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { Producto } from "./tipos.js";
 
@@ -58,6 +59,7 @@ export function crearProductoRepo(db: SqlDriver) {
   return {
     /** Crea un producto. Si no se da precio manual, lo deriva del costo. Lanza ValidacionError. */
     async crear(input: ProductoInput): Promise<Producto> {
+      exigirPermiso(db, "modulo.productos");
       const errores = validarProducto(input);
       if (errores.length) throw new ValidacionError(errores);
 
@@ -111,8 +113,15 @@ export function crearProductoRepo(db: SqlDriver) {
       return p;
     },
 
-    /** Actualiza campos de un producto. Recalcula precio si cambia costo/%/impuesto y no hay precio manual. */
+    /**
+     * Actualiza campos de un producto. Recalcula precio si cambia costo/%/impuesto y no hay
+     * precio manual. Guardado con `producto.editar` (§ RBAC-04): es el punto exacto donde hoy
+     * un cajero puede cambiar precio y costo desde el "Modificar" de Ventas
+     * (`packages/ui/src/pantallas/Ventas.tsx` `abrirEdicionProducto`); esconder el botón no
+     * alcanza, el guardia tiene que estar aquí.
+     */
     async actualizar(id: string, input: ProductoInput): Promise<void> {
+      exigirPermiso(db, "producto.editar");
       const errores = validarProducto(input);
       if (errores.length) throw new ValidacionError(errores);
 
@@ -157,6 +166,7 @@ export function crearProductoRepo(db: SqlDriver) {
 
     /** Borrado lógico (deleted_at). */
     async eliminar(id: string): Promise<void> {
+      exigirPermiso(db, "producto.eliminar");
       const actual = await this.obtener(id);
       await db.run("UPDATE producto SET deleted_at=?, updated_at=? WHERE id=?", [now(), now(), id]);
       await registrarAccion(db, {
@@ -170,6 +180,7 @@ export function crearProductoRepo(db: SqlDriver) {
      * `movimiento_inventario` de tipo 'ajuste' con el delta aplicado.
      */
     async ajustarExistencia(id: string, nuevaExistencia: number): Promise<void> {
+      exigirPermiso(db, "producto.ajustar_existencia");
       if (!(nuevaExistencia >= 0)) {
         throw new ValidacionError([{ campo: "existencia", mensaje: "La existencia no puede ser negativa." }]);
       }

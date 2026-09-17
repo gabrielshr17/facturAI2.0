@@ -7,6 +7,7 @@ import {
   esDocumentoValido,
   type ErrorValidacion,
 } from "../dominio/validacion.js";
+import { exigirPermiso } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { Cliente } from "./tipos.js";
@@ -124,6 +125,7 @@ export function crearClienteRepo(db: SqlDriver) {
     },
 
     async eliminar(id: string): Promise<void> {
+      exigirPermiso(db, "cliente.eliminar");
       const actual = await this.obtener(id);
       await db.run("UPDATE cliente SET deleted_at=?, updated_at=? WHERE id=?", [now(), now(), id]);
       await registrarAccion(db, {

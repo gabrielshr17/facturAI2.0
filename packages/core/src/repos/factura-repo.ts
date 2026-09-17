@@ -9,6 +9,7 @@ import {
   type PagoInput,
 } from "../dominio/factura.js";
 import { evaluarDisponibilidad } from "../dominio/inventario.js";
+import { exigirPermiso, usuarioDe } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { ImpuestoTipo } from "../dominio/impuesto.js";
@@ -185,7 +186,7 @@ export function crearFacturaRepo(db: SqlDriver) {
         fecha_hora: ts,
         cliente_id: input.cliente_id ?? null,
         caja_id: input.caja_id ?? null,
-        usuario_id: input.usuario_id ?? null,
+        usuario_id: input.usuario_id ?? usuarioDe(db),
         tipo: "normal",
         subtotal_gravado: 0,
         subtotal_exento: 0,
@@ -386,6 +387,7 @@ export function crearFacturaRepo(db: SqlDriver) {
 
     /** Elimina el ticket completo (factura + sus líneas), borrado lógico. */
     async eliminarTicket(facturaId: string): Promise<void> {
+      exigirPermiso(db, "factura.eliminar");
       const ts = now();
       await db.run("UPDATE factura_linea SET deleted_at=?, updated_at=? WHERE factura_id=?", [
         ts, ts, facturaId,
@@ -404,6 +406,7 @@ export function crearFacturaRepo(db: SqlDriver) {
       facturaId: string,
       input: { pagos: PagoInput[]; notas?: string | null },
     ): Promise<{ factura: Factura; cambio: number }> {
+      exigirPermiso(db, "factura.cobrar");
       const factura = await this.obtener(facturaId);
       if (!factura) throw new Error(`Ticket ${facturaId} no existe`);
       if (factura.estado !== "abierta") {
