@@ -17,7 +17,7 @@
 import type { ComponentType } from "react";
 import {
   ShoppingCart, Package, Users, Receipt, Truck,
-  Banknote, ChartColumn, Tag, Settings, type LucideProps,
+  Banknote, ChartColumn, Tag, Settings, UserCog, type LucideProps,
 } from "lucide-react";
 import type { Permiso } from "@sfr/core";
 import { Ventas } from "../pantallas/Ventas.js";
@@ -29,6 +29,7 @@ import { CorteCaja } from "../pantallas/CorteCaja.js";
 import { Reportes } from "../pantallas/Reportes.js";
 import { Promociones } from "../pantallas/Promociones.js";
 import { Configuracion } from "../pantallas/Configuracion.js";
+import { Personal } from "../pantallas/Personal.js";
 
 export interface ModuloDef {
   id: string;
@@ -51,6 +52,9 @@ export const MODULOS: ModuloDef[] = [
   { id: "reportes", etiqueta: "Reportes", icono: ChartColumn, atajo: "Alt+7", permiso: "modulo.reportes", componente: Reportes },
   { id: "promociones", etiqueta: "Promociones", icono: Tag, atajo: "Alt+8", permiso: "modulo.promociones", componente: Promociones },
   { id: "configuracion", etiqueta: "Configuración", icono: Settings, atajo: "Alt+9", permiso: "modulo.configuracion", componente: Configuracion },
+  // Décimo módulo (§ RBAC-07, parte A): sin Alt+10, porque `useAtajosTeclado`/`normalizarTecla`
+  // nunca produce esa combinación — `atajo: null` es justo lo que este registro previó para eso.
+  { id: "personal", etiqueta: "Personal", icono: UserCog, atajo: null, permiso: "personal.gestionar", componente: Personal },
 ];
 
 export const MODULO_POR_DEFECTO_ID = "ventas";
