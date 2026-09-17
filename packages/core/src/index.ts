@@ -10,6 +10,14 @@ export { seed } from "./db/seed.js";
 export { newId, now } from "./ids.js";
 export * from "./dominio/index.js";
 export {
+  crearPortadorSesion,
+  conSesion,
+  sesionDe,
+  usuarioDe,
+  esModoPermisivo,
+  exigirPermiso,
+} from "./db/sesion.js";
+export {
   esCorreoValido,
   esRncValido,
   esCedulaValida,
