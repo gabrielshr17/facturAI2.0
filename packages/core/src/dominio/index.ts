@@ -54,6 +54,7 @@ export {
   SESION_LOCAL,
 } from "./permisos.js";
 export { hashearPin, verificarPin, CriptoNoDisponibleError } from "./pin.js";
+export { marcarSesion, restaurarSesion } from "./sesion-vigencia.js";
 export {
   DESFASE_RD_MIN,
   fechaLocalDeInstante,
