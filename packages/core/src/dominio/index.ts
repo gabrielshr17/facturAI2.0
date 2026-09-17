@@ -54,3 +54,10 @@ export {
   SESION_LOCAL,
 } from "./permisos.js";
 export { hashearPin, verificarPin, CriptoNoDisponibleError } from "./pin.js";
+export {
+  type ValidarCargoCreditoInput,
+  creditoDisponible,
+  validarCargoCredito,
+} from "./credito.js";
+export { describirBitacora } from "./bitacora.js";
+export { describirLogDev, type LogDevEntry } from "./log-dev.js";

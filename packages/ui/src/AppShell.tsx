@@ -5,11 +5,17 @@ import { ErrorBoundary } from "./componentes/ErrorBoundary.js";
 import { ProveedorAlertas } from "./contexto/Alertas.js";
 import { useSesion } from "./sesion/contexto.js";
 import { MODULOS, MODULO_POR_DEFECTO_ID, type ModuloDef } from "./navegacion/modulos.js";
+import { instalarCapturaLogsDev } from "./depuracion/capturaLogs.js";
 import { c, sombra } from "./estilos.js";
 import { useTema } from "./hooks/useTema.js";
 import { useAtajosTeclado } from "./hooks/useAtajosTeclado.js";
 import { useNavegacionFlechas } from "./hooks/useNavegacionFlechas.js";
 import { useBreakpoint, useNavSoloIconos, useNavEnCajon } from "./hooks/useBreakpoint.js";
+
+// Se instala al importar el módulo, antes de que monte cualquier componente, para no
+// perder errores que ocurran durante el arranque (p. ej. al iniciar la base de datos,
+// ver main.tsx de desktop/web).
+instalarCapturaLogsDev();
 
 // Clave de localStorage: el módulo activo sobrevive a un remontaje (recargar la página,
 // reabrir la ventana de escritorio) igual que el tema. Si el valor guardado ya no existe

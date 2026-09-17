@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { type NegocioInput, ValidacionError } from "@sfr/core";
-import { Store, Printer, Save } from "lucide-react";
+import { Store, Printer, Save, Bug } from "lucide-react";
 import { useRepos } from "../data/contexto.js";
 import { s, c } from "../estilos.js";
 import { SeccionSecuenciasNcf } from "../componentes/SeccionSecuenciasNcf.js";
-import { SeccionBitacora } from "../componentes/SeccionBitacora.js";
 import { SeccionImpresoraTermica } from "../componentes/SeccionImpresoraTermica.js";
 import { useAtajosTeclado } from "../hooks/useAtajosTeclado.js";
+import { obtenerLogsDev, limpiarLogsDev } from "../depuracion/capturaLogs.js";
+import { generarHtmlLogsDev } from "../depuracion/exportarLogsHtml.js";
 
 const VACIO: NegocioInput = {
   nombre_comercial: "",
@@ -26,6 +27,7 @@ export function Configuracion() {
   const [errores, setErrores] = useState<string[]>([]);
   const [guardado, setGuardado] = useState(false);
   const [exportando, setExportando] = useState(false);
+  const [cantidadLogs, setCantidadLogs] = useState(0);
 
   useAtajosTeclado({ "Ctrl+S": () => void guardar() });
 
@@ -46,7 +48,24 @@ export function Configuracion() {
         });
       }
     })();
+    setCantidadLogs(obtenerLogsDev().length);
   }, []);
+
+  function descargarLogsDev() {
+    const html = generarHtmlLogsDev(obtenerLogsDev());
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `logs-depuracion_${new Date().toISOString().slice(0, 10)}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function limpiarLogs() {
+    limpiarLogsDev();
+    setCantidadLogs(0);
+  }
 
   async function guardar() {
     setGuardado(false);
@@ -164,7 +183,20 @@ export function Configuracion() {
         </button>
       </div>
 
-      <SeccionBitacora />
+      <div style={{ ...s.tarjeta, marginTop: 16 }}>
+        <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}><Bug size={18} /> Registro de depuración</h3>
+        <p style={{ color: c.gris, fontSize: 13 }}>
+          Errores y advertencias técnicas capturadas durante el uso de la app ({cantidadLogs} registrada(s) en esta sesión).
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button style={s.botonSecundario} onClick={descargarLogsDev}>
+            Descargar registro (HTML)
+          </button>
+          <button style={s.botonSecundario} onClick={limpiarLogs} disabled={cantidadLogs === 0}>
+            Limpiar registro
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -17,7 +17,7 @@
 import type { ComponentType } from "react";
 import {
   ShoppingCart, Package, Users, Receipt, Truck,
-  Banknote, ChartColumn, Tag, Settings, type LucideProps,
+  Banknote, ChartColumn, Tag, Settings, ScrollText, type LucideProps,
 } from "lucide-react";
 import type { Permiso } from "@sfr/core";
 import { Ventas } from "../pantallas/Ventas.js";
@@ -29,6 +29,7 @@ import { CorteCaja } from "../pantallas/CorteCaja.js";
 import { Reportes } from "../pantallas/Reportes.js";
 import { Promociones } from "../pantallas/Promociones.js";
 import { Configuracion } from "../pantallas/Configuracion.js";
+import { Auditoria } from "../pantallas/Auditoria.js";
 
 export interface ModuloDef {
   id: string;
@@ -51,6 +52,11 @@ export const MODULOS: ModuloDef[] = [
   { id: "reportes", etiqueta: "Reportes", icono: ChartColumn, atajo: "Alt+7", permiso: "modulo.reportes", componente: Reportes },
   { id: "promociones", etiqueta: "Promociones", icono: Tag, atajo: "Alt+8", permiso: "modulo.promociones", componente: Promociones },
   { id: "configuracion", etiqueta: "Configuración", icono: Settings, atajo: "Alt+9", permiso: "modulo.configuracion", componente: Configuracion },
+  // Décimo módulo: sin atajo (no hay 'Alt+10') y sin permiso propio todavía — el catálogo
+  // de RBAC-02 no tiene un permiso de auditoría, así que queda visible para cualquier
+  // sesión por ahora, igual que cuando vivía sin permiso dentro de Configuración. Cuando
+  // exista un rol con visibilidad restringida de verdad, esto necesita su propio permiso.
+  { id: "auditoria", etiqueta: "Auditoría", icono: ScrollText, atajo: null, permiso: null, componente: Auditoria },
 ];
 
 export const MODULO_POR_DEFECTO_ID = "ventas";

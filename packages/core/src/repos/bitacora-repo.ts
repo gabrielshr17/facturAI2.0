@@ -23,6 +23,7 @@ export interface FiltroBitacora {
   desde?: string | null;
   hasta?: string | null;
   limite?: number;
+  offset?: number;
 }
 
 const COLS = `id, usuario_id, origen, accion, entidad, entidad_id, resumen, confirmada, timestamp`;
@@ -69,10 +70,11 @@ export function crearBitacoraRepo(db: SqlDriver) {
       if (filtro.hasta) { condiciones.push("date(timestamp) <= date(?)"); params.push(filtro.hasta); }
 
       const limite = filtro.limite ?? 100;
+      const offset = filtro.offset ?? 0;
       return db.all<BitacoraAccion>(
         `SELECT ${COLS} FROM bitacora_accion WHERE ${condiciones.join(" AND ")}
-         ORDER BY timestamp DESC LIMIT ?`,
-        [...params, limite],
+         ORDER BY timestamp DESC LIMIT ? OFFSET ?`,
+        [...params, limite, offset],
       );
     },
   };

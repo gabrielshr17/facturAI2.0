@@ -43,6 +43,34 @@ describe("bitacoraRepo — registrar y listar (§ Caja y auditoría)", () => {
     expect(registro.confirmada).toBe(1);
     expect(registro.origen).toBe("app");
   });
+
+  it("pagina con offset sin repetir ni saltar registros", async () => {
+    const bitacora = crearBitacoraRepo(db);
+    for (let i = 0; i < 5; i++) {
+      await bitacora.registrar({ accion: "eliminar", entidad: "producto", entidadId: `p${i}` });
+      await new Promise((r) => setTimeout(r, 2));
+    }
+
+    const primeraPagina = await bitacora.listar({ limite: 2, offset: 0 });
+    const segundaPagina = await bitacora.listar({ limite: 2, offset: 2 });
+
+    expect(primeraPagina).toHaveLength(2);
+    expect(segundaPagina).toHaveLength(2);
+    expect(primeraPagina[0].entidad_id).toBe("p4");
+    expect(primeraPagina[1].entidad_id).toBe("p3");
+    expect(segundaPagina[0].entidad_id).toBe("p2");
+    expect(segundaPagina[1].entidad_id).toBe("p1");
+  });
+
+  it("offset por defecto es 0", async () => {
+    const bitacora = crearBitacoraRepo(db);
+    await bitacora.registrar({ accion: "eliminar", entidad: "producto", entidadId: "p1" });
+    await new Promise((r) => setTimeout(r, 2));
+    const segundo = await bitacora.registrar({ accion: "eliminar", entidad: "producto", entidadId: "p2" });
+
+    const lista = await bitacora.listar({ limite: 1 });
+    expect(lista[0].id).toBe(segundo.id);
+  });
 });
 
 describe("bitácora — se registra automáticamente en acciones sensibles", () => {

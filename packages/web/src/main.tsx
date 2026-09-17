@@ -30,6 +30,7 @@ function App() {
         await seed(driver);
         setDb(driver);
       } catch (e) {
+        console.error("Error al iniciar la base de datos:", e);
         setError(String(e));
       }
     })();
