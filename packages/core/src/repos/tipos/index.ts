@@ -19,3 +19,4 @@ export * from "./bitacora.js";
 export * from "./promocion.js";
 export * from "./negocio.js";
 export * from "./caja.js";
+export * from "./usuario.js";

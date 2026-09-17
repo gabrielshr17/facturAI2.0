@@ -33,13 +33,27 @@ CREATE TABLE negocio (
 CREATE TABLE usuario (
   id             TEXT PRIMARY KEY,
   nombre         TEXT NOT NULL,
-  rol            TEXT NOT NULL DEFAULT 'admin', -- admin | cajero
+  rol            TEXT NOT NULL DEFAULT 'dueno', -- cajero | supervisor | dueno | superadmin
   pin_hash       TEXT,
   activo         BOOLEAN NOT NULL DEFAULT true,
   permisos_json  JSONB,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at     TIMESTAMPTZ
+);
+
+-- Control de acceso (§ RBAC-01, migración SQLite 20): satélite de `usuario`
+-- para no arrastrar intentos_fallidos/bloqueado_hasta en cada fila de
+-- usuario. `pin_hash` de `usuario` NUNCA se replica con valor real a este
+-- espejo por sync-rules.yaml (ver ese archivo).
+CREATE TABLE usuario_seguridad (
+  usuario_id         TEXT PRIMARY KEY REFERENCES usuario(id),
+  ultimo_acceso      TIMESTAMPTZ,
+  intentos_fallidos  INTEGER NOT NULL DEFAULT 0,
+  bloqueado_hasta    TIMESTAMPTZ,
+  pin_actualizado_at TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE caja (

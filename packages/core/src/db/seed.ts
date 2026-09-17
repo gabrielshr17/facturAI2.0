@@ -37,7 +37,7 @@ export async function seed(db: SqlDriver): Promise<void> {
   await db.run(
     `INSERT INTO usuario (id, nombre, rol, activo, created_at, updated_at)
      VALUES (?,?,?,?,?,?)`,
-    ["usuario-admin", "Administrador", "admin", 1, ts, ts],
+    ["usuario-admin", "Administrador", "dueno", 1, ts, ts],
   );
 
   await db.run(
