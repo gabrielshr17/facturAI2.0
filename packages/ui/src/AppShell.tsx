@@ -1,15 +1,26 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Sun, Moon, Menu } from "lucide-react";
+import { Sun, Moon, Menu, LogOut } from "lucide-react";
 import { Marca } from "./componentes/Marca.js";
 import { ErrorBoundary } from "./componentes/ErrorBoundary.js";
 import { ProveedorAlertas } from "./contexto/Alertas.js";
 import { useSesion } from "./sesion/contexto.js";
+import { useRepos } from "./data/contexto.js";
 import { MODULOS, MODULO_POR_DEFECTO_ID, type ModuloDef } from "./navegacion/modulos.js";
 import { c, sombra } from "./estilos.js";
 import { useTema } from "./hooks/useTema.js";
 import { useAtajosTeclado } from "./hooks/useAtajosTeclado.js";
 import { useNavegacionFlechas } from "./hooks/useNavegacionFlechas.js";
 import { useBreakpoint, useNavSoloIconos, useNavEnCajon } from "./hooks/useBreakpoint.js";
+
+// Mismo mapa que `pantallas/Acceso.tsx` (rol -> etiqueta legible). Se duplica a propósito:
+// es una constante puramente de presentación, de dos líneas, y forzar un import cruzado
+// entre una pantalla y el cascarón compartido acopla dos archivos que hoy no se conocen.
+const ETIQUETA_ROL: Record<string, string> = {
+  cajero: "Cajero",
+  supervisor: "Supervisor",
+  dueno: "Dueño",
+  superadmin: "Superadmin",
+};
 
 // Clave de localStorage: el módulo activo sobrevive a un remontaje (recargar la página,
 // reabrir la ventana de escritorio) igual que el tema. Si el valor guardado ya no existe
@@ -47,7 +58,28 @@ function moduloPorId(lista: ModuloDef[], id: string): ModuloDef | undefined {
  * necesita el ticket activo.
  */
 export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
-  const { sesion } = useSesion();
+  const { sesion, cerrarSesion } = useSesion();
+  const { usuario: usuarioRepo } = useRepos();
+
+  // El portador de sesión (§ RBAC-05) solo trae `usuarioId`/`rol`: el NOMBRE hay que
+  // resolverlo aparte con una consulta. Se dispara una sola vez por cambio de usuario
+  // (no en cada render) y se limpia sola cuando `usuarioId` vuelve a `null` (instalaciones
+  // o pruebas que montan `<AppShell>` directo, sin pasar por `<Acceso>`).
+  const [nombreUsuario, setNombreUsuario] = useState<string | null>(null);
+  useEffect(() => {
+    const id = sesion.usuarioId;
+    if (id === null) {
+      setNombreUsuario(null);
+      return;
+    }
+    let cancelado = false;
+    void usuarioRepo.obtener(id).then((u) => {
+      if (!cancelado) setNombreUsuario(u?.nombre ?? null);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [sesion.usuarioId, usuarioRepo]);
 
   // Filtrar por permiso es lo que hace esto más que cosmético: un módulo sin permiso no
   // se renderiza NI se registra su atajo (ver el `useAtajosTeclado` de abajo), así que
@@ -157,6 +189,32 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
           </button>
         </div>
       </div>
+      {sesion.usuarioId !== null && (
+        // Sin sesión real (SESION_LOCAL, `usuarioId: null`) no hay nada que mostrar ni
+        // sesión que cerrar — es el caso de instalaciones/pruebas que montan `<AppShell>`
+        // directo, sin pasar por `<Acceso>`.
+        <div
+          style={{
+            ...styles.cuenta,
+            justifyContent: soloIconos ? "center" : "space-between",
+          }}
+        >
+          {!soloIconos && (
+            <div style={{ minWidth: 0 }}>
+              <div style={styles.cuentaNombre}>{nombreUsuario ?? "…"}</div>
+              <div style={styles.cuentaRol}>{ETIQUETA_ROL[sesion.rol] ?? sesion.rol}</div>
+            </div>
+          )}
+          <button
+            onClick={cerrarSesion}
+            aria-label="Cerrar sesión"
+            title={soloIconos ? `Cerrar sesión${nombreUsuario ? ` (${nombreUsuario})` : ""}` : "Cerrar sesión"}
+            style={styles.botonTema}
+          >
+            <LogOut size={14} aria-hidden="true" />
+          </button>
+        </div>
+      )}
       {permitidos.map((m) => {
         const Icono = m.icono;
         const pistaAtajo = m.atajo ? ` (${m.atajo})` : "";
@@ -271,6 +329,25 @@ const styles: Record<string, CSSProperties> = {
     color: c.azulOscuro,
     borderRadius: 999,
     padding: "3px 10px",
+  },
+  cuenta: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "8px 8px 16px",
+    marginBottom: 4,
+    borderBottom: `1px solid ${c.borde}`,
+  },
+  cuentaNombre: {
+    fontSize: 13,
+    fontWeight: 600,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  cuentaRol: {
+    fontSize: 11,
+    color: c.gris,
   },
   botonTema: {
     background: "none",

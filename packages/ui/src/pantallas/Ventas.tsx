@@ -8,11 +8,13 @@ import {
   type Negocio,
   type MetodoPago,
   ValidacionError,
+  PermisoError,
   cobrarConFiscal,
   aplicarDescuento,
   pctGananciaDesdePrecio,
 } from "@sfr/core";
 import { useRepos } from "../data/contexto.js";
+import { useSesion } from "../sesion/contexto.js";
 import { s, c, money, sombra } from "../estilos.js";
 import { ModalCobro, type FiscalInput, type SalidaCobro } from "../componentes/ModalCobro.js";
 import { ModalCotizacion, type SalidaCotizacion } from "../componentes/ModalCotizacion.js";
@@ -73,6 +75,10 @@ export function Ventas() {
     cotizacion: cotizacionRepo,
   } = useRepos();
   const { confirmar, avisar, elegir } = useAlertas();
+  const { sesion } = useSesion();
+  // El guardia real es `exigirPermiso` dentro de `producto-repo.actualizar` (RBAC-04):
+  // esto es SOLO cosmética, para no ofrecer un botón que el repo va a rechazar igual.
+  const puedeEditarProducto = sesion.permisos.has("producto.editar");
   // "Angosto" es específicamente "toca apilar", no "no es escritorio": en el tramo `medio` la barra
   // lateral ya se encogió pero Ventas sigue en dos columnas (§ useBreakpoint).
   const esAngosto = useEsAngosto();
@@ -617,6 +623,15 @@ export function Ventas() {
       await refrescarTicketActivo();
     } catch (e) {
       setCambiosPendientesEdicion(null);
+      // Defensa en profundidad: el botón "Modificar" ya está escondido sin `producto.editar`
+      // (§ arriba), pero un permiso revocado a mitad de sesión sin recargar la página puede
+      // llegar igual hasta acá. El guardia real vive en `producto-repo.actualizar` (RBAC-04);
+      // esto solo evita que `PermisoError` reviente como un error crudo en consola.
+      if (e instanceof PermisoError) {
+        cerrarEdicionProducto();
+        void avisar(e.message);
+        return;
+      }
       setErroresEdicion(e instanceof ValidacionError ? e.errores.map((x) => x.mensaje) : [String(e)]);
     }
   }
@@ -1195,7 +1210,9 @@ export function Ventas() {
                     // agregar el producto (§ abajo).
                     if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && indiceResultado >= 0 && resultados.length > 0 && !ocultarResultados) {
                       e.preventDefault();
-                      setAccionResultado((a) => moverAccionFila(a, e.key === "ArrowRight" ? 1 : -1, ["favorito", "modificar"]));
+                      setAccionResultado((a) =>
+                        moverAccionFila(a, e.key === "ArrowRight" ? 1 : -1, puedeEditarProducto ? ["favorito", "modificar"] : ["favorito"]),
+                      );
                       return;
                     }
                     // Sin un desplegable de resultados visible, arriba/abajo mueve el resaltado
@@ -1209,7 +1226,7 @@ export function Ventas() {
                     if (e.key === "Enter" && indiceResultado >= 0 && resultados[indiceResultado] && accionResultado !== "fila") {
                       e.preventDefault();
                       if (accionResultado === "favorito") void alternarFavoritoProducto(resultados[indiceResultado]);
-                      else abrirEdicionProducto(resultados[indiceResultado]);
+                      else if (puedeEditarProducto) abrirEdicionProducto(resultados[indiceResultado]);
                       return;
                     }
                     if (e.key === "Enter" && busqueda.trim()) {
@@ -1318,16 +1335,18 @@ export function Ventas() {
                       </span>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <b style={{ fontVariantNumeric: "tabular-nums" }}>RD$ {money(esMayoreo && p.precio_mayoreo ? p.precio_mayoreo : p.precio_venta)}</b>
-                        <button
-                          style={{
-                            ...s.botonSecundario, display: "inline-flex", alignItems: "center", gap: 6,
-                            ...(i === indiceResultado && accionResultado === "modificar" ? { outline: `2px solid ${c.azul}`, outlineOffset: 1 } : {}),
-                          }}
-                          title="Corregir este producto sin salir del ticket (←/→ + Enter)"
-                          onClick={(e) => { e.stopPropagation(); abrirEdicionProducto(p); }}
-                        >
-                          <Pencil size={14} /> Modificar
-                        </button>
+                        {puedeEditarProducto && (
+                          <button
+                            style={{
+                              ...s.botonSecundario, display: "inline-flex", alignItems: "center", gap: 6,
+                              ...(i === indiceResultado && accionResultado === "modificar" ? { outline: `2px solid ${c.azul}`, outlineOffset: 1 } : {}),
+                            }}
+                            title="Corregir este producto sin salir del ticket (←/→ + Enter)"
+                            onClick={(e) => { e.stopPropagation(); abrirEdicionProducto(p); }}
+                          >
+                            <Pencil size={14} /> Modificar
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
