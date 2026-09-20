@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { s, c, money } from "../estilos";
 
 /**
  * Solo consulta: sin NCF/comprobante fiscal (comprobante_fiscal no tiene
@@ -133,64 +134,55 @@ export function ConsultaFacturas(): JSX.Element {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Consulta de facturas</h2>
+      <h2 style={{ marginTop: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3 }}>
+        Consulta de facturas
+      </h2>
       {error !== null && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--sfr-peligro-fondo)",
-            color: "var(--sfr-peligro)",
-            border: "1px solid var(--sfr-peligro)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
+        <div role="alert" style={s.errorBox}>
           {error}
         </div>
       )}
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <div>
-          <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)" }}>Desde</label>
+          <label style={s.label}>Desde</label>
           <input
             type="date"
             value={desde}
             onChange={(e) => setDesde(e.target.value)}
-            style={estiloInput}
+            style={s.input}
           />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)" }}>Hasta</label>
+          <label style={s.label}>Hasta</label>
           <input
             type="date"
             value={hasta}
             onChange={(e) => setHasta(e.target.value)}
-            style={estiloInput}
+            style={s.input}
           />
         </div>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)" }}>Buscar</label>
+          <label style={s.label}>Buscar</label>
           <input
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Número o cliente…"
-            style={{ ...estiloInput, width: "100%", boxSizing: "border-box" }}
+            style={s.input}
           />
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 380px", overflowX: "auto" }}>
-          <table style={{ width: "100%" }}>
+        <div style={{ flex: "1 1 380px" }} className="sfr-tabla-scroll">
+          <table style={s.tabla}>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Fecha</th>
-                <th>Cliente</th>
-                <th>Total</th>
+                <th style={s.th}>#</th>
+                <th style={s.th}>Fecha</th>
+                <th style={s.th}>Cliente</th>
+                <th style={s.th}>Total</th>
               </tr>
             </thead>
             <tbody>
@@ -199,22 +191,25 @@ export function ConsultaFacturas(): JSX.Element {
                 return (
                   <tr
                     key={f.id}
+                    className="sfr-fila-clickeable"
                     onClick={() => void verDetalle(f.id)}
                     style={{
                       cursor: "pointer",
-                      background: seleccionId === f.id ? "var(--sfr-borde)" : "transparent",
+                      background: seleccionId === f.id ? c.seleccion : "transparent",
                     }}
                   >
-                    <td>{f.numero_interno ?? "—"}</td>
-                    <td>{f.fecha_hora.slice(0, 16).replace("T", " ")}</td>
-                    <td>{cliente ? `${cliente.nombre} ${cliente.apellidos ?? ""}` : "—"}</td>
-                    <td>{f.total.toFixed(2)}</td>
+                    <td style={s.td}>{f.numero_interno ?? "—"}</td>
+                    <td style={s.td}>{f.fecha_hora.slice(0, 16).replace("T", " ")}</td>
+                    <td style={s.td}>
+                      {cliente ? `${cliente.nombre} ${cliente.apellidos ?? ""}` : "—"}
+                    </td>
+                    <td style={s.tdDerecha}>{money(f.total)}</td>
                   </tr>
                 );
               })}
               {facturasFiltradas.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center", color: "var(--sfr-gris)" }}>
+                  <td colSpan={4} style={s.filaVacia}>
                     Sin facturas en este rango.
                   </td>
                 </tr>
@@ -224,47 +219,39 @@ export function ConsultaFacturas(): JSX.Element {
         </div>
 
         {seleccion && (
-          <div
-            style={{
-              flex: "1 1 300px",
-              background: "var(--sfr-superficie)",
-              border: "1px solid var(--sfr-borde)",
-              borderRadius: 12,
-              padding: 16,
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Factura #{seleccion.numero_interno ?? "—"}</h3>
+          <div style={{ ...s.tarjeta, flex: "1 1 300px" }}>
+            <h3 style={{ marginTop: 0, fontSize: 18, fontWeight: 600 }}>
+              Factura #{seleccion.numero_interno ?? "—"}
+            </h3>
             {cargandoDetalle ? (
-              <p>Cargando detalle…</p>
+              <p style={{ color: c.gris }}>Cargando detalle…</p>
             ) : (
               <>
-                <table style={{ width: "100%", marginBottom: 12 }}>
+                <table style={{ ...s.tabla, marginBottom: 12 }}>
                   <thead>
                     <tr>
-                      <th>Producto</th>
-                      <th>Cant.</th>
-                      <th>Subtotal</th>
+                      <th style={s.th}>Producto</th>
+                      <th style={s.th}>Cant.</th>
+                      <th style={s.th}>Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
                     {lineas.map((l) => (
                       <tr key={l.id}>
-                        <td>{l.descripcion}</td>
-                        <td>{l.cantidad}</td>
-                        <td>{l.subtotal.toFixed(2)}</td>
+                        <td style={s.td}>{l.descripcion}</td>
+                        <td style={s.td}>{l.cantidad}</td>
+                        <td style={s.tdDerecha}>{money(l.subtotal)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <p style={{ fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>Pagos</p>
+                <p style={{ fontSize: 13, color: c.gris, marginBottom: 4 }}>Pagos</p>
                 {pagos.map((p) => (
                   <p key={p.id} style={{ margin: "2px 0", fontSize: 14 }}>
-                    {p.metodo}: {p.monto.toFixed(2)}
+                    {p.metodo}: {money(p.monto)}
                   </p>
                 ))}
-                <p style={{ marginTop: 12, fontWeight: 600 }}>
-                  Total: {seleccion.total.toFixed(2)}
-                </p>
+                <p style={{ marginTop: 12, fontWeight: 600 }}>Total: {money(seleccion.total)}</p>
               </>
             )}
           </div>
@@ -273,11 +260,3 @@ export function ConsultaFacturas(): JSX.Element {
     </div>
   );
 }
-
-const estiloInput: CSSProperties = {
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: "1px solid var(--sfr-borde)",
-  background: "var(--sfr-superficie)",
-  color: "var(--sfr-texto)",
-};

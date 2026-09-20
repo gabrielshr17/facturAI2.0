@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "../supabaseClient";
+import { s, money } from "../estilos";
 
 type TipoPromocion = "porcentaje" | "monto";
 type AplicaAPromocion = "todos" | "producto" | "departamento";
@@ -211,41 +212,26 @@ export function Promociones(): JSX.Element {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Promociones</h2>
+      <h2 style={{ marginTop: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3 }}>
+        Promociones
+      </h2>
       {error !== null && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--sfr-peligro-fondo)",
-            color: "var(--sfr-peligro)",
-            border: "1px solid var(--sfr-peligro)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
+        <div role="alert" style={s.errorBox}>
           {error}
         </div>
       )}
 
-      <section
-        style={{
-          background: "var(--sfr-superficie)",
-          border: "1px solid var(--sfr-borde)",
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 24,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>{formulario.id ? "Editar promoción" : "Nueva promoción"}</h3>
+      <section style={{ ...s.tarjeta, marginBottom: 24 }}>
+        <h3 style={{ marginTop: 0, fontSize: 18, fontWeight: 600 }}>
+          {formulario.id ? "Editar promoción" : "Nueva promoción"}
+        </h3>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
           <Campo etiqueta="Nombre">
             <input
               type="text"
               value={formulario.nombre}
               onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             />
           </Campo>
           <Campo etiqueta="Tipo">
@@ -254,7 +240,7 @@ export function Promociones(): JSX.Element {
               onChange={(e) =>
                 setFormulario({ ...formulario, tipo: e.target.value as TipoPromocion })
               }
-              style={estiloInput}
+              style={s.input}
             >
               <option value="porcentaje">Porcentaje</option>
               <option value="monto">Monto fijo</option>
@@ -266,7 +252,7 @@ export function Promociones(): JSX.Element {
               step="0.01"
               value={formulario.valor}
               onChange={(e) => setFormulario({ ...formulario, valor: e.target.value })}
-              style={{ ...estiloInput, width: 100 }}
+              style={{ ...s.input, width: 100 }}
             />
           </Campo>
           <Campo etiqueta="Aplica a">
@@ -275,7 +261,7 @@ export function Promociones(): JSX.Element {
               onChange={(e) =>
                 setFormulario({ ...formulario, aplicaA: e.target.value as AplicaAPromocion })
               }
-              style={estiloInput}
+              style={s.input}
             >
               <option value="todos">Todos los productos</option>
               <option value="producto">Un producto</option>
@@ -287,7 +273,7 @@ export function Promociones(): JSX.Element {
               <select
                 value={formulario.productoId}
                 onChange={(e) => setFormulario({ ...formulario, productoId: e.target.value })}
-                style={estiloInput}
+                style={s.input}
               >
                 <option value="">— Selecciona —</option>
                 {productos.map((p) => (
@@ -303,7 +289,7 @@ export function Promociones(): JSX.Element {
               <select
                 value={formulario.departamentoId}
                 onChange={(e) => setFormulario({ ...formulario, departamentoId: e.target.value })}
-                style={estiloInput}
+                style={s.input}
               >
                 <option value="">— Selecciona —</option>
                 {departamentos.map((d) => (
@@ -321,7 +307,7 @@ export function Promociones(): JSX.Element {
               type="date"
               value={formulario.fechaInicio}
               onChange={(e) => setFormulario({ ...formulario, fechaInicio: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             />
           </Campo>
           <Campo etiqueta="Hasta">
@@ -329,7 +315,7 @@ export function Promociones(): JSX.Element {
               type="date"
               value={formulario.fechaFin}
               onChange={(e) => setFormulario({ ...formulario, fechaFin: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             />
           </Campo>
           <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 20 }}>
@@ -342,19 +328,13 @@ export function Promociones(): JSX.Element {
           </label>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={s.formFooter}>
           <button
             type="button"
             onClick={() => void guardar()}
             disabled={guardando}
             style={{
-              background: "var(--sfr-acento)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "9px 18px",
-              fontSize: 14,
-              fontWeight: 600,
+              ...s.boton,
               cursor: guardando ? "not-allowed" : "pointer",
               opacity: guardando ? 0.7 : 1,
             }}
@@ -362,57 +342,59 @@ export function Promociones(): JSX.Element {
             {guardando ? "Guardando…" : formulario.id ? "Guardar cambios" : "Crear promoción"}
           </button>
           {formulario.id && (
-            <button
-              type="button"
-              onClick={cancelarEdicion}
-              style={{
-                background: "transparent",
-                border: "1px solid var(--sfr-borde)",
-                borderRadius: 8,
-                padding: "9px 18px",
-                fontSize: 14,
-                cursor: "pointer",
-              }}
-            >
+            <button type="button" onClick={cancelarEdicion} style={s.botonSecundario}>
               Cancelar
             </button>
           )}
         </div>
       </section>
 
-      <div style={{ overflowX: "auto" }}>
-        <table>
+      <div className="sfr-tabla-scroll">
+        <table style={s.tabla}>
           <thead>
             <tr>
-              <th>Nombre</th>
-              <th>Valor</th>
-              <th>Vigencia</th>
-              <th>Estado</th>
-              <th></th>
+              <th style={s.th}>Nombre</th>
+              <th style={s.th}>Valor</th>
+              <th style={s.th}>Vigencia</th>
+              <th style={s.th}>Estado</th>
+              <th style={s.th}></th>
             </tr>
           </thead>
           <tbody>
             {promociones.map((p) => (
               <tr key={p.id}>
-                <td>{p.nombre}</td>
-                <td>{p.tipo === "porcentaje" ? `${p.valor}%` : `RD$ ${p.valor.toFixed(2)}`}</td>
-                <td>
+                <td style={s.td}>{p.nombre}</td>
+                <td style={s.tdDerecha}>
+                  {p.tipo === "porcentaje" ? `${p.valor}%` : `RD$ ${money(p.valor)}`}
+                </td>
+                <td style={s.td}>
                   {p.fecha_inicio.slice(0, 10)} – {p.fecha_fin.slice(0, 10)}
                 </td>
-                <td>{esVigente(p) ? "Vigente" : p.activa ? "Fuera de rango" : "Inactiva"}</td>
-                <td style={{ display: "flex", gap: 6 }}>
-                  <button type="button" onClick={() => editar(p)} style={botonFila}>
-                    Editar
-                  </button>
-                  <button type="button" onClick={() => void eliminar(p.id)} style={botonFila}>
-                    Eliminar
-                  </button>
+                <td style={s.td}>
+                  <span style={s.badge}>
+                    {esVigente(p) ? "Vigente" : p.activa ? "Fuera de rango" : "Inactiva"}
+                  </span>
+                </td>
+                <td style={s.td}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button type="button" onClick={() => editar(p)} style={botonFila}>
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="sfr-peligro"
+                      onClick={() => void eliminar(p.id)}
+                      style={{ ...s.botonPeligro, padding: "4px 10px", fontSize: 12 }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
             {promociones.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ textAlign: "center", color: "var(--sfr-gris)" }}>
+                <td colSpan={5} style={s.filaVacia}>
                   Sin promociones.
                 </td>
               </tr>
@@ -427,27 +409,10 @@ export function Promociones(): JSX.Element {
 function Campo(props: { etiqueta: string; children: ReactNode }): JSX.Element {
   return (
     <div>
-      <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>
-        {props.etiqueta}
-      </label>
+      <label style={s.label}>{props.etiqueta}</label>
       {props.children}
     </div>
   );
 }
 
-const estiloInput: CSSProperties = {
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: "1px solid var(--sfr-borde)",
-  background: "var(--sfr-superficie)",
-  color: "var(--sfr-texto)",
-};
-
-const botonFila: CSSProperties = {
-  border: "1px solid var(--sfr-borde)",
-  background: "transparent",
-  borderRadius: 6,
-  padding: "4px 10px",
-  fontSize: 12,
-  cursor: "pointer",
-};
+const botonFila = { ...s.botonSecundario, padding: "4px 10px", fontSize: 12 };

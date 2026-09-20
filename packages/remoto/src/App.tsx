@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
+import { c, s } from "./estilos";
 import { Acceso } from "./pantallas/Acceso";
 import { CambiarClave } from "./pantallas/CambiarClave";
 import { Inventario } from "./pantallas/Inventario";
@@ -67,7 +68,7 @@ export function App(): JSX.Element {
   }, []);
 
   if (cargandoSesion) {
-    return <p style={{ padding: 24 }}>Cargando…</p>;
+    return <p style={{ padding: 24, color: c.gris }}>Cargando…</p>;
   }
 
   if (sesion === null) {
@@ -84,13 +85,13 @@ export function App(): JSX.Element {
           flexWrap: "wrap",
           gap: 12,
           padding: "12px 20px",
-          borderBottom: "1px solid var(--sfr-borde)",
-          background: "var(--sfr-superficie)",
+          borderBottom: `1px solid ${c.borde}`,
+          background: c.superficie,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-          <strong>facturAI · Panel remoto</strong>
-          <nav style={{ display: "flex", gap: 4 }}>
+          <strong style={{ fontSize: 15, letterSpacing: -0.2 }}>facturAI · Panel remoto</strong>
+          <nav style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {PESTANAS.map((item) => (
               <button
                 key={item.id}
@@ -103,8 +104,8 @@ export function App(): JSX.Element {
                   fontSize: 14,
                   fontWeight: 600,
                   cursor: "pointer",
-                  background: pestana === item.id ? "var(--sfr-acento)" : "transparent",
-                  color: pestana === item.id ? "#fff" : "var(--sfr-texto)",
+                  background: pestana === item.id ? c.azul : "transparent",
+                  color: pestana === item.id ? "#fff" : c.texto,
                 }}
               >
                 {item.etiqueta}
@@ -113,32 +114,14 @@ export function App(): JSX.Element {
           </nav>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 13, color: "var(--sfr-gris)" }}>{sesion.user.email}</span>
-          <button
-            type="button"
-            onClick={() => setCambiandoClave(true)}
-            style={{
-              background: "transparent",
-              border: "1px solid var(--sfr-borde)",
-              borderRadius: 8,
-              padding: "8px 14px",
-              fontSize: 13,
-              cursor: "pointer",
-            }}
-          >
+          <span style={{ fontSize: 13, color: c.gris }}>{sesion.user.email}</span>
+          <button type="button" onClick={() => setCambiandoClave(true)} style={s.botonSecundario}>
             Cambiar contraseña
           </button>
           <button
             type="button"
             onClick={() => void supabase.auth.signOut()}
-            style={{
-              background: "transparent",
-              border: "1px solid var(--sfr-borde)",
-              borderRadius: 8,
-              padding: "8px 14px",
-              fontSize: 13,
-              cursor: "pointer",
-            }}
+            style={s.botonSecundario}
           >
             Cerrar sesión
           </button>

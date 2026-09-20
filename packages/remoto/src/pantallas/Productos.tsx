@@ -1,13 +1,7 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { calcularPrecioVenta, tasaDe, type ImpuestoTipo } from "@sfr/core";
 import { supabase } from "../supabaseClient";
+import { s, money } from "../estilos";
 
 interface DepartamentoOpcion {
   id: string;
@@ -289,41 +283,26 @@ export function Productos(): JSX.Element {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Productos</h2>
+      <h2 style={{ marginTop: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3 }}>
+        Productos
+      </h2>
       {error !== null && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--sfr-peligro-fondo)",
-            color: "var(--sfr-peligro)",
-            border: "1px solid var(--sfr-peligro)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
+        <div role="alert" style={s.errorBox}>
           {error}
         </div>
       )}
 
-      <section
-        style={{
-          background: "var(--sfr-superficie)",
-          border: "1px solid var(--sfr-borde)",
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 24,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>{formulario.id ? "Editar producto" : "Nuevo producto"}</h3>
+      <section style={{ ...s.tarjeta, marginBottom: 24 }}>
+        <h3 style={{ marginTop: 0, fontSize: 18, fontWeight: 600 }}>
+          {formulario.id ? "Editar producto" : "Nuevo producto"}
+        </h3>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
           <Campo etiqueta="Descripción">
             <input
               type="text"
               value={formulario.descripcion}
               onChange={(e) => setFormulario({ ...formulario, descripcion: e.target.value })}
-              style={{ ...estiloInput, width: 220 }}
+              style={{ ...s.input, width: 220 }}
             />
           </Campo>
           <Campo etiqueta="Código de barra">
@@ -331,14 +310,14 @@ export function Productos(): JSX.Element {
               type="text"
               value={formulario.codigoBarra}
               onChange={(e) => setFormulario({ ...formulario, codigoBarra: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             />
           </Campo>
           <Campo etiqueta="Departamento">
             <select
               value={formulario.departamentoId}
               onChange={(e) => setFormulario({ ...formulario, departamentoId: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             >
               <option value="">— Ninguno —</option>
               {departamentos.map((d) => (
@@ -354,7 +333,7 @@ export function Productos(): JSX.Element {
               value={departamentoNuevo}
               disabled={formulario.departamentoId !== ""}
               onChange={(e) => setDepartamentoNuevo(e.target.value)}
-              style={estiloInput}
+              style={s.input}
             />
           </Campo>
         </div>
@@ -366,7 +345,7 @@ export function Productos(): JSX.Element {
               step="0.01"
               value={formulario.costo}
               onChange={(e) => setFormulario({ ...formulario, costo: e.target.value })}
-              style={{ ...estiloInput, width: 100 }}
+              style={{ ...s.input, width: 100 }}
             />
           </Campo>
           <Campo etiqueta="% Ganancia">
@@ -375,7 +354,7 @@ export function Productos(): JSX.Element {
               step="0.01"
               value={formulario.pctGanancia}
               onChange={(e) => setFormulario({ ...formulario, pctGanancia: e.target.value })}
-              style={{ ...estiloInput, width: 100 }}
+              style={{ ...s.input, width: 100 }}
             />
           </Campo>
           <Campo etiqueta="Impuesto">
@@ -384,7 +363,7 @@ export function Productos(): JSX.Element {
               onChange={(e) =>
                 setFormulario({ ...formulario, impuestoTipo: e.target.value as ImpuestoTipo })
               }
-              style={estiloInput}
+              style={s.input}
             >
               <option value="itbis18">ITBIS 18%</option>
               <option value="itbis16">ITBIS 16%</option>
@@ -399,7 +378,7 @@ export function Productos(): JSX.Element {
               value={formulario.precioVentaManual}
               onChange={(e) => setFormulario({ ...formulario, precioVentaManual: e.target.value })}
               placeholder={precioCalculado.toFixed(2)}
-              style={{ ...estiloInput, width: 130 }}
+              style={{ ...s.input, width: 130 }}
             />
           </Campo>
           <Campo etiqueta="Precio mayoreo">
@@ -408,13 +387,13 @@ export function Productos(): JSX.Element {
               step="0.01"
               value={formulario.precioMayoreo}
               onChange={(e) => setFormulario({ ...formulario, precioMayoreo: e.target.value })}
-              style={{ ...estiloInput, width: 110 }}
+              style={{ ...s.input, width: 110 }}
             />
           </Campo>
         </div>
 
         <p style={{ fontSize: 13, color: "var(--sfr-gris)", marginBottom: 12 }}>
-          Precio de venta calculado: RD$ {precioCalculado.toFixed(2)} (déjalo vacío arriba para usar
+          Precio de venta calculado: RD$ {money(precioCalculado)} (déjalo vacío arriba para usar
           este valor derivado de costo + % ganancia + impuesto).
         </p>
 
@@ -445,7 +424,7 @@ export function Productos(): JSX.Element {
                   politicaSinExistencia: e.target.value as "bloquear" | "advertir",
                 })
               }
-              style={estiloInput}
+              style={s.input}
             >
               <option value="advertir">Advertir y permitir</option>
               <option value="bloquear">Bloquear venta</option>
@@ -453,19 +432,13 @@ export function Productos(): JSX.Element {
           </label>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={s.formFooter}>
           <button
             type="button"
             onClick={() => void guardar()}
             disabled={guardando}
             style={{
-              background: "var(--sfr-acento)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "9px 18px",
-              fontSize: 14,
-              fontWeight: 600,
+              ...s.boton,
               cursor: guardando ? "not-allowed" : "pointer",
               opacity: guardando ? 0.7 : 1,
             }}
@@ -473,18 +446,7 @@ export function Productos(): JSX.Element {
             {guardando ? "Guardando…" : formulario.id ? "Guardar cambios" : "Crear producto"}
           </button>
           {formulario.id && (
-            <button
-              type="button"
-              onClick={cancelarEdicion}
-              style={{
-                background: "transparent",
-                border: "1px solid var(--sfr-borde)",
-                borderRadius: 8,
-                padding: "9px 18px",
-                fontSize: 14,
-                cursor: "pointer",
-              }}
-            >
+            <button type="button" onClick={cancelarEdicion} style={s.botonSecundario}>
               Cancelar
             </button>
           )}
@@ -496,29 +458,29 @@ export function Productos(): JSX.Element {
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
         placeholder="Buscar producto…"
-        style={{ ...estiloInput, width: "100%", marginBottom: 12, boxSizing: "border-box" }}
+        style={{ ...s.input, marginBottom: 12 }}
       />
 
-      <div style={{ overflowX: "auto" }}>
-        <table>
+      <div className="sfr-tabla-scroll">
+        <table style={s.tabla}>
           <thead>
             <tr>
-              <th>Producto</th>
-              <th>Precio</th>
-              <th>Existencia</th>
-              <th>Activo</th>
-              <th></th>
+              <th style={s.th}>Producto</th>
+              <th style={s.th}>Precio</th>
+              <th style={s.th}>Existencia</th>
+              <th style={s.th}>Activo</th>
+              <th style={s.th}></th>
             </tr>
           </thead>
           <tbody>
             {productosFiltrados.map((p) => (
               <tr key={p.id}>
-                <td>
+                <td style={s.td}>
                   {p.descripcion}
                   {p.favorito && <span style={{ marginLeft: 6 }}>★</span>}
                 </td>
-                <td>{p.precio_venta.toFixed(2)}</td>
-                <td>
+                <td style={s.tdDerecha}>{money(p.precio_venta)}</td>
+                <td style={s.td}>
                   <input
                     type="number"
                     step="0.01"
@@ -527,11 +489,11 @@ export function Productos(): JSX.Element {
                       setExistenciaEdicion({ ...existenciaEdicion, [p.id]: e.target.value })
                     }
                     onBlur={() => void ajustarExistencia(p)}
-                    style={{ ...estiloInput, width: 90 }}
+                    style={{ ...s.input, width: 90 }}
                   />
                 </td>
-                <td>{p.activo ? "Sí" : "No"}</td>
-                <td>
+                <td style={s.td}>{p.activo ? "Sí" : "No"}</td>
+                <td style={s.td}>
                   <button type="button" onClick={() => editar(p)} style={botonFila}>
                     Editar
                   </button>
@@ -540,7 +502,7 @@ export function Productos(): JSX.Element {
             ))}
             {productosFiltrados.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ textAlign: "center", color: "var(--sfr-gris)" }}>
+                <td colSpan={5} style={s.filaVacia}>
                   Sin productos.
                 </td>
               </tr>
@@ -555,27 +517,10 @@ export function Productos(): JSX.Element {
 function Campo(props: { etiqueta: string; children: ReactNode }): JSX.Element {
   return (
     <div>
-      <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>
-        {props.etiqueta}
-      </label>
+      <label style={s.label}>{props.etiqueta}</label>
       {props.children}
     </div>
   );
 }
 
-const estiloInput: CSSProperties = {
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: "1px solid var(--sfr-borde)",
-  background: "var(--sfr-superficie)",
-  color: "var(--sfr-texto)",
-};
-
-const botonFila: CSSProperties = {
-  border: "1px solid var(--sfr-borde)",
-  background: "transparent",
-  borderRadius: 6,
-  padding: "4px 10px",
-  fontSize: 12,
-  cursor: "pointer",
-};
+const botonFila = { ...s.botonSecundario, padding: "4px 10px", fontSize: 12 };

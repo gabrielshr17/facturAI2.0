@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
+import { s, money } from "../estilos";
 
 /**
  * Consume la vista `vista_ventas_por_dia` (packages/api/db/reportes-vistas.sql,
@@ -61,7 +62,7 @@ export function Reportes(): JSX.Element {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Reportes</h2>
+      <h2 style={{ marginTop: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3 }}>Reportes</h2>
 
       <div
         style={{
@@ -73,29 +74,21 @@ export function Reportes(): JSX.Element {
         }}
       >
         <div>
-          <label
-            style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
-          >
-            Desde
-          </label>
+          <label style={s.label}>Desde</label>
           <input
             type="date"
             value={desde}
             onChange={(evento) => setDesde(evento.target.value)}
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--sfr-borde)" }}
+            style={s.input}
           />
         </div>
         <div>
-          <label
-            style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
-          >
-            Hasta
-          </label>
+          <label style={s.label}>Hasta</label>
           <input
             type="date"
             value={hasta}
             onChange={(evento) => setHasta(evento.target.value)}
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--sfr-borde)" }}
+            style={s.input}
           />
         </div>
         <button
@@ -103,13 +96,7 @@ export function Reportes(): JSX.Element {
           onClick={() => void buscar()}
           disabled={cargando}
           style={{
-            background: "var(--sfr-acento)",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "9px 18px",
-            fontSize: 14,
-            fontWeight: 600,
+            ...s.boton,
             cursor: cargando ? "not-allowed" : "pointer",
             opacity: cargando ? 0.7 : 1,
           }}
@@ -119,18 +106,7 @@ export function Reportes(): JSX.Element {
       </div>
 
       {error !== null && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--sfr-peligro-fondo)",
-            color: "var(--sfr-peligro)",
-            border: "1px solid var(--sfr-peligro)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
+        <div role="alert" style={s.errorBox}>
           {error}
         </div>
       )}
@@ -138,28 +114,28 @@ export function Reportes(): JSX.Element {
       {consultado && !cargando && error === null && (
         <>
           <p style={{ fontSize: 15 }}>
-            Total vendido en el período: <strong>{totalPeriodo.toFixed(2)}</strong>
+            Total vendido en el período: <strong>{money(totalPeriodo)}</strong>
           </p>
-          <div style={{ overflowX: "auto" }}>
-            <table>
+          <div className="sfr-tabla-scroll">
+            <table style={s.tabla}>
               <thead>
                 <tr>
-                  <th>Fecha</th>
-                  <th>Facturas cobradas</th>
-                  <th>Total vendido</th>
+                  <th style={s.th}>Fecha</th>
+                  <th style={s.th}>Facturas cobradas</th>
+                  <th style={s.th}>Total vendido</th>
                 </tr>
               </thead>
               <tbody>
                 {filas.map((fila) => (
                   <tr key={fila.fecha}>
-                    <td>{fila.fecha}</td>
-                    <td>{fila.cantidad_facturas}</td>
-                    <td>{fila.total_vendido.toFixed(2)}</td>
+                    <td style={s.td}>{fila.fecha}</td>
+                    <td style={s.td}>{fila.cantidad_facturas}</td>
+                    <td style={s.tdDerecha}>{money(fila.total_vendido)}</td>
                   </tr>
                 ))}
                 {filas.length === 0 && (
                   <tr>
-                    <td colSpan={3} style={{ textAlign: "center", color: "var(--sfr-gris)" }}>
+                    <td colSpan={3} style={s.filaVacia}>
                       Sin ventas cobradas en el rango elegido.
                     </td>
                   </tr>

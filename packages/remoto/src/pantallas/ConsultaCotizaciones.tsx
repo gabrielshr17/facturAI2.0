@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { s, c, money } from "../estilos";
 
 /**
  * Solo consulta + anular: las cotizaciones se crean durante un flujo de venta
@@ -29,9 +30,9 @@ interface ClienteOpcion {
   apellidos: string | null;
 }
 
-function esVencida(c: CotizacionFila): boolean {
+function esVencida(cot: CotizacionFila): boolean {
   const hoy = new Date().toISOString().slice(0, 10);
-  return c.estado === "vigente" && c.fecha_vencimiento.slice(0, 10) < hoy;
+  return cot.estado === "vigente" && cot.fecha_vencimiento.slice(0, 10) < hoy;
 }
 
 export function ConsultaCotizaciones(): JSX.Element {
@@ -74,7 +75,7 @@ export function ConsultaCotizaciones(): JSX.Element {
     setCotizaciones(filas);
 
     const idsCliente = [
-      ...new Set(filas.map((c) => c.cliente_id).filter((id): id is string => !!id)),
+      ...new Set(filas.map((cot) => cot.cliente_id).filter((id): id is string => !!id)),
     ];
     if (idsCliente.length > 0) {
       const { data: clientesData } = await supabase
@@ -125,84 +126,78 @@ export function ConsultaCotizaciones(): JSX.Element {
     return <p>Cargando cotizaciones…</p>;
   }
 
-  const seleccion = cotizaciones.find((c) => c.id === seleccionId) ?? null;
+  const seleccion = cotizaciones.find((cot) => cot.id === seleccionId) ?? null;
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Consulta de cotizaciones</h2>
+      <h2 style={{ marginTop: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3 }}>
+        Consulta de cotizaciones
+      </h2>
       {error !== null && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--sfr-peligro-fondo)",
-            color: "var(--sfr-peligro)",
-            border: "1px solid var(--sfr-peligro)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
+        <div role="alert" style={s.errorBox}>
           {error}
         </div>
       )}
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <div>
-          <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)" }}>Desde</label>
+          <label style={s.label}>Desde</label>
           <input
             type="date"
             value={desde}
             onChange={(e) => setDesde(e.target.value)}
-            style={estiloInput}
+            style={s.input}
           />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)" }}>Hasta</label>
+          <label style={s.label}>Hasta</label>
           <input
             type="date"
             value={hasta}
             onChange={(e) => setHasta(e.target.value)}
-            style={estiloInput}
+            style={s.input}
           />
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 380px", overflowX: "auto" }}>
-          <table style={{ width: "100%" }}>
+        <div style={{ flex: "1 1 380px" }} className="sfr-tabla-scroll">
+          <table style={s.tabla}>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Fecha</th>
-                <th>Cliente</th>
-                <th>Total</th>
-                <th>Estado</th>
+                <th style={s.th}>#</th>
+                <th style={s.th}>Fecha</th>
+                <th style={s.th}>Cliente</th>
+                <th style={s.th}>Total</th>
+                <th style={s.th}>Estado</th>
               </tr>
             </thead>
             <tbody>
-              {cotizaciones.map((c) => {
-                const cliente = c.cliente_id ? clientes[c.cliente_id] : null;
+              {cotizaciones.map((cot) => {
+                const cliente = cot.cliente_id ? clientes[cot.cliente_id] : null;
                 return (
                   <tr
-                    key={c.id}
-                    onClick={() => void verDetalle(c.id)}
+                    key={cot.id}
+                    className="sfr-fila-clickeable"
+                    onClick={() => void verDetalle(cot.id)}
                     style={{
                       cursor: "pointer",
-                      background: seleccionId === c.id ? "var(--sfr-borde)" : "transparent",
+                      background: seleccionId === cot.id ? c.seleccion : "transparent",
                     }}
                   >
-                    <td>{c.numero_interno ?? "—"}</td>
-                    <td>{c.fecha_hora.slice(0, 16).replace("T", " ")}</td>
-                    <td>{cliente ? `${cliente.nombre} ${cliente.apellidos ?? ""}` : "—"}</td>
-                    <td>{c.total.toFixed(2)}</td>
-                    <td>{esVencida(c) ? "Vencida" : c.estado}</td>
+                    <td style={s.td}>{cot.numero_interno ?? "—"}</td>
+                    <td style={s.td}>{cot.fecha_hora.slice(0, 16).replace("T", " ")}</td>
+                    <td style={s.td}>
+                      {cliente ? `${cliente.nombre} ${cliente.apellidos ?? ""}` : "—"}
+                    </td>
+                    <td style={s.tdDerecha}>{money(cot.total)}</td>
+                    <td style={s.td}>{esVencida(cot) ? "Vencida" : cot.estado}</td>
                   </tr>
                 );
               })}
               {cotizaciones.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", color: "var(--sfr-gris)" }}>
+                  <td colSpan={5} style={s.filaVacia}>
                     Sin cotizaciones en este rango.
                   </td>
                 </tr>
@@ -212,51 +207,41 @@ export function ConsultaCotizaciones(): JSX.Element {
         </div>
 
         {seleccion && (
-          <div
-            style={{
-              flex: "1 1 300px",
-              background: "var(--sfr-superficie)",
-              border: "1px solid var(--sfr-borde)",
-              borderRadius: 12,
-              padding: 16,
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Cotización #{seleccion.numero_interno ?? "—"}</h3>
+          <div style={{ ...s.tarjeta, flex: "1 1 300px" }}>
+            <h3 style={{ marginTop: 0, fontSize: 18, fontWeight: 600 }}>
+              Cotización #{seleccion.numero_interno ?? "—"}
+            </h3>
             {cargandoDetalle ? (
-              <p>Cargando detalle…</p>
+              <p style={{ color: c.gris }}>Cargando detalle…</p>
             ) : (
               <>
-                <table style={{ width: "100%", marginBottom: 12 }}>
+                <table style={{ ...s.tabla, marginBottom: 12 }}>
                   <thead>
                     <tr>
-                      <th>Producto</th>
-                      <th>Cant.</th>
-                      <th>Subtotal</th>
+                      <th style={s.th}>Producto</th>
+                      <th style={s.th}>Cant.</th>
+                      <th style={s.th}>Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
                     {lineas.map((l) => (
                       <tr key={l.id}>
-                        <td>{l.descripcion}</td>
-                        <td>{l.cantidad}</td>
-                        <td>{l.subtotal.toFixed(2)}</td>
+                        <td style={s.td}>{l.descripcion}</td>
+                        <td style={s.td}>{l.cantidad}</td>
+                        <td style={s.tdDerecha}>{money(l.subtotal)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <p style={{ fontWeight: 600, marginBottom: 12 }}>
-                  Total: {seleccion.total.toFixed(2)}
-                </p>
+                <p style={{ fontWeight: 600, marginBottom: 12 }}>Total: {money(seleccion.total)}</p>
                 {seleccion.estado === "vigente" && (
                   <button
                     type="button"
                     onClick={() => void anular(seleccion.id)}
                     disabled={anulando}
                     style={{
-                      background: "var(--sfr-peligro)",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 8,
+                      ...s.boton,
+                      background: c.rojo,
                       padding: "8px 16px",
                       fontSize: 13,
                       cursor: anulando ? "not-allowed" : "pointer",
@@ -273,11 +258,3 @@ export function ConsultaCotizaciones(): JSX.Element {
     </div>
   );
 }
-
-const estiloInput: CSSProperties = {
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: "1px solid var(--sfr-borde)",
-  background: "var(--sfr-superficie)",
-  color: "var(--sfr-texto)",
-};
