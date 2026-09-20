@@ -5,7 +5,9 @@
  * error con un mensaje claro para mostrar en la UI, en vez de fallar en
  * silencio.
  */
-const BASE_URL = (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_API_URL ?? "http://localhost:3001";
+const BASE_URL =
+  (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_API_URL ??
+  "http://localhost:3001";
 
 export interface MensajeChat {
   rol: "user" | "assistant";
@@ -43,13 +45,19 @@ async function leerError(respuesta: Response): Promise<string> {
 function envolverErrorDeRed(e: unknown): never {
   if (e instanceof TypeError) {
     throw new Error(
-      "No se pudo conectar con el asistente. Verifica que el backend (packages/api) esté corriendo en " + BASE_URL + ".",
+      "No se pudo conectar con el asistente. Verifica que el backend (packages/api) esté corriendo en " +
+        BASE_URL +
+        ".",
     );
   }
   throw e instanceof Error ? e : new Error(String(e));
 }
 
-export async function enviarMensaje(historial: MensajeChat[], mensaje: string, imagen?: ImagenAdjunta): Promise<string> {
+export async function enviarMensaje(
+  historial: MensajeChat[],
+  mensaje: string,
+  imagen?: ImagenAdjunta,
+): Promise<string> {
   let respuesta: Response;
   try {
     respuesta = await fetch(`${BASE_URL}/chatbot/mensaje`, {
@@ -65,7 +73,9 @@ export async function enviarMensaje(historial: MensajeChat[], mensaje: string, i
   return cuerpo.respuesta;
 }
 
-export async function analizarComprobante(imagen: ImagenAdjunta): Promise<DatosExtraidosComprobante> {
+export async function analizarComprobante(
+  imagen: ImagenAdjunta,
+): Promise<DatosExtraidosComprobante> {
   let respuesta: Response;
   try {
     respuesta = await fetch(`${BASE_URL}/chatbot/analizar-comprobante`, {

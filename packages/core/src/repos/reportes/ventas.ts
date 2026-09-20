@@ -20,7 +20,11 @@ export function crearReportesVentas(db: SqlDriver) {
       );
     },
 
-    async productosMasVendidos(desde: string, hasta: string, limite = 20): Promise<ProductoVendido[]> {
+    async productosMasVendidos(
+      desde: string,
+      hasta: string,
+      limite = 20,
+    ): Promise<ProductoVendido[]> {
       return db.all<ProductoVendido>(
         `SELECT fl.producto_id as productoId, fl.descripcion as descripcion,
                 SUM(fl.cantidad) as cantidadVendida, SUM(fl.subtotal) as totalVendido

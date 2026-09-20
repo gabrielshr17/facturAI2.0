@@ -61,30 +61,44 @@ const COLS_LINEA = `id, devolucion_id, factura_linea_id, producto_id, descripcio
 export async function prepararDevolucion(
   db: SqlDriver,
   input: DevolucionInput,
-): Promise<{ lineas: LineaPreparada[]; subtotalGravado: number; subtotalExento: number; totalItbis: number; total: number }> {
+): Promise<{
+  lineas: LineaPreparada[];
+  subtotalGravado: number;
+  subtotalExento: number;
+  totalItbis: number;
+  total: number;
+}> {
   const factura = await db.get<{ estado: string }>(
     "SELECT estado FROM factura WHERE id=? AND deleted_at IS NULL",
     [input.facturaId],
   );
   if (!factura) throw new Error(`Factura ${input.facturaId} no existe`);
   if (factura.estado !== "cobrada") {
-    throw new ValidacionError([{ campo: "factura", mensaje: "Solo se pueden devolver artículos de ventas ya cobradas." }]);
+    throw new ValidacionError([
+      { campo: "factura", mensaje: "Solo se pueden devolver artículos de ventas ya cobradas." },
+    ]);
   }
   if (input.lineas.length === 0) {
-    throw new ValidacionError([{ campo: "lineas", mensaje: "Debe indicar al menos un artículo a devolver." }]);
+    throw new ValidacionError([
+      { campo: "lineas", mensaje: "Debe indicar al menos un artículo a devolver." },
+    ]);
   }
 
   const preparadas: LineaPreparada[] = [];
   for (const li of input.lineas) {
     if (!(li.cantidad > 0)) {
-      throw new ValidacionError([{ campo: "cantidad", mensaje: "La cantidad a devolver debe ser mayor que cero." }]);
+      throw new ValidacionError([
+        { campo: "cantidad", mensaje: "La cantidad a devolver debe ser mayor que cero." },
+      ]);
     }
     const linea = await db.get<FacturaLinea>(
       `SELECT ${COLS_FACTURA_LINEA} FROM factura_linea WHERE id=? AND factura_id=? AND deleted_at IS NULL`,
       [li.facturaLineaId, input.facturaId],
     );
     if (!linea) {
-      throw new ValidacionError([{ campo: "lineas", mensaje: "Una de las líneas no pertenece a esta factura." }]);
+      throw new ValidacionError([
+        { campo: "lineas", mensaje: "Una de las líneas no pertenece a esta factura." },
+      ]);
     }
     const yaDevuelta = await db.get<{ total: number | null }>(
       "SELECT SUM(cantidad) as total FROM devolucion_linea WHERE factura_linea_id=? AND deleted_at IS NULL",
@@ -93,10 +107,17 @@ export async function prepararDevolucion(
     const disponible = linea.cantidad - (yaDevuelta?.total ?? 0);
     if (li.cantidad > disponible) {
       throw new ValidacionError([
-        { campo: "cantidad", mensaje: `Solo quedan ${disponible} unidad(es) de "${linea.descripcion}" disponibles para devolver.` },
+        {
+          campo: "cantidad",
+          mensaje: `Solo quedan ${disponible} unidad(es) de "${linea.descripcion}" disponibles para devolver.`,
+        },
       ]);
     }
-    const calc = calcularLinea({ precioUnitario: linea.precio_unitario, cantidad: li.cantidad, tasaImpuesto: linea.tasa_impuesto });
+    const calc = calcularLinea({
+      precioUnitario: linea.precio_unitario,
+      cantidad: li.cantidad,
+      tasaImpuesto: linea.tasa_impuesto,
+    });
     preparadas.push({
       facturaLineaId: li.facturaLineaId,
       productoId: linea.producto_id,
@@ -112,27 +133,61 @@ export async function prepararDevolucion(
   }
 
   const totalesInput: LineaInput[] = preparadas.map((p) => ({
-    precioUnitario: p.precioUnitario, cantidad: p.cantidad, tasaImpuesto: p.tasaImpuesto,
+    precioUnitario: p.precioUnitario,
+    cantidad: p.cantidad,
+    tasaImpuesto: p.tasaImpuesto,
   }));
   const t = calcularTotales(totalesInput);
-  return { lineas: preparadas, subtotalGravado: t.subtotalGravado, subtotalExento: t.subtotalExento, totalItbis: t.totalItbis, total: t.total };
+  return {
+    lineas: preparadas,
+    subtotalGravado: t.subtotalGravado,
+    subtotalExento: t.subtotalExento,
+    totalItbis: t.totalItbis,
+    total: t.total,
+  };
 }
 
 export function crearDevolucionRepo(db: SqlDriver) {
-  async function restituirInventario(devolucionId: string, lineas: LineaPreparada[], ts: string): Promise<void> {
-    const negocio = await db.get<{ inventario_activo: number }>("SELECT inventario_activo FROM negocio LIMIT 1");
+  async function restituirInventario(
+    devolucionId: string,
+    lineas: LineaPreparada[],
+    ts: string,
+  ): Promise<void> {
+    const negocio = await db.get<{ inventario_activo: number }>(
+      "SELECT inventario_activo FROM negocio LIMIT 1",
+    );
     if (negocio?.inventario_activo !== 1) return;
 
     for (const l of lineas) {
       if (!l.productoId) continue;
-      const producto = await db.get<{ existencia: number | null }>("SELECT existencia FROM producto WHERE id=?", [l.productoId]);
+      const producto = await db.get<{ existencia: number | null }>(
+        "SELECT existencia FROM producto WHERE id=?",
+        [l.productoId],
+      );
       const nuevaExistencia = (producto?.existencia ?? 0) + l.cantidad;
-      await db.run("UPDATE producto SET existencia=?, updated_at=? WHERE id=?", [nuevaExistencia, ts, l.productoId]);
+      await db.run("UPDATE producto SET existencia=?, updated_at=? WHERE id=?", [
+        nuevaExistencia,
+        ts,
+        l.productoId,
+      ]);
       await db.run(
         `INSERT INTO movimiento_inventario
            (id, producto_id, tipo, cantidad, costo, referencia_tipo, referencia_id, fecha, usuario_id, created_at, updated_at, deleted_at)
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [newId(), l.productoId, "entrada", l.cantidad, null, "devolucion", devolucionId, ts, null, ts, ts, null],
+        [
+          newId(),
+          l.productoId,
+          "entrada",
+          l.cantidad,
+          null,
+          "devolucion",
+          devolucionId,
+          ts,
+          null,
+          ts,
+          ts,
+          null,
+        ],
       );
     }
   }
@@ -173,8 +228,18 @@ export function crearDevolucionRepo(db: SqlDriver) {
       await db.run(
         `INSERT INTO devolucion (${COLS_DEVOLUCION}) VALUES (${Array(12).fill("?").join(",")})`,
         [
-          d.id, d.factura_id, d.fecha, d.motivo, d.subtotal, d.itbis, d.total, d.comprobante_id,
-          d.metodo_devolucion, d.created_at, d.updated_at, d.deleted_at,
+          d.id,
+          d.factura_id,
+          d.fecha,
+          d.motivo,
+          d.subtotal,
+          d.itbis,
+          d.total,
+          d.comprobante_id,
+          d.metodo_devolucion,
+          d.created_at,
+          d.updated_at,
+          d.deleted_at,
         ],
       );
 
@@ -199,17 +264,30 @@ export function crearDevolucionRepo(db: SqlDriver) {
         await db.run(
           `INSERT INTO devolucion_linea (${COLS_LINEA}) VALUES (${Array(15).fill("?").join(",")})`,
           [
-            linea.id, linea.devolucion_id, linea.factura_linea_id, linea.producto_id, linea.descripcion,
-            linea.cantidad, linea.precio_unitario, linea.impuesto_tipo, linea.tasa_impuesto,
-            linea.monto_itbis, linea.subtotal, linea.nivel_precio,
-            linea.created_at, linea.updated_at, linea.deleted_at,
+            linea.id,
+            linea.devolucion_id,
+            linea.factura_linea_id,
+            linea.producto_id,
+            linea.descripcion,
+            linea.cantidad,
+            linea.precio_unitario,
+            linea.impuesto_tipo,
+            linea.tasa_impuesto,
+            linea.monto_itbis,
+            linea.subtotal,
+            linea.nivel_precio,
+            linea.created_at,
+            linea.updated_at,
+            linea.deleted_at,
           ],
         );
       }
 
       await restituirInventario(d.id, preparada.lineas, ts);
       await registrarAccion(db, {
-        accion: "registrar_devolucion", entidad: "devolucion", entidadId: d.id,
+        accion: "registrar_devolucion",
+        entidad: "devolucion",
+        entidadId: d.id,
         resumen: `Total RD$ ${d.total.toFixed(2)} de la factura ${input.facturaId}`,
       });
 
@@ -217,11 +295,18 @@ export function crearDevolucionRepo(db: SqlDriver) {
     },
 
     async marcarComprobante(id: string, comprobanteId: string): Promise<void> {
-      await db.run("UPDATE devolucion SET comprobante_id=?, updated_at=? WHERE id=?", [comprobanteId, now(), id]);
+      await db.run("UPDATE devolucion SET comprobante_id=?, updated_at=? WHERE id=?", [
+        comprobanteId,
+        now(),
+        id,
+      ]);
     },
 
     async obtener(id: string): Promise<Devolucion | undefined> {
-      return db.get<Devolucion>(`SELECT ${COLS_DEVOLUCION} FROM devolucion WHERE id=? AND deleted_at IS NULL`, [id]);
+      return db.get<Devolucion>(
+        `SELECT ${COLS_DEVOLUCION} FROM devolucion WHERE id=? AND deleted_at IS NULL`,
+        [id],
+      );
     },
 
     async obtenerLineas(devolucionId: string): Promise<DevolucionLinea[]> {

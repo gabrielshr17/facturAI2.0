@@ -22,7 +22,12 @@ export function crearDepartamentoRepo(db: SqlDriver) {
         deleted_at: null,
       };
       await db.run(`INSERT INTO departamento (${COLS}) VALUES (?,?,?,?,?,?)`, [
-        d.id, d.nombre, d.activo, d.created_at, d.updated_at, d.deleted_at,
+        d.id,
+        d.nombre,
+        d.activo,
+        d.created_at,
+        d.updated_at,
+        d.deleted_at,
       ]);
       return d;
     },
@@ -32,13 +37,17 @@ export function crearDepartamentoRepo(db: SqlDriver) {
         throw new ValidacionError([{ campo: "nombre", mensaje: "El nombre es obligatorio." }]);
       }
       await db.run("UPDATE departamento SET nombre=?, updated_at=? WHERE id=?", [
-        nombre.trim(), now(), id,
+        nombre.trim(),
+        now(),
+        id,
       ]);
     },
 
     async eliminar(id: string): Promise<void> {
       await db.run("UPDATE departamento SET deleted_at=?, updated_at=? WHERE id=?", [
-        now(), now(), id,
+        now(),
+        now(),
+        id,
       ]);
     },
 

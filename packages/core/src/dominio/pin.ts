@@ -56,8 +56,15 @@ function base64ABytes(base64: string): Uint8Array {
   return bytes;
 }
 
-async function derivar(pin: string, salt: Uint8Array, iteraciones: number, subtle: SubtleCrypto): Promise<Uint8Array> {
-  const claveBase = await subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+async function derivar(
+  pin: string,
+  salt: Uint8Array,
+  iteraciones: number,
+  subtle: SubtleCrypto,
+): Promise<Uint8Array> {
+  const claveBase = await subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, [
+    "deriveBits",
+  ]);
   const bits = await subtle.deriveBits(
     { name: "PBKDF2", hash: ALGORITMO_HASH, salt: salt as BufferSource, iterations: iteraciones },
     claveBase,

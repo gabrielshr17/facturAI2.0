@@ -79,15 +79,27 @@ export function crearClienteRepo(db: SqlDriver) {
         deleted_at: null,
       };
 
-      await db.run(
-        `INSERT INTO cliente (${COLS}) VALUES (${Array(19).fill("?").join(",")})`,
-        [
-          c.id, c.nombre, c.apellidos, c.telefono, c.correo, c.direccion, c.comentarios,
-          c.aplica_credito, c.limite_credito, c.saldo_credito, c.documento_tipo, c.documento_numero,
-          c.nivel_precio, c.niveles_permitidos_json, c.fecha_nacimiento, c.dias_credito,
-          c.created_at, c.updated_at, c.deleted_at,
-        ],
-      );
+      await db.run(`INSERT INTO cliente (${COLS}) VALUES (${Array(19).fill("?").join(",")})`, [
+        c.id,
+        c.nombre,
+        c.apellidos,
+        c.telefono,
+        c.correo,
+        c.direccion,
+        c.comentarios,
+        c.aplica_credito,
+        c.limite_credito,
+        c.saldo_credito,
+        c.documento_tipo,
+        c.documento_numero,
+        c.nivel_precio,
+        c.niveles_permitidos_json,
+        c.fecha_nacimiento,
+        c.dias_credito,
+        c.created_at,
+        c.updated_at,
+        c.deleted_at,
+      ]);
       return c;
     },
 
@@ -119,7 +131,8 @@ export function crearClienteRepo(db: SqlDriver) {
           input.niveles_permitidos_json ?? actual.niveles_permitidos_json,
           input.fecha_nacimiento ?? actual.fecha_nacimiento,
           input.dias_credito ?? actual.dias_credito,
-          now(), id,
+          now(),
+          id,
         ],
       );
     },
@@ -129,8 +142,12 @@ export function crearClienteRepo(db: SqlDriver) {
       const actual = await this.obtener(id);
       await db.run("UPDATE cliente SET deleted_at=?, updated_at=? WHERE id=?", [now(), now(), id]);
       await registrarAccion(db, {
-        accion: "eliminar", entidad: "cliente", entidadId: id,
-        resumen: actual ? `Cliente eliminado: ${actual.nombre} ${actual.apellidos ?? ""}`.trim() : null,
+        accion: "eliminar",
+        entidad: "cliente",
+        entidadId: id,
+        resumen: actual
+          ? `Cliente eliminado: ${actual.nombre} ${actual.apellidos ?? ""}`.trim()
+          : null,
       });
     },
 

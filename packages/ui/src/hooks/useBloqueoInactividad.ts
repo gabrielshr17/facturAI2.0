@@ -39,7 +39,10 @@ export interface BloqueoInactividadApi {
  * - La decisión de "cuánto es demasiado" no se reimplementa acá: se invoca
  *   `debeBloquear`, nunca se recalcula la resta de fechas a mano.
  */
-export function useBloqueoInactividad(limiteMinutos: number, habilitado = true): BloqueoInactividadApi {
+export function useBloqueoInactividad(
+  limiteMinutos: number,
+  habilitado = true,
+): BloqueoInactividadApi {
   const ultimaActividadRef = useRef(new Date());
   const bloqueadoRef = useRef(false);
   const [bloqueado, setBloqueado] = useState(false);
@@ -62,9 +65,11 @@ export function useBloqueoInactividad(limiteMinutos: number, habilitado = true):
 
   useEffect(() => {
     if (!habilitado || bloqueado) return;
-    for (const evento of EVENTOS_ACTIVIDAD) window.addEventListener(evento, registrarActividad, { passive: true });
+    for (const evento of EVENTOS_ACTIVIDAD)
+      window.addEventListener(evento, registrarActividad, { passive: true });
     return () => {
-      for (const evento of EVENTOS_ACTIVIDAD) window.removeEventListener(evento, registrarActividad);
+      for (const evento of EVENTOS_ACTIVIDAD)
+        window.removeEventListener(evento, registrarActividad);
     };
     // Mientras está bloqueada no tiene sentido seguir registrando actividad: la pantalla
     // solo debe "despertar" cuando `desbloquear()` reinicia el contador a propósito.

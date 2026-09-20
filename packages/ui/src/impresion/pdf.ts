@@ -153,7 +153,8 @@ function construirPdf(datos: DocumentoPdfDatos): jsPDF {
 
   if (datos.pagos && datos.pagos.length > 0) {
     y += 3;
-    for (const p of datos.pagos) filaTotal(ETIQUETA_METODO[p.metodo] ?? p.metodo, `RD$ ${money(p.monto)}`);
+    for (const p of datos.pagos)
+      filaTotal(ETIQUETA_METODO[p.metodo] ?? p.metodo, `RD$ ${money(p.monto)}`);
     if (datos.montoPagado != null) filaTotal("Pagado", `RD$ ${money(datos.montoPagado)}`);
     if (datos.cambio != null) filaTotal("Cambio", `RD$ ${money(datos.cambio)}`);
   }
@@ -170,7 +171,9 @@ function construirPdf(datos: DocumentoPdfDatos): jsPDF {
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8);
     doc.setTextColor(110);
-    doc.text(datos.piePagina, margen, doc.internal.pageSize.getHeight() - 14, { maxWidth: derecha - margen });
+    doc.text(datos.piePagina, margen, doc.internal.pageSize.getHeight() - 14, {
+      maxWidth: derecha - margen,
+    });
   }
 
   return doc;

@@ -43,7 +43,11 @@ conversación, pide que lo consulten en la pantalla correspondiente. Responde en
 español, corto y directo (es un punto de venta, no hay tiempo para párrafos).`;
 
 /** Conversación de texto (+ opcionalmente una imagen adjunta en el último turno). */
-export async function enviarMensaje(historial: MensajeChat[], mensaje: string, imagen?: ImagenAdjunta): Promise<string> {
+export async function enviarMensaje(
+  historial: MensajeChat[],
+  mensaje: string,
+  imagen?: ImagenAdjunta,
+): Promise<string> {
   const anthropic = obtenerCliente();
 
   const mensajesPrevios: Anthropic.MessageParam[] = historial.map((m) => ({
@@ -55,7 +59,11 @@ export async function enviarMensaje(historial: MensajeChat[], mensaje: string, i
   if (imagen) {
     contenidoActual.push({
       type: "image",
-      source: { type: "base64", media_type: imagen.tipoMime as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: imagen.data },
+      source: {
+        type: "base64",
+        media_type: imagen.tipoMime as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+        data: imagen.data,
+      },
     });
   }
   contenidoActual.push({ type: "text", text: mensaje });
@@ -85,21 +93,51 @@ export interface DatosExtraidosComprobante {
 
 const HERRAMIENTA_EXTRAER: Anthropic.Tool = {
   name: "extraer_datos_factura",
-  description: "Registra los datos extraídos de la foto de una factura/recibo de compra dominicano.",
+  description:
+    "Registra los datos extraídos de la foto de una factura/recibo de compra dominicano.",
   input_schema: {
     type: "object",
     properties: {
-      proveedor: { type: ["string", "null"], description: "Nombre del proveedor/comercio, o null si no se lee." },
+      proveedor: {
+        type: ["string", "null"],
+        description: "Nombre del proveedor/comercio, o null si no se lee.",
+      },
       rnc: { type: ["string", "null"], description: "RNC del proveedor (9 u 11 dígitos), o null." },
-      ncf: { type: ["string", "null"], description: "NCF o e-CF del comprobante, o null si no tiene." },
-      fecha: { type: ["string", "null"], description: "Fecha del comprobante en formato AAAA-MM-DD, o null." },
+      ncf: {
+        type: ["string", "null"],
+        description: "NCF o e-CF del comprobante, o null si no tiene.",
+      },
+      fecha: {
+        type: ["string", "null"],
+        description: "Fecha del comprobante en formato AAAA-MM-DD, o null.",
+      },
       monto: { type: ["number", "null"], description: "Monto total de la factura, o null." },
-      itbis: { type: ["number", "null"], description: "Monto de ITBIS, o null si no se distingue." },
+      itbis: {
+        type: ["number", "null"],
+        description: "Monto de ITBIS, o null si no se distingue.",
+      },
       clasificacion: { type: "string", enum: ["con_fiscal", "sin_fiscal", "pendiente_revision"] },
-      confianza: { type: "string", enum: ["alta", "media", "baja"], description: "Qué tan seguro estás de la lectura." },
-      notas: { type: ["string", "null"], description: "Cualquier duda o algo que el usuario debería revisar." },
+      confianza: {
+        type: "string",
+        enum: ["alta", "media", "baja"],
+        description: "Qué tan seguro estás de la lectura.",
+      },
+      notas: {
+        type: ["string", "null"],
+        description: "Cualquier duda o algo que el usuario debería revisar.",
+      },
     },
-    required: ["proveedor", "rnc", "ncf", "fecha", "monto", "itbis", "clasificacion", "confianza", "notas"],
+    required: [
+      "proveedor",
+      "rnc",
+      "ncf",
+      "fecha",
+      "monto",
+      "itbis",
+      "clasificacion",
+      "confianza",
+      "notas",
+    ],
   },
 };
 
@@ -116,7 +154,9 @@ la herramienta extraer_datos_factura para responder.`;
  * al usuario para confirmar antes de guardar nada (requisito de seguridad,
  * plan.md sección 8) — este servicio solo lee, nunca escribe.
  */
-export async function analizarComprobante(imagen: ImagenAdjunta): Promise<DatosExtraidosComprobante> {
+export async function analizarComprobante(
+  imagen: ImagenAdjunta,
+): Promise<DatosExtraidosComprobante> {
   const anthropic = obtenerCliente();
 
   const respuesta = await anthropic.messages.create({
@@ -131,7 +171,12 @@ export async function analizarComprobante(imagen: ImagenAdjunta): Promise<DatosE
         content: [
           {
             type: "image",
-            source: { type: "base64", media_type: imagen.tipoMime as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: imagen.data },
+            source: {
+              type: "base64",
+              media_type: imagen.tipoMime as
+                "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+              data: imagen.data,
+            },
           },
           { type: "text", text: "Extrae los datos de este comprobante." },
         ],

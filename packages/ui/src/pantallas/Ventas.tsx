@@ -18,13 +18,30 @@ import { useSesion } from "../sesion/contexto.js";
 import { s, c, money, sombra } from "../estilos.js";
 import { ModalCobro, type FiscalInput, type SalidaCobro } from "../componentes/ModalCobro.js";
 import { ModalCotizacion, type SalidaCotizacion } from "../componentes/ModalCotizacion.js";
-import { FormularioProducto, diferenciasProducto, type CambioProducto } from "../componentes/FormularioProducto.js";
+import {
+  FormularioProducto,
+  diferenciasProducto,
+  type CambioProducto,
+} from "../componentes/FormularioProducto.js";
 import { ModalConfirmarCambios } from "../componentes/ModalConfirmarCambios.js";
 import { imprimirRecibo } from "../impresion/recibo.js";
 import { imprimirCotizacion } from "../impresion/cotizacion.js";
 import { generarPdfRecibo, generarPdfCotizacion, guardarPdf } from "../impresion/pdf.js";
 import { abrirGavetaTermica } from "../impresion/termica.js";
-import { Hash, Search, Pencil, User, DollarSign, ClipboardList, Weight, TriangleAlert, Star, Trash2, ShoppingCart, Printer } from "lucide-react";
+import {
+  Hash,
+  Search,
+  Pencil,
+  User,
+  DollarSign,
+  ClipboardList,
+  Weight,
+  TriangleAlert,
+  Star,
+  Trash2,
+  ShoppingCart,
+  Printer,
+} from "lucide-react";
 import { ChatBot } from "../componentes/ChatBot.js";
 import { EtiquetaAtajo } from "../componentes/EtiquetaAtajo.js";
 import { useAlertas } from "../contexto/Alertas.js";
@@ -109,7 +126,9 @@ export function Ventas() {
   const [busquedaModalCantidad, setBusquedaModalCantidad] = useState("");
   const [resultadosModalCantidad, setResultadosModalCantidad] = useState<Producto[]>([]);
   const [indiceResultadoModalCantidad, setIndiceResultadoModalCantidad] = useState(-1);
-  const [accionResultadoModalCantidad, setAccionResultadoModalCantidad] = useState<"fila" | "favorito">("fila");
+  const [accionResultadoModalCantidad, setAccionResultadoModalCantidad] = useState<
+    "fila" | "favorito"
+  >("fila");
   const [cantidadModalTexto, setCantidadModalTexto] = useState("");
   const [montoModalTexto, setMontoModalTexto] = useState("");
   const [modalConsultaAbierto, setModalConsultaAbierto] = useState(false);
@@ -132,7 +151,9 @@ export function Ventas() {
   const [editandoProducto, setEditandoProducto] = useState<Producto | null>(null);
   const [formEdicion, setFormEdicion] = useState<ProductoInput | null>(null);
   const [erroresEdicion, setErroresEdicion] = useState<string[]>([]);
-  const [cambiosPendientesEdicion, setCambiosPendientesEdicion] = useState<CambioProducto[] | null>(null);
+  const [cambiosPendientesEdicion, setCambiosPendientesEdicion] = useState<CambioProducto[] | null>(
+    null,
+  );
 
   const [clienteQ, setClienteQ] = useState("");
   const [clienteResultados, setClienteResultados] = useState<Cliente[]>([]);
@@ -177,7 +198,11 @@ export function Ventas() {
   const sueltoPrecioRef = useRef<HTMLInputElement>(null);
   const sueltoCantidadRef = useRef<HTMLInputElement>(null);
   const sueltoAgregarRef = useRef<HTMLButtonElement>(null);
-  function manejarFlechaSuelto(e: { key: string; preventDefault(): void }, siguiente: HTMLElement | null, anterior: HTMLElement | null) {
+  function manejarFlechaSuelto(
+    e: { key: string; preventDefault(): void },
+    siguiente: HTMLElement | null,
+    anterior: HTMLElement | null,
+  ) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       siguiente?.focus();
@@ -189,36 +214,48 @@ export function Ventas() {
     }
   }
 
-  useAtajosTeclado({
-    F10: enfocarBusqueda,
-    F12: () => { if (lineas.length > 0) setMostrarCobro(true); },
-    F4: enfocarCliente,
-    F5: () => { if (lineas.length > 0) setMostrarCotizacion(true); },
-    F6: () => void nuevoTicket(),
-    F7: () => setMostrarSuelto((v) => !v),
-    // Apuntando (con el mouse, sin hacer clic) a una línea del ticket: F8 alterna el precio
-    // mayoreo de ESA línea. Si no hay ninguna resaltada, F8 vuelve a su otro significado: el
-    // régimen por defecto para el próximo producto que se agregue.
-    F8: () => { if (lineaResaltada) void alternarMayoreoLinea(lineaResaltada); else setEsMayoreo((v) => !v); },
-    F9: () => abrirConsultaPrecio(),
-    Insert: () => abrirModalCantidad(),
-    "Ctrl+P": () => { if (!reimprimiendo) void reimprimirUltimo(); },
-    // Deshacer/rehacer de cambios en el ticket (agregar/quitar/cantidad/mayoreo, § AccionLinea).
-    // Se registran ambos atajos de rehacer porque las dos convenciones son comunes en Windows:
-    // Ctrl+Y (Office) y Ctrl+Shift+Z (navegadores, VS Code, la mayoría del software moderno).
-    "Ctrl+Z": () => void deshacer(),
-    "Ctrl+Y": () => void rehacer(),
-    "Ctrl+Shift+Z": () => void rehacer(),
-    // "+"/"-" solo se registran mientras hay una línea resaltada: si estuvieran siempre en el
-    // mapa, el hook les haría preventDefault() en CUALQUIER campo de texto (aunque el manejador
-    // no hiciera nada), y esos caracteres dejarían de poderse escribir en toda la pantalla.
-    ...(lineaResaltada
-      ? {
-          "+": () => cambiarCantidad(lineaResaltada, 1),
-          "-": () => cambiarCantidad(lineaResaltada, -1),
-        }
-      : {}),
-  }, !mostrarCobro && !mostrarCotizacion && !modalCantidad && !modalConsultaAbierto && !formEdicion);
+  useAtajosTeclado(
+    {
+      F10: enfocarBusqueda,
+      F12: () => {
+        if (lineas.length > 0) setMostrarCobro(true);
+      },
+      F4: enfocarCliente,
+      F5: () => {
+        if (lineas.length > 0) setMostrarCotizacion(true);
+      },
+      F6: () => void nuevoTicket(),
+      F7: () => setMostrarSuelto((v) => !v),
+      // Apuntando (con el mouse, sin hacer clic) a una línea del ticket: F8 alterna el precio
+      // mayoreo de ESA línea. Si no hay ninguna resaltada, F8 vuelve a su otro significado: el
+      // régimen por defecto para el próximo producto que se agregue.
+      F8: () => {
+        if (lineaResaltada) void alternarMayoreoLinea(lineaResaltada);
+        else setEsMayoreo((v) => !v);
+      },
+      F9: () => abrirConsultaPrecio(),
+      Insert: () => abrirModalCantidad(),
+      "Ctrl+P": () => {
+        if (!reimprimiendo) void reimprimirUltimo();
+      },
+      // Deshacer/rehacer de cambios en el ticket (agregar/quitar/cantidad/mayoreo, § AccionLinea).
+      // Se registran ambos atajos de rehacer porque las dos convenciones son comunes en Windows:
+      // Ctrl+Y (Office) y Ctrl+Shift+Z (navegadores, VS Code, la mayoría del software moderno).
+      "Ctrl+Z": () => void deshacer(),
+      "Ctrl+Y": () => void rehacer(),
+      "Ctrl+Shift+Z": () => void rehacer(),
+      // "+"/"-" solo se registran mientras hay una línea resaltada: si estuvieran siempre en el
+      // mapa, el hook les haría preventDefault() en CUALQUIER campo de texto (aunque el manejador
+      // no hiciera nada), y esos caracteres dejarían de poderse escribir en toda la pantalla.
+      ...(lineaResaltada
+        ? {
+            "+": () => cambiarCantidad(lineaResaltada, 1),
+            "-": () => cambiarCantidad(lineaResaltada, -1),
+          }
+        : {}),
+    },
+    !mostrarCobro && !mostrarCotizacion && !modalCantidad && !modalConsultaAbierto && !formEdicion,
+  );
 
   // Supr borra la línea resaltada — a propósito FUERA de `useAtajosTeclado`: ese hook hace
   // preventDefault() antes de mirar si hay algo que hacer, así que si Supr estuviera ahí (como +/-)
@@ -226,36 +263,66 @@ export function Ventas() {
   // cantidad) apenas hubiera una línea resaltada — algo mucho más probable con Supr que con +/-.
   // Este listener decide ANTES de bloquear nada, así el campo enfocado sigue borrando su texto normal.
   useEffect(() => {
-    if (!lineaResaltada || mostrarCobro || mostrarCotizacion || modalCantidad || modalConsultaAbierto || formEdicion) return;
+    if (
+      !lineaResaltada ||
+      mostrarCobro ||
+      mostrarCotizacion ||
+      modalCantidad ||
+      modalConsultaAbierto ||
+      formEdicion
+    )
+      return;
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== "Delete") return;
       const activo = document.activeElement;
-      const enCampoDeTexto = activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement || activo instanceof HTMLSelectElement;
+      const enCampoDeTexto =
+        activo instanceof HTMLInputElement ||
+        activo instanceof HTMLTextAreaElement ||
+        activo instanceof HTMLSelectElement;
       if (enCampoDeTexto) return;
       e.preventDefault();
       void borrarLineaResaltada();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [lineaResaltada, mostrarCobro, mostrarCotizacion, modalCantidad, modalConsultaAbierto, formEdicion]);
+  }, [
+    lineaResaltada,
+    mostrarCobro,
+    mostrarCotizacion,
+    modalCantidad,
+    modalConsultaAbierto,
+    formEdicion,
+  ]);
 
-  useAtajosTeclado({
-    Escape: () => cerrarConsultaPrecio(),
-  }, modalConsultaAbierto);
+  useAtajosTeclado(
+    {
+      Escape: () => cerrarConsultaPrecio(),
+    },
+    modalConsultaAbierto,
+  );
 
-  useAtajosTeclado({
-    Escape: () => cerrarModalCantidad(),
-  }, modalCantidad !== null);
+  useAtajosTeclado(
+    {
+      Escape: () => cerrarModalCantidad(),
+    },
+    modalCantidad !== null,
+  );
 
-  useAtajosTeclado({
-    Escape: () => cerrarEdicionProducto(),
-    "Ctrl+S": () => guardarEdicionProducto(),
-  }, formEdicion !== null && cambiosPendientesEdicion === null);
+  useAtajosTeclado(
+    {
+      Escape: () => cerrarEdicionProducto(),
+      "Ctrl+S": () => guardarEdicionProducto(),
+    },
+    formEdicion !== null && cambiosPendientesEdicion === null,
+  );
 
-  useAtajosTeclado({
-    Escape: () => setCambiosPendientesEdicion(null),
-    "Ctrl+S": () => void guardarEdicionProductoAhora(),
-  }, cambiosPendientesEdicion !== null);
+  useAtajosTeclado(
+    {
+      Escape: () => setCambiosPendientesEdicion(null),
+      "Ctrl+S": () => void guardarEdicionProductoAhora(),
+    },
+    cambiosPendientesEdicion !== null,
+  );
 
   // Escribir en cualquier parte de la pantalla de Ventas (sin haber hecho clic en la búsqueda
   // primero) arranca una búsqueda de productos — como el "type-ahead" de Gmail. Si el foco ya está
@@ -263,12 +330,16 @@ export function Ventas() {
   // campos deben poder recibir su propio tecleo sin que salte a la búsqueda. "+"/"-" se excluyen
   // a propósito porque ya tienen su propio significado (cambiar cantidad de la línea resaltada).
   useEffect(() => {
-    if (mostrarCobro || mostrarCotizacion || modalCantidad || modalConsultaAbierto || formEdicion) return;
+    if (mostrarCobro || mostrarCotizacion || modalCantidad || modalConsultaAbierto || formEdicion)
+      return;
     function onKeyDown(e: KeyboardEvent) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key.length !== 1 || e.key === "+" || e.key === "-") return;
       const activo = document.activeElement;
-      const enCampoDeTexto = activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement || activo instanceof HTMLSelectElement;
+      const enCampoDeTexto =
+        activo instanceof HTMLInputElement ||
+        activo instanceof HTMLTextAreaElement ||
+        activo instanceof HTMLSelectElement;
       if (enCampoDeTexto) return;
       e.preventDefault();
       busquedaRef.current?.focus();
@@ -292,7 +363,7 @@ export function Ventas() {
       abiertos = await repo.listarAbiertos();
     }
     setTickets(abiertos);
-    setActivoId((prev) => (abiertos.some((t) => t.id === prev) ? prev : abiertos[0]?.id ?? null));
+    setActivoId((prev) => (abiertos.some((t) => t.id === prev) ? prev : (abiertos[0]?.id ?? null)));
   }, [repo]);
 
   // Guarda contra el doble-montaje de React StrictMode en desarrollo: sin este
@@ -309,7 +380,9 @@ export function Ventas() {
   // para todos los tickets abiertos a la vez, para poder nombrar cada pestaña.
   const [nombreClientePorTicket, setNombreClientePorTicket] = useState<Record<string, string>>({});
   useEffect(() => {
-    const idsCliente = Array.from(new Set(tickets.map((t) => t.cliente_id).filter((id): id is string => !!id)));
+    const idsCliente = Array.from(
+      new Set(tickets.map((t) => t.cliente_id).filter((id): id is string => !!id)),
+    );
     if (idsCliente.length === 0) {
       setNombreClientePorTicket({});
       return;
@@ -318,7 +391,9 @@ export function Ventas() {
       const pares = await Promise.all(
         idsCliente.map(async (id) => [id, await clientes.obtener(id)] as const),
       );
-      const nombrePorClienteId = new Map(pares.map(([id, cl]) => [id, cl ? `${cl.nombre} ${cl.apellidos ?? ""}`.trim() : null]));
+      const nombrePorClienteId = new Map(
+        pares.map(([id, cl]) => [id, cl ? `${cl.nombre} ${cl.apellidos ?? ""}`.trim() : null]),
+      );
       const porTicket: Record<string, string> = {};
       for (const t of tickets) {
         const nombre = t.cliente_id ? nombrePorClienteId.get(t.cliente_id) : null;
@@ -334,14 +409,20 @@ export function Ventas() {
   // de artículo. Igual que `nombreClientePorTicket`, se resuelve aparte a partir de los ids.
   const [productosGranel, setProductosGranel] = useState<Set<string>>(new Set());
   useEffect(() => {
-    const ids = Array.from(new Set(lineas.map((l) => l.producto_id).filter((id): id is string => !!id)));
+    const ids = Array.from(
+      new Set(lineas.map((l) => l.producto_id).filter((id): id is string => !!id)),
+    );
     if (ids.length === 0) {
       setProductosGranel(new Set());
       return;
     }
     void (async () => {
-      const encontrados = await Promise.all(ids.map(async (id) => [id, await productos.obtener(id)] as const));
-      setProductosGranel(new Set(encontrados.filter(([, p]) => p?.tipo_venta === "granel").map(([id]) => id)));
+      const encontrados = await Promise.all(
+        ids.map(async (id) => [id, await productos.obtener(id)] as const),
+      );
+      setProductosGranel(
+        new Set(encontrados.filter(([, p]) => p?.tipo_venta === "granel").map(([id]) => id)),
+      );
     })();
   }, [lineas, productos]);
 
@@ -383,7 +464,7 @@ export function Ventas() {
 
   useEffect(() => {
     void (async () => {
-      if (activo?.cliente_id) setClienteActivo(await clientes.obtener(activo.cliente_id) ?? null);
+      if (activo?.cliente_id) setClienteActivo((await clientes.obtener(activo.cliente_id)) ?? null);
       else setClienteActivo(null);
     })();
   }, [activo?.cliente_id]);
@@ -420,7 +501,9 @@ export function Ventas() {
       setPilaRehacer((p) => [...p, pasos]);
       await refrescarTicketActivo();
     } catch (e) {
-      setError(e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e));
+      setError(
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e),
+      );
     }
   }
 
@@ -430,7 +513,8 @@ export function Ventas() {
     setError(null);
     try {
       for (const paso of pasos) {
-        if (paso.tipo === "cantidad") await repo.actualizarCantidadLinea(paso.lineaId, paso.despues);
+        if (paso.tipo === "cantidad")
+          await repo.actualizarCantidadLinea(paso.lineaId, paso.despues);
         else if (paso.tipo === "crear") await repo.restaurarLinea(paso.lineaId);
         else await repo.eliminarLinea(paso.lineaId);
       }
@@ -438,7 +522,9 @@ export function Ventas() {
       setPilaDeshacer((p) => [...p, pasos]);
       await refrescarTicketActivo();
     } catch (e) {
-      setError(e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e));
+      setError(
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e),
+      );
     }
   }
 
@@ -503,12 +589,17 @@ export function Ventas() {
       const promo = await promocionRepo.obtenerAplicable(p.id, p.departamento_id, hoyIso());
       const precio = promo ? aplicarDescuento(base, promo) : base;
       if (promo) {
-        setPromoAplicada(`Promoción aplicada: ${promo.nombre} (RD$ ${money(base)} → RD$ ${money(precio)})`);
+        setPromoAplicada(
+          `Promoción aplicada: ${promo.nombre} (RD$ ${money(base)} → RD$ ${money(precio)})`,
+        );
       }
       // Si el mismo producto ya está en el ticket con el mismo precio (mismo
       // régimen mayoreo/promo), suma a esa línea en vez de crear una repetida.
       const existente = lineas.find(
-        (l) => l.producto_id === p.id && l.es_mayoreo === (esMayoreo ? 1 : 0) && l.precio_unitario === precio,
+        (l) =>
+          l.producto_id === p.id &&
+          l.es_mayoreo === (esMayoreo ? 1 : 0) &&
+          l.precio_unitario === precio,
       );
       let lineaId: string;
       if (existente) {
@@ -543,7 +634,9 @@ export function Ventas() {
       setLineaResaltada(destino);
       enfocarBusqueda();
     } catch (e) {
-      setError(e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e));
+      setError(
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e),
+      );
     }
   }
 
@@ -598,7 +691,10 @@ export function Ventas() {
   function guardarEdicionProducto() {
     if (!editandoProducto || !formEdicion) return;
     const cambios = diferenciasProducto(editandoProducto, formEdicion);
-    if (cambios.length === 0) { cerrarEdicionProducto(); return; }
+    if (cambios.length === 0) {
+      cerrarEdicionProducto();
+      return;
+    }
     setCambiosPendientesEdicion(cambios);
   }
 
@@ -632,7 +728,9 @@ export function Ventas() {
         void avisar(e.message);
         return;
       }
-      setErroresEdicion(e instanceof ValidacionError ? e.errores.map((x) => x.mensaje) : [String(e)]);
+      setErroresEdicion(
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje) : [String(e)],
+      );
     }
   }
 
@@ -795,7 +893,9 @@ export function Ventas() {
       setMostrarSuelto(false);
       await refrescarTicketActivo();
     } catch (e) {
-      setError(e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e));
+      setError(
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e),
+      );
     }
   }
 
@@ -803,16 +903,23 @@ export function Ventas() {
     if (!(cantidad > 0)) {
       // Bajar a 0 (con el − o editando a mano) borra la línea — mismo efecto que el botón de
       // basura, así que pide la misma confirmación en vez de borrar en silencio.
-      if (!(await confirmar(`¿Borrar "${l.descripcion}" del ticket?`, { textoConfirmar: "Borrar" }))) return;
+      if (
+        !(await confirmar(`¿Borrar "${l.descripcion}" del ticket?`, { textoConfirmar: "Borrar" }))
+      )
+        return;
       return eliminarLinea(l);
     }
     setError(null);
     try {
       await repo.actualizarCantidadLinea(l.id, cantidad);
-      registrarAccionTicket([{ tipo: "cantidad", lineaId: l.id, antes: l.cantidad, despues: cantidad }]);
+      registrarAccionTicket([
+        { tipo: "cantidad", lineaId: l.id, antes: l.cantidad, despues: cantidad },
+      ]);
       await refrescarTicketActivo();
     } catch (e) {
-      setError(e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e));
+      setError(
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e),
+      );
     }
   }
 
@@ -825,7 +932,12 @@ export function Ventas() {
   function moverResaltado(delta: number) {
     if (lineas.length === 0) return;
     const idx = lineaResaltada ? lineas.findIndex((x) => x.id === lineaResaltada.id) : -1;
-    const siguiente = idx === -1 ? (delta > 0 ? 0 : lineas.length - 1) : Math.min(Math.max(idx + delta, 0), lineas.length - 1);
+    const siguiente =
+      idx === -1
+        ? delta > 0
+          ? 0
+          : lineas.length - 1
+        : Math.min(Math.max(idx + delta, 0), lineas.length - 1);
     setLineaResaltada(lineas[siguiente]);
   }
 
@@ -841,7 +953,10 @@ export function Ventas() {
 
   async function confirmarEdicionCantidad(l: FacturaLinea) {
     setLineaEditandoId(null);
-    if (cancelandoEdicionRef.current) { cancelandoEdicionRef.current = false; return; }
+    if (cancelandoEdicionRef.current) {
+      cancelandoEdicionRef.current = false;
+      return;
+    }
     const cantidad = Number(cantidadEditandoInput);
     if (!Number.isFinite(cantidad)) return;
     if (cantidad === l.cantidad) return;
@@ -858,7 +973,10 @@ export function Ventas() {
    *  se guarda la división completa, sin redondear, para que el subtotal cuadre con lo que se pidió. */
   async function confirmarEdicionMonto(l: FacturaLinea) {
     setLineaMontoEditandoId(null);
-    if (cancelandoEdicionRef.current) { cancelandoEdicionRef.current = false; return; }
+    if (cancelandoEdicionRef.current) {
+      cancelandoEdicionRef.current = false;
+      return;
+    }
     const monto = Number(montoEditandoInput);
     if (!Number.isFinite(monto) || !(l.precio_unitario > 0)) return;
     const cantidad = monto / l.precio_unitario;
@@ -878,7 +996,11 @@ export function Ventas() {
    *  mismo confirm() que el botón, para no borrar del ticket sin querer con un roce de teclado. */
   async function borrarLineaResaltada() {
     if (!lineaResaltada) return;
-    if (await confirmar(`¿Borrar "${lineaResaltada.descripcion}" del ticket?`, { textoConfirmar: "Borrar" })) {
+    if (
+      await confirmar(`¿Borrar "${lineaResaltada.descripcion}" del ticket?`, {
+        textoConfirmar: "Borrar",
+      })
+    ) {
       void eliminarLinea(lineaResaltada);
     }
   }
@@ -896,7 +1018,11 @@ export function Ventas() {
       const nuevoPrecio = nuevoMayoreo && p.precio_mayoreo ? p.precio_mayoreo : p.precio_venta;
 
       const existente = lineas.find(
-        (x) => x.id !== l.id && x.producto_id === l.producto_id && x.es_mayoreo === (nuevoMayoreo ? 1 : 0) && x.precio_unitario === nuevoPrecio,
+        (x) =>
+          x.id !== l.id &&
+          x.producto_id === l.producto_id &&
+          x.es_mayoreo === (nuevoMayoreo ? 1 : 0) &&
+          x.precio_unitario === nuevoPrecio,
       );
       if (existente) {
         const antes = existente.cantidad;
@@ -926,7 +1052,9 @@ export function Ventas() {
       setLineaResaltada(null);
       await refrescarTicketActivo();
     } catch (e) {
-      setError(e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e));
+      setError(
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e),
+      );
     }
   }
 
@@ -949,13 +1077,18 @@ export function Ventas() {
     if (!nuevoClienteNombre.trim()) return;
     setError(null);
     try {
-      const cl = await clientes.crear({ nombre: nuevoClienteNombre.trim(), telefono: nuevoClienteTelefono.trim() || null });
+      const cl = await clientes.crear({
+        nombre: nuevoClienteNombre.trim(),
+        telefono: nuevoClienteTelefono.trim() || null,
+      });
       await asignarCliente(cl);
       setMostrarNuevoCliente(false);
       setNuevoClienteNombre("");
       setNuevoClienteTelefono("");
     } catch (e) {
-      setError(e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e));
+      setError(
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e),
+      );
     }
   }
 
@@ -977,13 +1110,29 @@ export function Ventas() {
     if (!activoId) return;
 
     let factura: Factura;
-    let comprobanteRecibo: { ncf: string; tipoEcfEtiqueta: string; codigoSeguridad?: string | null } | null = null;
+    let comprobanteRecibo: {
+      ncf: string;
+      tipoEcfEtiqueta: string;
+      codigoSeguridad?: string | null;
+    } | null = null;
 
     if (fiscal) {
       const resultado = await cobrarConFiscal(
-        { facturaRepo: repo, secuenciaRepo: secuenciaNcf, comprobanteRepo: comprobanteFiscal, proveedorFiscal },
+        {
+          facturaRepo: repo,
+          secuenciaRepo: secuenciaNcf,
+          comprobanteRepo: comprobanteFiscal,
+          proveedorFiscal,
+        },
         activoId,
-        { pagos, notas, tipoEcf: fiscal.tipoEcf, receptorDocumentoTipo: fiscal.receptorDocumentoTipo, receptorDocumentoNumero: fiscal.receptorDocumentoNumero, rncEmisor: negocio?.rnc ?? null },
+        {
+          pagos,
+          notas,
+          tipoEcf: fiscal.tipoEcf,
+          receptorDocumentoTipo: fiscal.receptorDocumentoTipo,
+          receptorDocumentoNumero: fiscal.receptorDocumentoNumero,
+          rncEmisor: negocio?.rnc ?? null,
+        },
       );
       factura = resultado.factura;
       comprobanteRecibo = {
@@ -1064,17 +1213,23 @@ export function Ventas() {
         await avisar("Todavía no hay ninguna venta cobrada para reimprimir.", { variante: "info" });
         return;
       }
-      const salida = await elegir("¿Cómo quieres reimprimir el último ticket cobrado?", [
-        { valor: "imprimir", etiqueta: "Imprimir" },
-        { valor: "pdf", etiqueta: "Guardar PDF" },
-      ], { titulo: "Reimprimir ticket" });
+      const salida = await elegir(
+        "¿Cómo quieres reimprimir el último ticket cobrado?",
+        [
+          { valor: "imprimir", etiqueta: "Imprimir" },
+          { valor: "pdf", etiqueta: "Guardar PDF" },
+        ],
+        { titulo: "Reimprimir ticket" },
+      );
       if (!salida) return;
 
       const [lineasUltima, pagosUltima, clienteUltima, comprobanteUltimo] = await Promise.all([
         repo.obtenerLineas(ultima.id),
         repo.obtenerPagos(ultima.id),
         ultima.cliente_id ? clientes.obtener(ultima.cliente_id) : Promise.resolve(undefined),
-        ultima.comprobante_id ? comprobanteFiscal.obtener(ultima.comprobante_id) : Promise.resolve(undefined),
+        ultima.comprobante_id
+          ? comprobanteFiscal.obtener(ultima.comprobante_id)
+          : Promise.resolve(undefined),
       ]);
       const datosRecibo = {
         negocio: negocio ?? negocioReciboDefault,
@@ -1085,7 +1240,8 @@ export function Ventas() {
         comprobante: comprobanteUltimo
           ? {
               ncf: comprobanteUltimo.ncf,
-              tipoEcfEtiqueta: comprobanteUltimo.tipo_ecf === "31" ? "Crédito Fiscal (E31)" : "Consumo (E32)",
+              tipoEcfEtiqueta:
+                comprobanteUltimo.tipo_ecf === "31" ? "Crédito Fiscal (E31)" : "Consumo (E32)",
               codigoSeguridad: comprobanteUltimo.codigo_seguridad,
             }
           : null,
@@ -1106,7 +1262,14 @@ export function Ventas() {
     // tres artículos quedaba flotando arriba, con media pantalla vacía debajo.
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
       {/* Barra de tickets abiertos + fecha/hora */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 12,
+        }}
+      >
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {tickets.map((t) => (
             <button
@@ -1120,7 +1283,14 @@ export function Ventas() {
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                ...(t.id === activoId ? { background: c.azulClaro, color: c.azulOscuro, border: `1px solid ${c.azul}`, fontWeight: 600 } : {}),
+                ...(t.id === activoId
+                  ? {
+                      background: c.azulClaro,
+                      color: c.azulOscuro,
+                      border: `1px solid ${c.azul}`,
+                      fontWeight: 600,
+                    }
+                  : {}),
               }}
             >
               {nombreClientePorTicket[t.id] ?? `Ticket #${t.numero_interno}`}
@@ -1134,7 +1304,13 @@ export function Ventas() {
             tickets: pasa a icono con tooltip. El reloj, que es solo referencia, se apaga. */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button
-            style={{ ...s.botonSecundario, padding: 8, display: "inline-flex", lineHeight: 1, color: c.gris }}
+            style={{
+              ...s.botonSecundario,
+              padding: 8,
+              display: "inline-flex",
+              lineHeight: 1,
+              color: c.gris,
+            }}
             disabled={reimprimiendo}
             onClick={reimprimirUltimo}
             aria-label="Reimprimir último ticket"
@@ -1142,14 +1318,23 @@ export function Ventas() {
           >
             <Printer size={16} aria-hidden="true" />
           </button>
-          <span style={{ color: c.gris, fontSize: 12, fontVariantNumeric: "tabular-nums", opacity: 0.8 }}>
+          <span
+            style={{
+              color: c.gris,
+              fontSize: 12,
+              fontVariantNumeric: "tabular-nums",
+              opacity: 0.8,
+            }}
+          >
             {ahora.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
       </div>
 
       {errorCarga ? (
-        <div role="alert" style={s.errorBox}>No se pudo cargar el ticket: {errorCarga}</div>
+        <div role="alert" style={s.errorBox}>
+          No se pudo cargar el ticket: {errorCarga}
+        </div>
       ) : !activo ? (
         <p style={{ color: c.gris }}>Cargando ticket…</p>
       ) : (
@@ -1157,7 +1342,14 @@ export function Ventas() {
         // `minmax(0, …)` por el mismo motivo que el `minWidth: 0` del <main> (§ AppShell): una pista
         // `1fr` también arranca en `min-width: auto` y se niega a bajar del ancho de su contenido,
         // empujando la columna de Totales fuera de la pantalla en vez de repartir el espacio.
-        <div style={{ display: "grid", gridTemplateColumns: esAngosto ? "minmax(0, 1fr)" : "minmax(0, 1fr) 280px", gap: 16, flex: 1 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: esAngosto ? "minmax(0, 1fr)" : "minmax(0, 1fr) 280px",
+            gap: 16,
+            flex: 1,
+          }}
+        >
           {/* Columna principal: búsqueda + líneas. Es flex a lo alto para que la tarjeta del ticket
               (§ abajo) se coma el espacio que sobra en vez de dejar un hueco negro. */}
           <div style={{ display: "flex", flexDirection: "column", minWidth: 0, height: "100%" }}>
@@ -1170,220 +1362,383 @@ export function Ventas() {
                   todo la tabla de líneas del ticket) en vez de empujarlo hacia abajo cada vez que
                   aparecen resultados — la lista del ticket no debe moverse mientras se busca. */}
               <div style={{ position: "relative" }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input
-                  ref={busquedaRef}
-                  style={{ ...s.input, fontSize: 15, padding: "11px 14px" }}
-                  placeholder={esTactil ? "Buscar producto…" : "Escanear código de barra o buscar producto… (F10)"}
-                  value={busqueda}
-                  // En cualquier pantalla táctil (teléfono o tablet) el autoFocus abre el teclado
-                  // encima de media pantalla apenas entrás a Ventas, antes de decidir buscar nada.
-                  autoFocus={!esTactil}
-                  // Patrón combobox: el desplegable de resultados es un listbox aparte, y
-                  // `aria-activedescendant` le dice al lector cuál fila está resaltada sin mover el
-                  // foco real (que tiene que quedarse acá para poder seguir escribiendo/escaneando).
-                  role="combobox"
-                  aria-label="Buscar producto por nombre o código de barra"
-                  aria-expanded={resultados.length > 0 && !ocultarResultados}
-                  aria-controls="sfr-resultados-productos"
-                  aria-autocomplete="list"
-                  aria-activedescendant={
-                    resultados.length > 0 && !ocultarResultados && indiceResultado >= 0
-                      ? `sfr-resultado-${indiceResultado}`
-                      : undefined
-                  }
-                  onChange={(e) => buscarProducto(e.target.value)}
-                  onKeyDown={async (e) => {
-                    if (e.key === "Escape" && resultados.length > 0 && !ocultarResultados) {
-                      e.preventDefault();
-                      setOcultarResultados(true);
-                      return;
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    ref={busquedaRef}
+                    style={{ ...s.input, fontSize: 15, padding: "11px 14px" }}
+                    placeholder={
+                      esTactil
+                        ? "Buscar producto…"
+                        : "Escanear código de barra o buscar producto… (F10)"
                     }
-                    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && resultados.length > 0 && !ocultarResultados) {
-                      e.preventDefault();
-                      setAccionResultado("fila");
-                      setIndiceResultado((i) => moverIndiceFila(i, e.key === "ArrowDown" ? 1 : -1, resultados.length));
-                      return;
+                    value={busqueda}
+                    // En cualquier pantalla táctil (teléfono o tablet) el autoFocus abre el teclado
+                    // encima de media pantalla apenas entrás a Ventas, antes de decidir buscar nada.
+                    autoFocus={!esTactil}
+                    // Patrón combobox: el desplegable de resultados es un listbox aparte, y
+                    // `aria-activedescendant` le dice al lector cuál fila está resaltada sin mover el
+                    // foco real (que tiene que quedarse acá para poder seguir escribiendo/escaneando).
+                    role="combobox"
+                    aria-label="Buscar producto por nombre o código de barra"
+                    aria-expanded={resultados.length > 0 && !ocultarResultados}
+                    aria-controls="sfr-resultados-productos"
+                    aria-autocomplete="list"
+                    aria-activedescendant={
+                      resultados.length > 0 && !ocultarResultados && indiceResultado >= 0
+                        ? `sfr-resultado-${indiceResultado}`
+                        : undefined
                     }
-                    // Con un resultado resaltado, ←/→ se mueve entre sus acciones (fila → favorito →
-                    // modificar) sin soltar el teclado — Enter dispara la acción resaltada en vez de
-                    // agregar el producto (§ abajo).
-                    if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && indiceResultado >= 0 && resultados.length > 0 && !ocultarResultados) {
-                      e.preventDefault();
-                      setAccionResultado((a) =>
-                        moverAccionFila(a, e.key === "ArrowRight" ? 1 : -1, puedeEditarProducto ? ["favorito", "modificar"] : ["favorito"]),
-                      );
-                      return;
-                    }
-                    // Sin un desplegable de resultados visible, arriba/abajo mueve el resaltado
-                    // entre las líneas del ticket — así siempre hay una línea con la que trabajar
-                    // (F8/+/−) sin salir de la búsqueda ni tocar el mouse.
-                    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && lineas.length > 0) {
-                      e.preventDefault();
-                      moverResaltado(e.key === "ArrowDown" ? 1 : -1);
-                      return;
-                    }
-                    if (e.key === "Enter" && indiceResultado >= 0 && resultados[indiceResultado] && accionResultado !== "fila") {
-                      e.preventDefault();
-                      if (accionResultado === "favorito") void alternarFavoritoProducto(resultados[indiceResultado]);
-                      else if (puedeEditarProducto) abrirEdicionProducto(resultados[indiceResultado]);
-                      return;
-                    }
-                    if (e.key === "Enter" && busqueda.trim()) {
-                      // `e.currentTarget` deja de ser válido después del `await` (React limpia el
-                      // evento sintético) — hay que guardar el nodo del DOM antes de esperar.
-                      const campo = e.currentTarget;
-                      const exacto = await productos.porCodigoBarra(busqueda.trim());
-                      if (exacto) { seleccionarProducto(exacto); return; }
-                      if (indiceResultado >= 0 && resultados[indiceResultado]) { seleccionarProducto(resultados[indiceResultado]); return; }
-                      if (resultados.length === 1) { seleccionarProducto(resultados[0]); return; }
-                      if (resultados.length === 0) {
-                        setError("Producto no encontrado.");
-                        // Deja el código seleccionado (sin borrarlo) para que el siguiente
-                        // escaneo/tecleo lo reemplace solo, sin tener que borrarlo a mano primero.
-                        campo.select();
+                    onChange={(e) => buscarProducto(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Escape" && resultados.length > 0 && !ocultarResultados) {
+                        e.preventDefault();
+                        setOcultarResultados(true);
+                        return;
                       }
-                    }
-                  }}
-                />
-                {/* El botón de "Precio mayoreo" salió de la barra (ahora se alterna por línea, § tabla
+                      if (
+                        (e.key === "ArrowDown" || e.key === "ArrowUp") &&
+                        resultados.length > 0 &&
+                        !ocultarResultados
+                      ) {
+                        e.preventDefault();
+                        setAccionResultado("fila");
+                        setIndiceResultado((i) =>
+                          moverIndiceFila(i, e.key === "ArrowDown" ? 1 : -1, resultados.length),
+                        );
+                        return;
+                      }
+                      // Con un resultado resaltado, ←/→ se mueve entre sus acciones (fila → favorito →
+                      // modificar) sin soltar el teclado — Enter dispara la acción resaltada en vez de
+                      // agregar el producto (§ abajo).
+                      if (
+                        (e.key === "ArrowRight" || e.key === "ArrowLeft") &&
+                        indiceResultado >= 0 &&
+                        resultados.length > 0 &&
+                        !ocultarResultados
+                      ) {
+                        e.preventDefault();
+                        setAccionResultado((a) =>
+                          moverAccionFila(
+                            a,
+                            e.key === "ArrowRight" ? 1 : -1,
+                            puedeEditarProducto ? ["favorito", "modificar"] : ["favorito"],
+                          ),
+                        );
+                        return;
+                      }
+                      // Sin un desplegable de resultados visible, arriba/abajo mueve el resaltado
+                      // entre las líneas del ticket — así siempre hay una línea con la que trabajar
+                      // (F8/+/−) sin salir de la búsqueda ni tocar el mouse.
+                      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && lineas.length > 0) {
+                        e.preventDefault();
+                        moverResaltado(e.key === "ArrowDown" ? 1 : -1);
+                        return;
+                      }
+                      if (
+                        e.key === "Enter" &&
+                        indiceResultado >= 0 &&
+                        resultados[indiceResultado] &&
+                        accionResultado !== "fila"
+                      ) {
+                        e.preventDefault();
+                        if (accionResultado === "favorito")
+                          void alternarFavoritoProducto(resultados[indiceResultado]);
+                        else if (puedeEditarProducto)
+                          abrirEdicionProducto(resultados[indiceResultado]);
+                        return;
+                      }
+                      if (e.key === "Enter" && busqueda.trim()) {
+                        // `e.currentTarget` deja de ser válido después del `await` (React limpia el
+                        // evento sintético) — hay que guardar el nodo del DOM antes de esperar.
+                        const campo = e.currentTarget;
+                        const exacto = await productos.porCodigoBarra(busqueda.trim());
+                        if (exacto) {
+                          seleccionarProducto(exacto);
+                          return;
+                        }
+                        if (indiceResultado >= 0 && resultados[indiceResultado]) {
+                          seleccionarProducto(resultados[indiceResultado]);
+                          return;
+                        }
+                        if (resultados.length === 1) {
+                          seleccionarProducto(resultados[0]);
+                          return;
+                        }
+                        if (resultados.length === 0) {
+                          setError("Producto no encontrado.");
+                          // Deja el código seleccionado (sin borrarlo) para que el siguiente
+                          // escaneo/tecleo lo reemplace solo, sin tener que borrarlo a mano primero.
+                          campo.select();
+                        }
+                      }
+                    }}
+                  />
+                  {/* El botón de "Precio mayoreo" salió de la barra (ahora se alterna por línea, § tabla
                     abajo), pero F8 sin ninguna línea resaltada sigue cambiando el régimen del PRÓXIMO
                     producto que se agregue — sin este chip ese modo quedaría activo sin nada en
                     pantalla que lo delate. */}
-                {esMayoreo && (
-                  <span
-                    title="Los próximos productos se agregarán a precio mayoreo (F8 para desactivar)"
-                    style={{ ...s.badge, background: c.azulClaro, color: c.azulOscuro, border: `1px solid ${c.azul}`, whiteSpace: "nowrap" }}
-                  >
-                    ✓ mayoreo (F8)
-                  </span>
-                )}
-                <button style={{ ...s.botonSecundario, whiteSpace: "nowrap" }} onClick={() => setMostrarSuelto((v) => !v)}>
-                  <EtiquetaAtajo texto="+ No registrado (F7)" ocultarAtajo={esTactil} />
-                </button>
-                <button style={{ ...s.botonSecundario, display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }} onClick={abrirConsultaPrecio}>
-                  <Search size={15} /> <EtiquetaAtajo texto="Consultar (F9)" ocultarAtajo={esTactil} />
-                </button>
-              </div>
-
-              {resultados.length > 0 && !ocultarResultados && (
-                <div
-                  id="sfr-resultados-productos"
-                  role="listbox"
-                  aria-label="Resultados de la búsqueda"
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    right: 0,
-                    marginTop: 8,
-                    background: c.superficie,
-                    border: `1px solid ${c.borde}`,
-                    borderRadius: 8,
-                    overflow: "hidden",
-                    maxHeight: 340,
-                    overflowY: "auto",
-                    boxShadow: sombra.md,
-                    zIndex: 20,
-                  }}
-                >
-                  {resultados.map((p, i) => (
-                    <div
-                      key={p.id}
-                      id={`sfr-resultado-${i}`}
-                      role="option"
-                      aria-selected={i === indiceResultado}
-                      ref={i === indiceResultado ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
-                      className="sfr-fila-clickeable"
-                      onClick={() => seleccionarProducto(p)}
-                      onMouseEnter={() => setIndiceResultado(i)}
+                  {esMayoreo && (
+                    <span
+                      title="Los próximos productos se agregarán a precio mayoreo (F8 para desactivar)"
                       style={{
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                        borderBottom: `1px solid ${c.borde}`,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        ...(i === indiceResultado ? { background: c.seleccion } : {}),
+                        ...s.badge,
+                        background: c.azulClaro,
+                        color: c.azulOscuro,
+                        border: `1px solid ${c.azul}`,
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      <span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); void alternarFavoritoProducto(p); }}
-                          title={p.favorito === 1 ? "Quitar de favoritos (←/→ + Enter)" : "Marcar como favorito (←/→ + Enter)"}
-                          aria-label={`${p.favorito === 1 ? "Quitar de favoritos" : "Marcar como favorito"}: ${p.descripcion}`}
-                          aria-pressed={p.favorito === 1}
-                          style={{
-                            background: "none", border: "none", cursor: "pointer", padding: 2, marginRight: 4, lineHeight: 1, verticalAlign: "middle", borderRadius: 6,
-                            color: p.favorito === 1 ? c.amarillo : c.gris, opacity: p.favorito === 1 ? 1 : 0.4,
-                            ...(i === indiceResultado && accionResultado === "favorito" ? { outline: `2px solid ${c.azul}`, outlineOffset: 1, opacity: 1 } : {}),
-                          }}
-                        >
-                          <Star size={19} fill={p.favorito === 1 ? "currentColor" : "none"} />
-                        </button>
-                        {p.descripcion} {p.codigo_barra ? <span style={{ color: c.gris, fontSize: 12 }}>({p.codigo_barra})</span> : ""}
-                        {p.tipo_venta === "granel" && (
-                          <span style={{ ...s.badge, marginLeft: 8, background: c.amarilloFondo, color: c.amarillo, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                            <Weight size={12} /> a granel{p.unidad_medida ? ` (${p.unidad_medida})` : ""}
-                          </span>
-                        )}
-                        {negocio?.inventario_activo === 1 && (
-                          <span style={{ color: (p.existencia ?? 0) <= 0 ? c.rojo : c.gris, fontSize: 12, marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                            {(p.existencia ?? 0) <= 0 ? <><TriangleAlert size={12} /> sin existencia</> : `${p.existencia} disponibles`}
-                          </span>
-                        )}
-                      </span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <b style={{ fontVariantNumeric: "tabular-nums" }}>RD$ {money(esMayoreo && p.precio_mayoreo ? p.precio_mayoreo : p.precio_venta)}</b>
-                        {puedeEditarProducto && (
-                          <button
-                            style={{
-                              ...s.botonSecundario, display: "inline-flex", alignItems: "center", gap: 6,
-                              ...(i === indiceResultado && accionResultado === "modificar" ? { outline: `2px solid ${c.azul}`, outlineOffset: 1 } : {}),
-                            }}
-                            title="Corregir este producto sin salir del ticket (←/→ + Enter)"
-                            onClick={(e) => { e.stopPropagation(); abrirEdicionProducto(p); }}
-                          >
-                            <Pencil size={14} /> Modificar
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                      ✓ mayoreo (F8)
+                    </span>
+                  )}
+                  <button
+                    style={{ ...s.botonSecundario, whiteSpace: "nowrap" }}
+                    onClick={() => setMostrarSuelto((v) => !v)}
+                  >
+                    <EtiquetaAtajo texto="+ No registrado (F7)" ocultarAtajo={esTactil} />
+                  </button>
+                  <button
+                    style={{
+                      ...s.botonSecundario,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      whiteSpace: "nowrap",
+                    }}
+                    onClick={abrirConsultaPrecio}
+                  >
+                    <Search size={15} />{" "}
+                    <EtiquetaAtajo texto="Consultar (F9)" ocultarAtajo={esTactil} />
+                  </button>
                 </div>
-              )}
+
+                {resultados.length > 0 && !ocultarResultados && (
+                  <div
+                    id="sfr-resultados-productos"
+                    role="listbox"
+                    aria-label="Resultados de la búsqueda"
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      marginTop: 8,
+                      background: c.superficie,
+                      border: `1px solid ${c.borde}`,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                      maxHeight: 340,
+                      overflowY: "auto",
+                      boxShadow: sombra.md,
+                      zIndex: 20,
+                    }}
+                  >
+                    {resultados.map((p, i) => (
+                      <div
+                        key={p.id}
+                        id={`sfr-resultado-${i}`}
+                        role="option"
+                        aria-selected={i === indiceResultado}
+                        ref={
+                          i === indiceResultado
+                            ? (el) => el?.scrollIntoView({ block: "nearest" })
+                            : undefined
+                        }
+                        className="sfr-fila-clickeable"
+                        onClick={() => seleccionarProducto(p)}
+                        onMouseEnter={() => setIndiceResultado(i)}
+                        style={{
+                          padding: "10px 12px",
+                          cursor: "pointer",
+                          borderBottom: `1px solid ${c.borde}`,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          ...(i === indiceResultado ? { background: c.seleccion } : {}),
+                        }}
+                      >
+                        <span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void alternarFavoritoProducto(p);
+                            }}
+                            title={
+                              p.favorito === 1
+                                ? "Quitar de favoritos (←/→ + Enter)"
+                                : "Marcar como favorito (←/→ + Enter)"
+                            }
+                            aria-label={`${p.favorito === 1 ? "Quitar de favoritos" : "Marcar como favorito"}: ${p.descripcion}`}
+                            aria-pressed={p.favorito === 1}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: 2,
+                              marginRight: 4,
+                              lineHeight: 1,
+                              verticalAlign: "middle",
+                              borderRadius: 6,
+                              color: p.favorito === 1 ? c.amarillo : c.gris,
+                              opacity: p.favorito === 1 ? 1 : 0.4,
+                              ...(i === indiceResultado && accionResultado === "favorito"
+                                ? { outline: `2px solid ${c.azul}`, outlineOffset: 1, opacity: 1 }
+                                : {}),
+                            }}
+                          >
+                            <Star size={19} fill={p.favorito === 1 ? "currentColor" : "none"} />
+                          </button>
+                          {p.descripcion}{" "}
+                          {p.codigo_barra ? (
+                            <span style={{ color: c.gris, fontSize: 12 }}>({p.codigo_barra})</span>
+                          ) : (
+                            ""
+                          )}
+                          {p.tipo_venta === "granel" && (
+                            <span
+                              style={{
+                                ...s.badge,
+                                marginLeft: 8,
+                                background: c.amarilloFondo,
+                                color: c.amarillo,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              <Weight size={12} /> a granel
+                              {p.unidad_medida ? ` (${p.unidad_medida})` : ""}
+                            </span>
+                          )}
+                          {negocio?.inventario_activo === 1 && (
+                            <span
+                              style={{
+                                color: (p.existencia ?? 0) <= 0 ? c.rojo : c.gris,
+                                fontSize: 12,
+                                marginLeft: 8,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              {(p.existencia ?? 0) <= 0 ? (
+                                <>
+                                  <TriangleAlert size={12} /> sin existencia
+                                </>
+                              ) : (
+                                `${p.existencia} disponibles`
+                              )}
+                            </span>
+                          )}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <b style={{ fontVariantNumeric: "tabular-nums" }}>
+                            RD${" "}
+                            {money(
+                              esMayoreo && p.precio_mayoreo ? p.precio_mayoreo : p.precio_venta,
+                            )}
+                          </b>
+                          {puedeEditarProducto && (
+                            <button
+                              style={{
+                                ...s.botonSecundario,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                ...(i === indiceResultado && accionResultado === "modificar"
+                                  ? { outline: `2px solid ${c.azul}`, outlineOffset: 1 }
+                                  : {}),
+                              }}
+                              title="Corregir este producto sin salir del ticket (←/→ + Enter)"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                abrirEdicionProducto(p);
+                              }}
+                            >
+                              <Pencil size={14} /> Modificar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {mostrarSuelto && (
                 <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-                  <input ref={sueltoDescRef} autoFocus style={s.input} placeholder="Descripción" value={sueltoDesc}
+                  <input
+                    ref={sueltoDescRef}
+                    autoFocus
+                    style={s.input}
+                    placeholder="Descripción"
+                    value={sueltoDesc}
                     onChange={(e) => setSueltoDesc(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") { void agregarSuelto(); return; }
+                      if (e.key === "Enter") {
+                        void agregarSuelto();
+                        return;
+                      }
                       manejarFlechaSuelto(e, sueltoPrecioRef.current, null);
-                    }} />
-                  <input ref={sueltoPrecioRef} style={{ ...s.input, maxWidth: 120 }} placeholder="Precio" type="text" inputMode="decimal" value={sueltoPrecio}
+                    }}
+                  />
+                  <input
+                    ref={sueltoPrecioRef}
+                    style={{ ...s.input, maxWidth: 120 }}
+                    placeholder="Precio"
+                    type="text"
+                    inputMode="decimal"
+                    value={sueltoPrecio}
                     onChange={(e) => setSueltoPrecio(filtrarNumero(e.target.value))}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") { void agregarSuelto(); return; }
+                      if (e.key === "Enter") {
+                        void agregarSuelto();
+                        return;
+                      }
                       manejarFlechaSuelto(e, sueltoCantidadRef.current, sueltoDescRef.current);
-                    }} />
-                  <input ref={sueltoCantidadRef} style={{ ...s.input, maxWidth: 80 }} placeholder="Cant." type="text" inputMode="decimal" value={sueltoCantidad}
+                    }}
+                  />
+                  <input
+                    ref={sueltoCantidadRef}
+                    style={{ ...s.input, maxWidth: 80 }}
+                    placeholder="Cant."
+                    type="text"
+                    inputMode="decimal"
+                    value={sueltoCantidad}
                     onChange={(e) => setSueltoCantidad(filtrarNumero(e.target.value))}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") { void agregarSuelto(); return; }
+                      if (e.key === "Enter") {
+                        void agregarSuelto();
+                        return;
+                      }
                       manejarFlechaSuelto(e, sueltoAgregarRef.current, sueltoPrecioRef.current);
-                    }} />
-                  <button ref={sueltoAgregarRef} style={s.boton} onClick={agregarSuelto}
-                    onKeyDown={(e) => manejarFlechaSuelto(e, null, sueltoCantidadRef.current)}>
+                    }}
+                  />
+                  <button
+                    ref={sueltoAgregarRef}
+                    style={s.boton}
+                    onClick={agregarSuelto}
+                    onKeyDown={(e) => manejarFlechaSuelto(e, null, sueltoCantidadRef.current)}
+                  >
                     Agregar
                   </button>
                 </div>
               )}
 
-              {error && <div role="alert" style={s.errorBox}>{error}</div>}
+              {error && (
+                <div role="alert" style={s.errorBox}>
+                  {error}
+                </div>
+              )}
               {promoAplicada && (
-                <div style={{ ...s.errorBox, background: c.verdeFondo, borderColor: c.verde, color: c.verde }}>
+                <div
+                  style={{
+                    ...s.errorBox,
+                    background: c.verdeFondo,
+                    borderColor: c.verde,
+                    color: c.verde,
+                  }}
+                >
                   {promoAplicada}
                 </div>
               )}
@@ -1392,163 +1747,303 @@ export function Ventas() {
             {/* La única tarjeta con relieve de verdad de la columna: es el protagonista de la
                 pantalla. `padding: 0` para que las filas lleguen hasta el borde y la tabla se lea
                 como una lista, no como una tabla metida adentro de una caja. */}
-            <div style={{ ...s.tarjeta, padding: 0, overflow: "hidden", boxShadow: sombra.md, flex: 1, display: "flex", flexDirection: "column", minHeight: 260 }}>
+            <div
+              style={{
+                ...s.tarjeta,
+                padding: 0,
+                overflow: "hidden",
+                boxShadow: sombra.md,
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 260,
+              }}
+            >
               <div className="sfr-tabla-scroll" style={{ flex: 1 }}>
-              <table style={{ ...s.tabla, minWidth: esAngosto ? 620 : undefined }}>
-                <thead>
-                  {/* Anchos explícitos: sin esto el navegador repartía el sobrante a partes iguales
+                <table style={{ ...s.tabla, minWidth: esAngosto ? 620 : undefined }}>
+                  <thead>
+                    {/* Anchos explícitos: sin esto el navegador repartía el sobrante a partes iguales
                       y la columna "Cant." se estiraba hasta dejar el − y el + en extremos opuestos,
                       con un vacío enorme entre la descripción y la cantidad. Solo Descripción es
                       elástica; las demás valen lo que mide su contenido. */}
-                  <tr>
-                    <th scope="col" style={{ ...s.th, width: 44 }}>#</th>
-                    <th scope="col" style={{ ...s.th, width: "auto" }}>Descripción</th>
-                    <th scope="col" style={{ ...s.th, width: 210, whiteSpace: "nowrap" }}>Cant.</th>
-                    <th scope="col" style={{ ...s.th, width: 110, textAlign: "right" }}>Precio</th>
-                    <th scope="col" style={{ ...s.th, width: 130, textAlign: "right" }}>Subtotal</th>
-                    <th scope="col" style={{ ...s.th, width: 52 }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lineas.length === 0 && (
                     <tr>
-                      <td style={{ ...s.filaVacia, padding: "48px 16px" }} colSpan={6}>
-                        <ShoppingCart size={30} aria-hidden="true" style={{ opacity: 0.35, marginBottom: 10 }} />
-                        <div style={{ fontWeight: 600, color: c.texto, marginBottom: 4 }}>Ticket vacío</div>
-                        <div style={{ fontSize: 13 }}>Escanea un código de barra o busca un producto arriba.</div>
-                      </td>
+                      <th scope="col" style={{ ...s.th, width: 44 }}>
+                        #
+                      </th>
+                      <th scope="col" style={{ ...s.th, width: "auto" }}>
+                        Descripción
+                      </th>
+                      <th scope="col" style={{ ...s.th, width: 210, whiteSpace: "nowrap" }}>
+                        Cant.
+                      </th>
+                      <th scope="col" style={{ ...s.th, width: 110, textAlign: "right" }}>
+                        Precio
+                      </th>
+                      <th scope="col" style={{ ...s.th, width: 130, textAlign: "right" }}>
+                        Subtotal
+                      </th>
+                      <th scope="col" style={{ ...s.th, width: 52 }}></th>
                     </tr>
-                  )}
-                  {lineas.map((l, i) => (
-                    <tr
-                      key={l.id}
-                      onMouseEnter={() => setLineaResaltada(l)}
-                      // Sin el clic, en pantalla táctil `lineaResaltada` nunca se setea (no hay hover)
-                      // y F8/+/− se quedan sin línea sobre la cual actuar.
-                      onClick={() => setLineaResaltada(l)}
-                      title={l.producto_id ? "↑/↓: moverse · +/−: cambiar cantidad · F8: alternar mayoreo (sin hacer clic)" : "↑/↓: moverse · +/−: cambiar cantidad (sin hacer clic)"}
-                      style={lineaResaltada?.id === l.id ? { background: c.seleccion } : undefined}
-                    >
-                      <td style={{ ...s.td, color: c.gris, fontVariantNumeric: "tabular-nums" }}>{i + 1}</td>
-                      <td style={s.td}>
-                        {l.descripcion}
-                        {/* El mayoreo se alterna aquí, en la línea (antes era un botón de la barra de
+                  </thead>
+                  <tbody>
+                    {lineas.length === 0 && (
+                      <tr>
+                        <td style={{ ...s.filaVacia, padding: "48px 16px" }} colSpan={6}>
+                          <ShoppingCart
+                            size={30}
+                            aria-hidden="true"
+                            style={{ opacity: 0.35, marginBottom: 10 }}
+                          />
+                          <div style={{ fontWeight: 600, color: c.texto, marginBottom: 4 }}>
+                            Ticket vacío
+                          </div>
+                          <div style={{ fontSize: 13 }}>
+                            Escanea un código de barra o busca un producto arriba.
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    {lineas.map((l, i) => (
+                      <tr
+                        key={l.id}
+                        onMouseEnter={() => setLineaResaltada(l)}
+                        // Sin el clic, en pantalla táctil `lineaResaltada` nunca se setea (no hay hover)
+                        // y F8/+/− se quedan sin línea sobre la cual actuar.
+                        onClick={() => setLineaResaltada(l)}
+                        title={
+                          l.producto_id
+                            ? "↑/↓: moverse · +/−: cambiar cantidad · F8: alternar mayoreo (sin hacer clic)"
+                            : "↑/↓: moverse · +/−: cambiar cantidad (sin hacer clic)"
+                        }
+                        style={
+                          lineaResaltada?.id === l.id ? { background: c.seleccion } : undefined
+                        }
+                      >
+                        <td style={{ ...s.td, color: c.gris, fontVariantNumeric: "tabular-nums" }}>
+                          {i + 1}
+                        </td>
+                        <td style={s.td}>
+                          {l.descripcion}
+                          {/* El mayoreo se alterna aquí, en la línea (antes era un botón de la barra de
                             búsqueda). Sin `producto_id` no hay precio mayoreo que consultar, así que
                             en un artículo no registrado el botón ni se ofrece. */}
-                        {/* Apagado mientras está inactivo (sin borde, gris tenue) y solo entonces se
+                          {/* Apagado mientras está inactivo (sin borde, gris tenue) y solo entonces se
                             enciende con el color de marca: en una lista de diez artículos, diez
                             botones delineados pesaban más que los nombres de los productos. */}
-                        {/* Cuando está APAGADO el botón se oculta hasta que el mouse entra en la
+                          {/* Cuando está APAGADO el botón se oculta hasta que el mouse entra en la
                             fila (§ .sfr-accion-fila): un "mayoreo" gris repetido en las diez filas
                             se leía como una etiqueta puesta a todos los productos, no como algo que
                             se puede activar. Encendido queda siempre visible, porque ahí sí es un
                             dato de la línea. */}
-                        {l.producto_id && (
-                          <button
-                            className={l.es_mayoreo ? undefined : "sfr-accion-fila"}
-                            onClick={() => void alternarMayoreoLinea(l)}
-                            title={l.es_mayoreo ? "Volver a precio normal (F8)" : "Cambiar a precio mayoreo (F8)"}
-                            aria-label={`Precio mayoreo para ${l.descripcion}`}
-                            aria-pressed={l.es_mayoreo === 1}
-                            style={{
-                              ...s.badge,
-                              marginLeft: 8,
-                              cursor: "pointer",
-                              fontSize: 10.5,
-                              padding: "2px 8px",
-                              border: "1px solid transparent",
-                              verticalAlign: "middle",
-                              ...(l.es_mayoreo
-                                ? { background: c.azulClaro, color: c.azulOscuro, borderColor: c.azul }
-                                : { background: "transparent", color: c.gris, borderColor: c.borde }),
-                            }}
-                          >
-                            mayoreo
-                          </button>
-                        )}
-                        {!l.producto_id ? <span style={{ ...s.badge, marginLeft: 6, background: c.amarilloFondo, color: c.amarillo }}>no registrado</span> : ""}
-                      </td>
-                      <td style={s.td}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {/* −, campo y + como un solo control segmentado (§ .sfr-grupo-cantidad):
+                          {l.producto_id && (
+                            <button
+                              className={l.es_mayoreo ? undefined : "sfr-accion-fila"}
+                              onClick={() => void alternarMayoreoLinea(l)}
+                              title={
+                                l.es_mayoreo
+                                  ? "Volver a precio normal (F8)"
+                                  : "Cambiar a precio mayoreo (F8)"
+                              }
+                              aria-label={`Precio mayoreo para ${l.descripcion}`}
+                              aria-pressed={l.es_mayoreo === 1}
+                              style={{
+                                ...s.badge,
+                                marginLeft: 8,
+                                cursor: "pointer",
+                                fontSize: 10.5,
+                                padding: "2px 8px",
+                                border: "1px solid transparent",
+                                verticalAlign: "middle",
+                                ...(l.es_mayoreo
+                                  ? {
+                                      background: c.azulClaro,
+                                      color: c.azulOscuro,
+                                      borderColor: c.azul,
+                                    }
+                                  : {
+                                      background: "transparent",
+                                      color: c.gris,
+                                      borderColor: c.borde,
+                                    }),
+                              }}
+                            >
+                              mayoreo
+                            </button>
+                          )}
+                          {!l.producto_id ? (
+                            <span
+                              style={{
+                                ...s.badge,
+                                marginLeft: 6,
+                                background: c.amarilloFondo,
+                                color: c.amarillo,
+                              }}
+                            >
+                              no registrado
+                            </span>
+                          ) : (
+                            ""
+                          )}
+                        </td>
+                        <td style={s.td}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            {/* −, campo y + como un solo control segmentado (§ .sfr-grupo-cantidad):
                               antes eran tres piezas sueltas separadas por huecos, y cada fila del
                               ticket se leía como un montón de controles en vez de como una línea. */}
-                          <span className="sfr-grupo-cantidad">
-                            <button type="button" aria-label={`Quitar uno de ${l.descripcion}`} onClick={() => cambiarCantidad(l, -1)}>−</button>
-                            {/* Campo siempre visible (antes había que hacer clic sobre la cantidad para
+                            <span className="sfr-grupo-cantidad">
+                              <button
+                                type="button"
+                                aria-label={`Quitar uno de ${l.descripcion}`}
+                                onClick={() => cambiarCantidad(l, -1)}
+                              >
+                                −
+                              </button>
+                              {/* Campo siempre visible (antes había que hacer clic sobre la cantidad para
                                 que apareciera). Mientras no se está editando muestra el valor guardado;
                                 al enfocarlo pasa a modo edición con el texto sin confirmar. */}
-                            <input
-                              aria-label={`Cantidad de ${l.descripcion}`}
-                              onFocus={(e) => { editarCantidad(l); e.target.select(); }}
-                              type="text"
-                              inputMode="decimal"
-                              value={lineaEditandoId === l.id ? cantidadEditandoInput : formatearCantidad(l.cantidad)}
-                              onChange={(e) => setCantidadEditandoInput(filtrarNumero(e.target.value))}
-                              onBlur={() => void confirmarEdicionCantidad(l)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") e.currentTarget.blur();
-                                else if (e.key === "Escape") { cancelandoEdicionRef.current = true; e.currentTarget.blur(); }
-                              }}
-                              style={{ ...s.input, fontVariantNumeric: "tabular-nums" }}
-                            />
-                            <button type="button" aria-label={`Agregar uno de ${l.descripcion}`} onClick={() => cambiarCantidad(l, 1)}>+</button>
-                          </span>
-                          {/* Solo a granel: cobrar por monto ("RD$100 de arroz") en vez de por peso. */}
-                          {l.producto_id && productosGranel.has(l.producto_id) && (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: c.gris, fontSize: 12 }}>
-                              RD$
                               <input
-                                onFocus={(e) => { editarMonto(l); e.target.select(); }}
+                                aria-label={`Cantidad de ${l.descripcion}`}
+                                onFocus={(e) => {
+                                  editarCantidad(l);
+                                  e.target.select();
+                                }}
                                 type="text"
                                 inputMode="decimal"
-                                aria-label={`Monto en pesos de ${l.descripcion}`}
-                                title="Cobrar por monto: la cantidad se calcula sola"
-                                value={lineaMontoEditandoId === l.id ? montoEditandoInput : (l.cantidad * l.precio_unitario).toFixed(2)}
-                                onChange={(e) => setMontoEditandoInput(filtrarNumero(e.target.value))}
-                                onBlur={() => void confirmarEdicionMonto(l)}
+                                value={
+                                  lineaEditandoId === l.id
+                                    ? cantidadEditandoInput
+                                    : formatearCantidad(l.cantidad)
+                                }
+                                onChange={(e) =>
+                                  setCantidadEditandoInput(filtrarNumero(e.target.value))
+                                }
+                                onBlur={() => void confirmarEdicionCantidad(l)}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") e.currentTarget.blur();
-                                  else if (e.key === "Escape") { cancelandoEdicionRef.current = true; e.currentTarget.blur(); }
+                                  else if (e.key === "Escape") {
+                                    cancelandoEdicionRef.current = true;
+                                    e.currentTarget.blur();
+                                  }
                                 }}
-                                style={{ ...s.input, width: 76, padding: "6px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+                                style={{ ...s.input, fontVariantNumeric: "tabular-nums" }}
                               />
+                              <button
+                                type="button"
+                                aria-label={`Agregar uno de ${l.descripcion}`}
+                                onClick={() => cambiarCantidad(l, 1)}
+                              >
+                                +
+                              </button>
                             </span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ ...s.tdDerecha, color: c.gris }}>{money(l.precio_unitario)}</td>
-                      {/* El subtotal es la cifra que se mira de la fila: va más grande y en semibold,
+                            {/* Solo a granel: cobrar por monto ("RD$100 de arroz") en vez de por peso. */}
+                            {l.producto_id && productosGranel.has(l.producto_id) && (
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  color: c.gris,
+                                  fontSize: 12,
+                                }}
+                              >
+                                RD$
+                                <input
+                                  onFocus={(e) => {
+                                    editarMonto(l);
+                                    e.target.select();
+                                  }}
+                                  type="text"
+                                  inputMode="decimal"
+                                  aria-label={`Monto en pesos de ${l.descripcion}`}
+                                  title="Cobrar por monto: la cantidad se calcula sola"
+                                  value={
+                                    lineaMontoEditandoId === l.id
+                                      ? montoEditandoInput
+                                      : (l.cantidad * l.precio_unitario).toFixed(2)
+                                  }
+                                  onChange={(e) =>
+                                    setMontoEditandoInput(filtrarNumero(e.target.value))
+                                  }
+                                  onBlur={() => void confirmarEdicionMonto(l)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") e.currentTarget.blur();
+                                    else if (e.key === "Escape") {
+                                      cancelandoEdicionRef.current = true;
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                  style={{
+                                    ...s.input,
+                                    width: 76,
+                                    padding: "6px 8px",
+                                    textAlign: "right",
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                />
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ ...s.tdDerecha, color: c.gris }}>
+                          {money(l.precio_unitario)}
+                        </td>
+                        {/* El subtotal es la cifra que se mira de la fila: va más grande y en semibold,
                           con el precio unitario apagado al lado para que no compitan. */}
-                      <td style={{ ...s.tdDerecha, fontWeight: 600, fontSize: 15 }}>{money(l.subtotal)}</td>
-                      <td style={{ ...s.td, width: 1, whiteSpace: "nowrap" }}>
-                        {/* Icono en vez de un botón "Borrar" con texto en cada fila, y oculto hasta
+                        <td style={{ ...s.tdDerecha, fontWeight: 600, fontSize: 15 }}>
+                          {money(l.subtotal)}
+                        </td>
+                        <td style={{ ...s.td, width: 1, whiteSpace: "nowrap" }}>
+                          {/* Icono en vez de un botón "Borrar" con texto en cada fila, y oculto hasta
                             que el mouse entra en la fila o algo dentro toma el foco (§ .sfr-accion-fila).
                             Con teclado sigue alcanzable por Tab y por Supr. */}
-                        <button
-                          className="sfr-accion-fila sfr-peligro"
-                          aria-label={`Borrar ${l.descripcion} del ticket`}
-                          title="Borrar del ticket (Supr)"
-                          style={{ ...s.botonPeligro, padding: 6, display: "inline-flex", lineHeight: 1 }}
-                          onClick={async () => { if (await confirmar(`¿Borrar "${l.descripcion}" del ticket?`, { textoConfirmar: "Borrar" })) void eliminarLinea(l); }}
-                        >
-                          <Trash2 size={15} aria-hidden="true" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          <button
+                            className="sfr-accion-fila sfr-peligro"
+                            aria-label={`Borrar ${l.descripcion} del ticket`}
+                            title="Borrar del ticket (Supr)"
+                            style={{
+                              ...s.botonPeligro,
+                              padding: 6,
+                              display: "inline-flex",
+                              lineHeight: 1,
+                            }}
+                            onClick={async () => {
+                              if (
+                                await confirmar(`¿Borrar "${l.descripcion}" del ticket?`, {
+                                  textoConfirmar: "Borrar",
+                                })
+                              )
+                                void eliminarLinea(l);
+                            }}
+                          >
+                            <Trash2 size={15} aria-hidden="true" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              {lineas.length > 0 && (() => {
-                const totalArticulos = lineas.reduce((acc, l) => acc + l.cantidad, 0);
-                return (
-                  // Pie dentro de la tarjeta, que ahora tiene `padding: 0`: se le devuelve el suyo.
-                  <div style={{ padding: "10px 14px", textAlign: "right", fontSize: 12, color: c.gris, background: c.fondo, borderTop: `1px solid ${c.borde}` }}>
-                    {lineas.length} línea{lineas.length === 1 ? "" : "s"} · {formatearCantidad(totalArticulos)} artículo{totalArticulos === 1 ? "" : "s"} en total
-                  </div>
-                );
-              })()}
+              {lineas.length > 0 &&
+                (() => {
+                  const totalArticulos = lineas.reduce((acc, l) => acc + l.cantidad, 0);
+                  return (
+                    // Pie dentro de la tarjeta, que ahora tiene `padding: 0`: se le devuelve el suyo.
+                    <div
+                      style={{
+                        padding: "10px 14px",
+                        textAlign: "right",
+                        fontSize: 12,
+                        color: c.gris,
+                        background: c.fondo,
+                        borderTop: `1px solid ${c.borde}`,
+                      }}
+                    >
+                      {lineas.length} línea{lineas.length === 1 ? "" : "s"} ·{" "}
+                      {formatearCantidad(totalArticulos)} artículo{totalArticulos === 1 ? "" : "s"}{" "}
+                      en total
+                    </div>
+                  );
+                })()}
             </div>
           </div>
 
@@ -1558,12 +2053,29 @@ export function Ventas() {
                 relieve y con el título como encabezado chico, para que Totales sea lo que pesa
                 en esta columna. */}
             <div style={{ ...s.tarjeta, marginBottom: 12, boxShadow: "none", padding: 14 }}>
-              <h4 style={{ margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, color: c.gris }}>
-                <User size={14} aria-hidden="true" /> <EtiquetaAtajo texto="Cliente (F4)" ocultarAtajo={esTactil} />
+              <h4
+                style={{
+                  margin: "0 0 10px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                  color: c.gris,
+                }}
+              >
+                <User size={14} aria-hidden="true" />{" "}
+                <EtiquetaAtajo texto="Cliente (F4)" ocultarAtajo={esTactil} />
               </h4>
               {clienteActivo ? (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <p style={{ margin: 0 }}>{clienteActivo.nombre} {clienteActivo.apellidos ?? ""}</p>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                >
+                  <p style={{ margin: 0 }}>
+                    {clienteActivo.nombre} {clienteActivo.apellidos ?? ""}
+                  </p>
                   <button
                     ref={clienteQuitarRef}
                     style={s.botonSecundario}
@@ -1584,7 +2096,10 @@ export function Ventas() {
                       value={clienteQ}
                       onChange={(e) => void buscarCliente(e.target.value)}
                       onKeyDown={(e) => {
-                        if ((e.key === "ArrowDown" || e.key === "ArrowUp") && clienteResultados.length > 0) {
+                        if (
+                          (e.key === "ArrowDown" || e.key === "ArrowUp") &&
+                          clienteResultados.length > 0
+                        ) {
                           e.preventDefault();
                           setIndiceResultadoCliente((i) => {
                             const siguiente = e.key === "ArrowDown" ? i + 1 : i - 1;
@@ -1592,7 +2107,11 @@ export function Ventas() {
                           });
                           return;
                         }
-                        if (e.key === "Enter" && indiceResultadoCliente >= 0 && clienteResultados[indiceResultadoCliente]) {
+                        if (
+                          e.key === "Enter" &&
+                          indiceResultadoCliente >= 0 &&
+                          clienteResultados[indiceResultadoCliente]
+                        ) {
                           asignarCliente(clienteResultados[indiceResultadoCliente]);
                         }
                       }}
@@ -1600,7 +2119,12 @@ export function Ventas() {
                     {/* `nowrap` + padding chico: en los ~250px de la columna, "+ Nuevo" partía en
                         dos renglones y el botón se veía roto. */}
                     <button
-                      style={{ ...s.botonSecundario, whiteSpace: "nowrap", padding: "9px 12px", flexShrink: 0 }}
+                      style={{
+                        ...s.botonSecundario,
+                        whiteSpace: "nowrap",
+                        padding: "9px 12px",
+                        flexShrink: 0,
+                      }}
                       onClick={() => setMostrarNuevoCliente((v) => !v)}
                     >
                       + Nuevo
@@ -1609,7 +2133,11 @@ export function Ventas() {
                   {clienteResultados.map((cl, i) => (
                     <div
                       key={cl.id}
-                      ref={i === indiceResultadoCliente ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
+                      ref={
+                        i === indiceResultadoCliente
+                          ? (el) => el?.scrollIntoView({ block: "nearest" })
+                          : undefined
+                      }
                       className="sfr-fila-clickeable"
                       onClick={() => asignarCliente(cl)}
                       onMouseEnter={() => setIndiceResultadoCliente(i)}
@@ -1626,13 +2154,30 @@ export function Ventas() {
                   ))}
                   {mostrarNuevoCliente && (
                     <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-                      <input autoFocus style={s.input} placeholder="Nombre del cliente" value={nuevoClienteNombre}
+                      <input
+                        autoFocus
+                        style={s.input}
+                        placeholder="Nombre del cliente"
+                        value={nuevoClienteNombre}
                         onChange={(e) => setNuevoClienteNombre(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") void crearClienteRapido(); }} />
-                      <input style={s.input} placeholder="Teléfono (opcional)" value={nuevoClienteTelefono}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void crearClienteRapido();
+                        }}
+                      />
+                      <input
+                        style={s.input}
+                        placeholder="Teléfono (opcional)"
+                        value={nuevoClienteTelefono}
                         onChange={(e) => setNuevoClienteTelefono(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") void crearClienteRapido(); }} />
-                      <button style={s.boton} disabled={!nuevoClienteNombre.trim()} onClick={crearClienteRapido}>
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void crearClienteRapido();
+                        }}
+                      />
+                      <button
+                        style={s.boton}
+                        disabled={!nuevoClienteNombre.trim()}
+                        onClick={crearClienteRapido}
+                      >
                         Crear y asignar
                       </button>
                     </div>
@@ -1642,19 +2187,61 @@ export function Ventas() {
             </div>
 
             <div style={{ ...s.tarjeta, boxShadow: sombra.md }}>
-              <h4 style={{ margin: "0 0 12px", display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, color: c.gris }}>
+              <h4
+                style={{
+                  margin: "0 0 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                  color: c.gris,
+                }}
+              >
                 <DollarSign size={14} aria-hidden="true" /> Totales
               </h4>
               {/* El desglose es de consulta: chico, apagado y con cifras alineadas. Lo que se lee de
                   lejos es el panel del total, abajo. */}
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}>
-                <span style={{ color: c.gris }}>Gravado</span><span style={{ color: c.gris, fontVariantNumeric: "tabular-nums" }}>{money(activo.subtotal_gravado)}</span>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 13,
+                  marginBottom: 5,
+                }}
+              >
+                <span style={{ color: c.gris }}>Gravado</span>
+                <span style={{ color: c.gris, fontVariantNumeric: "tabular-nums" }}>
+                  {money(activo.subtotal_gravado)}
+                </span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}>
-                <span style={{ color: c.gris }}>Exento</span><span style={{ color: c.gris, fontVariantNumeric: "tabular-nums" }}>{money(activo.subtotal_exento)}</span>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 13,
+                  marginBottom: 5,
+                }}
+              >
+                <span style={{ color: c.gris }}>Exento</span>
+                <span style={{ color: c.gris, fontVariantNumeric: "tabular-nums" }}>
+                  {money(activo.subtotal_exento)}
+                </span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
-                <span style={{ color: c.gris }}>ITBIS</span><span style={{ color: c.gris, fontVariantNumeric: "tabular-nums" }}>{money(activo.total_itbis)}</span>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 13,
+                  marginBottom: 8,
+                }}
+              >
+                <span style={{ color: c.gris }}>ITBIS</span>
+                <span style={{ color: c.gris, fontVariantNumeric: "tabular-nums" }}>
+                  {money(activo.total_itbis)}
+                </span>
               </div>
               {/* El total es lo único de esta tarjeta que se mira de lejos y a las apuradas, así que
                   va en su propio panel acentuado y a un tamaño muy por encima del resto. */}
@@ -1670,35 +2257,83 @@ export function Ventas() {
                   marginTop: 12,
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 700, color: c.azulOscuro, textTransform: "uppercase", letterSpacing: 0.8, opacity: 0.75 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: c.azulOscuro,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.8,
+                    opacity: 0.75,
+                  }}
+                >
                   Total
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 2 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: c.azulOscuro, opacity: 0.7 }}>RD$</span>
-                  <span style={{ fontSize: 30, fontWeight: 800, color: c.azulOscuro, fontVariantNumeric: "tabular-nums", lineHeight: 1.05, letterSpacing: -0.5 }}>
+                  <span
+                    style={{ fontSize: 13, fontWeight: 600, color: c.azulOscuro, opacity: 0.7 }}
+                  >
+                    RD$
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 30,
+                      fontWeight: 800,
+                      color: c.azulOscuro,
+                      fontVariantNumeric: "tabular-nums",
+                      lineHeight: 1.05,
+                      letterSpacing: -0.5,
+                    }}
+                  >
                     {money(activo.total)}
                   </span>
                 </div>
               </div>
               <button
-                style={{ ...s.boton, width: "100%", marginTop: 12, padding: "16px 18px", fontSize: 17, fontWeight: 700 }}
+                style={{
+                  ...s.boton,
+                  width: "100%",
+                  marginTop: 12,
+                  padding: "16px 18px",
+                  fontSize: 17,
+                  fontWeight: 700,
+                }}
                 disabled={lineas.length === 0}
                 onClick={() => setMostrarCobro(true)}
               >
                 <EtiquetaAtajo texto="Cobrar (F12)" ocultarAtajo={esTactil} />
               </button>
               <button
-                style={{ ...s.botonSecundario, width: "100%", marginTop: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                style={{
+                  ...s.botonSecundario,
+                  width: "100%",
+                  marginTop: 8,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
                 disabled={lineas.length === 0}
                 onClick={() => setMostrarCotizacion(true)}
               >
-                <ClipboardList size={15} /> <EtiquetaAtajo texto="Cotización (F5)" ocultarAtajo={esTactil} />
+                <ClipboardList size={15} />{" "}
+                <EtiquetaAtajo texto="Cotización (F5)" ocultarAtajo={esTactil} />
               </button>
               {/* Separado por una línea del par Cobrar/Cotización: es la acción destructiva de la
                   tarjeta y estaba pegada a ellas como si fuera una opción más de la misma familia. */}
               <button
                 className="sfr-peligro"
-                style={{ ...s.botonPeligro, width: "100%", marginTop: 14, paddingTop: 12, border: "none", borderTop: `1px solid ${c.borde}`, borderRadius: 0, background: "none", fontSize: 12.5 }}
+                style={{
+                  ...s.botonPeligro,
+                  width: "100%",
+                  marginTop: 14,
+                  paddingTop: 12,
+                  border: "none",
+                  borderTop: `1px solid ${c.borde}`,
+                  borderRadius: 0,
+                  background: "none",
+                  fontSize: 12.5,
+                }}
                 onClick={eliminarTicketActivo}
               >
                 Eliminar ticket
@@ -1715,7 +2350,10 @@ export function Ventas() {
           notasIniciales={activo.notas ?? ""}
           clienteDocumentoTipo={clienteActivo?.documento_tipo ?? null}
           clienteDocumentoNumero={clienteActivo?.documento_numero ?? null}
-          onCancelar={() => { setMostrarCobro(false); enfocarBusqueda(); }}
+          onCancelar={() => {
+            setMostrarCobro(false);
+            enfocarBusqueda();
+          }}
           onConfirmar={confirmarCobro}
         />
       )}
@@ -1725,20 +2363,45 @@ export function Ventas() {
           total={activo.total}
           cantidadArticulos={lineas.length}
           notasIniciales={activo.notas ?? ""}
-          onCancelar={() => { setMostrarCotizacion(false); enfocarBusqueda(); }}
+          onCancelar={() => {
+            setMostrarCotizacion(false);
+            enfocarBusqueda();
+          }}
           onConfirmar={crearCotizacion}
         />
       )}
 
       {modalCantidad && (
         <div
-          style={{ position: "fixed", inset: 0, background: "var(--sfr-overlay)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--sfr-overlay)",
+            backdropFilter: "blur(2px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
           onClick={cerrarModalCantidad}
         >
-          <div style={{ ...s.tarjeta, width: 380, maxWidth: "90vw" }} onClick={(e) => e.stopPropagation()}>
+          <div
+            style={{ ...s.tarjeta, width: 380, maxWidth: "90vw" }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {!modalCantidad.producto ? (
               <>
-                <h3 style={{ marginTop: 0, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Hash size={18} /> Buscar producto</h3>
+                <h3
+                  style={{
+                    marginTop: 0,
+                    marginBottom: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <Hash size={18} /> Buscar producto
+                </h3>
                 <input
                   autoFocus
                   style={s.input}
@@ -1746,38 +2409,81 @@ export function Ventas() {
                   value={busquedaModalCantidad}
                   onChange={(e) => setBusquedaModalCantidad(e.target.value)}
                   onKeyDown={async (e) => {
-                    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && resultadosModalCantidad.length > 0) {
+                    if (
+                      (e.key === "ArrowDown" || e.key === "ArrowUp") &&
+                      resultadosModalCantidad.length > 0
+                    ) {
                       e.preventDefault();
                       setAccionResultadoModalCantidad("fila");
-                      setIndiceResultadoModalCantidad((i) => moverIndiceFila(i, e.key === "ArrowDown" ? 1 : -1, resultadosModalCantidad.length));
+                      setIndiceResultadoModalCantidad((i) =>
+                        moverIndiceFila(
+                          i,
+                          e.key === "ArrowDown" ? 1 : -1,
+                          resultadosModalCantidad.length,
+                        ),
+                      );
                       return;
                     }
-                    if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && indiceResultadoModalCantidad >= 0 && resultadosModalCantidad.length > 0) {
+                    if (
+                      (e.key === "ArrowRight" || e.key === "ArrowLeft") &&
+                      indiceResultadoModalCantidad >= 0 &&
+                      resultadosModalCantidad.length > 0
+                    ) {
                       e.preventDefault();
-                      setAccionResultadoModalCantidad((a) => moverAccionFila(a, e.key === "ArrowRight" ? 1 : -1, ["favorito"]));
+                      setAccionResultadoModalCantidad((a) =>
+                        moverAccionFila(a, e.key === "ArrowRight" ? 1 : -1, ["favorito"]),
+                      );
                       return;
                     }
-                    if (e.key === "Enter" && accionResultadoModalCantidad === "favorito" && resultadosModalCantidad[indiceResultadoModalCantidad]) {
-                      void alternarFavoritoProducto(resultadosModalCantidad[indiceResultadoModalCantidad]);
+                    if (
+                      e.key === "Enter" &&
+                      accionResultadoModalCantidad === "favorito" &&
+                      resultadosModalCantidad[indiceResultadoModalCantidad]
+                    ) {
+                      void alternarFavoritoProducto(
+                        resultadosModalCantidad[indiceResultadoModalCantidad],
+                      );
                       return;
                     }
                     if (e.key === "Enter" && busquedaModalCantidad.trim()) {
                       const exacto = await productos.porCodigoBarra(busquedaModalCantidad.trim());
-                      if (exacto) { elegirProductoModalCantidad(exacto); return; }
-                      if (indiceResultadoModalCantidad >= 0 && resultadosModalCantidad[indiceResultadoModalCantidad]) {
-                        elegirProductoModalCantidad(resultadosModalCantidad[indiceResultadoModalCantidad]);
+                      if (exacto) {
+                        elegirProductoModalCantidad(exacto);
                         return;
                       }
-                      if (resultadosModalCantidad.length === 1) elegirProductoModalCantidad(resultadosModalCantidad[0]);
+                      if (
+                        indiceResultadoModalCantidad >= 0 &&
+                        resultadosModalCantidad[indiceResultadoModalCantidad]
+                      ) {
+                        elegirProductoModalCantidad(
+                          resultadosModalCantidad[indiceResultadoModalCantidad],
+                        );
+                        return;
+                      }
+                      if (resultadosModalCantidad.length === 1)
+                        elegirProductoModalCantidad(resultadosModalCantidad[0]);
                     }
                   }}
                 />
                 {resultadosModalCantidad.length > 0 && (
-                  <div style={{ marginTop: 8, border: `1px solid ${c.borde}`, borderRadius: 8, overflow: "hidden", maxHeight: 260, overflowY: "auto" }}>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      border: `1px solid ${c.borde}`,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                      maxHeight: 260,
+                      overflowY: "auto",
+                    }}
+                  >
                     {resultadosModalCantidad.map((p, i) => (
                       <div
                         key={p.id}
-                        ref={i === indiceResultadoModalCantidad ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
+                        ref={
+                          i === indiceResultadoModalCantidad
+                            ? (el) => el?.scrollIntoView({ block: "nearest" })
+                            : undefined
+                        }
                         className="sfr-fila-clickeable"
                         onClick={() => elegirProductoModalCantidad(p)}
                         onMouseEnter={() => setIndiceResultadoModalCantidad(i)}
@@ -1788,50 +2494,99 @@ export function Ventas() {
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
-                          ...(i === indiceResultadoModalCantidad ? { background: c.seleccion } : {}),
+                          ...(i === indiceResultadoModalCantidad
+                            ? { background: c.seleccion }
+                            : {}),
                         }}
                       >
                         <span>
                           <button
-                            onClick={(e) => { e.stopPropagation(); void alternarFavoritoProducto(p); }}
-                            title={p.favorito === 1 ? "Quitar de favoritos (←/→ + Enter)" : "Marcar como favorito (←/→ + Enter)"}
-                          aria-label={`${p.favorito === 1 ? "Quitar de favoritos" : "Marcar como favorito"}: ${p.descripcion}`}
-                          aria-pressed={p.favorito === 1}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void alternarFavoritoProducto(p);
+                            }}
+                            title={
+                              p.favorito === 1
+                                ? "Quitar de favoritos (←/→ + Enter)"
+                                : "Marcar como favorito (←/→ + Enter)"
+                            }
+                            aria-label={`${p.favorito === 1 ? "Quitar de favoritos" : "Marcar como favorito"}: ${p.descripcion}`}
+                            aria-pressed={p.favorito === 1}
                             style={{
-                              background: "none", border: "none", cursor: "pointer", padding: 2, marginRight: 4, lineHeight: 1, verticalAlign: "middle", borderRadius: 6,
-                              color: p.favorito === 1 ? c.amarillo : c.gris, opacity: p.favorito === 1 ? 1 : 0.4,
-                              ...(i === indiceResultadoModalCantidad && accionResultadoModalCantidad === "favorito" ? { outline: `2px solid ${c.azul}`, outlineOffset: 1, opacity: 1 } : {}),
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: 2,
+                              marginRight: 4,
+                              lineHeight: 1,
+                              verticalAlign: "middle",
+                              borderRadius: 6,
+                              color: p.favorito === 1 ? c.amarillo : c.gris,
+                              opacity: p.favorito === 1 ? 1 : 0.4,
+                              ...(i === indiceResultadoModalCantidad &&
+                              accionResultadoModalCantidad === "favorito"
+                                ? { outline: `2px solid ${c.azul}`, outlineOffset: 1, opacity: 1 }
+                                : {}),
                             }}
                           >
                             <Star size={19} fill={p.favorito === 1 ? "currentColor" : "none"} />
                           </button>
                           {p.descripcion}
                           {p.tipo_venta === "granel" && (
-                            <span style={{ ...s.badge, marginLeft: 8, background: c.amarilloFondo, color: c.amarillo, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                              <Weight size={12} /> a granel{p.unidad_medida ? ` (${p.unidad_medida})` : ""}
+                            <span
+                              style={{
+                                ...s.badge,
+                                marginLeft: 8,
+                                background: c.amarilloFondo,
+                                color: c.amarillo,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              <Weight size={12} /> a granel
+                              {p.unidad_medida ? ` (${p.unidad_medida})` : ""}
                             </span>
                           )}
                         </span>
-                        <b style={{ fontVariantNumeric: "tabular-nums" }}>RD$ {money(precioBase(p))}</b>
+                        <b style={{ fontVariantNumeric: "tabular-nums" }}>
+                          RD$ {money(precioBase(p))}
+                        </b>
                       </div>
                     ))}
                   </div>
                 )}
                 <div style={s.formFooter}>
-                  <button style={s.botonSecundario} onClick={cerrarModalCantidad}>Cancelar (Esc)</button>
+                  <button style={s.botonSecundario} onClick={cerrarModalCantidad}>
+                    Cancelar (Esc)
+                  </button>
                 </div>
               </>
             ) : (
               <>
-                <h3 style={{ marginTop: 0, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-                  {modalCantidad.producto.tipo_venta === "granel" && <Weight size={16} />}{modalCantidad.producto.descripcion}
+                <h3
+                  style={{
+                    marginTop: 0,
+                    marginBottom: 4,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  {modalCantidad.producto.tipo_venta === "granel" && <Weight size={16} />}
+                  {modalCantidad.producto.descripcion}
                 </h3>
                 <p style={{ color: c.gris, fontSize: 13, marginTop: 0, marginBottom: 12 }}>
                   Precio: RD$ {money(precioBase(modalCantidad.producto))}
-                  {modalCantidad.producto.unidad_medida ? ` / ${modalCantidad.producto.unidad_medida}` : ""}
+                  {modalCantidad.producto.unidad_medida
+                    ? ` / ${modalCantidad.producto.unidad_medida}`
+                    : ""}
                 </p>
                 <label style={s.label}>
-                  Cantidad{modalCantidad.producto.unidad_medida ? ` (${modalCantidad.producto.unidad_medida})` : ""}
+                  Cantidad
+                  {modalCantidad.producto.unidad_medida
+                    ? ` (${modalCantidad.producto.unidad_medida})`
+                    : ""}
                 </label>
                 <input
                   autoFocus
@@ -1841,7 +2596,9 @@ export function Ventas() {
                   style={{ ...s.input, fontSize: 18, textAlign: "center", fontWeight: 700 }}
                   value={cantidadModalTexto}
                   onChange={(e) => cambiarCantidadModal(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") void confirmarModalCantidad(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void confirmarModalCantidad();
+                  }}
                 />
                 <label style={s.label}>Monto (RD$)</label>
                 <input
@@ -1851,13 +2608,21 @@ export function Ventas() {
                   style={{ ...s.input, fontSize: 18, textAlign: "center", fontWeight: 700 }}
                   value={montoModalTexto}
                   onChange={(e) => cambiarMontoModal(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") void confirmarModalCantidad(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void confirmarModalCantidad();
+                  }}
                 />
                 <div style={s.formFooter}>
-                  <button style={s.boton} disabled={!(cantidadFinalModal() > 0)} onClick={() => void confirmarModalCantidad()}>
+                  <button
+                    style={s.boton}
+                    disabled={!(cantidadFinalModal() > 0)}
+                    onClick={() => void confirmarModalCantidad()}
+                  >
                     Agregar
                   </button>
-                  <button style={s.botonSecundario} onClick={cerrarModalCantidad}>Cancelar (Esc)</button>
+                  <button style={s.botonSecundario} onClick={cerrarModalCantidad}>
+                    Cancelar (Esc)
+                  </button>
                 </div>
               </>
             )}
@@ -1867,11 +2632,33 @@ export function Ventas() {
 
       {modalConsultaAbierto && (
         <div
-          style={{ position: "fixed", inset: 0, background: "var(--sfr-overlay)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--sfr-overlay)",
+            backdropFilter: "blur(2px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
           onClick={cerrarConsultaPrecio}
         >
-          <div style={{ ...s.tarjeta, width: 420, maxWidth: "90vw" }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Search size={18} /> Consultar precio</h3>
+          <div
+            style={{ ...s.tarjeta, width: 420, maxWidth: "90vw" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              style={{
+                marginTop: 0,
+                marginBottom: 12,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <Search size={18} /> Consultar precio
+            </h3>
             <input
               autoFocus
               style={s.input}
@@ -1896,22 +2683,55 @@ export function Ventas() {
               }}
             />
             {resultadosConsulta.length > 0 && (
-              <div style={{ marginTop: 8, border: `1px solid ${c.borde}`, borderRadius: 8, overflow: "hidden", maxHeight: 300, overflowY: "auto" }}>
+              <div
+                style={{
+                  marginTop: 8,
+                  border: `1px solid ${c.borde}`,
+                  borderRadius: 8,
+                  overflow: "hidden",
+                  maxHeight: 300,
+                  overflowY: "auto",
+                }}
+              >
                 {resultadosConsulta.map((p) => (
-                  <div key={p.id} style={{ padding: "10px 12px", borderBottom: `1px solid ${c.borde}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div
+                    key={p.id}
+                    style={{ padding: "10px 12px", borderBottom: `1px solid ${c.borde}` }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
                       <span>
                         {p.descripcion}
                         {p.tipo_venta === "granel" && (
-                          <span style={{ ...s.badge, marginLeft: 8, background: c.amarilloFondo, color: c.amarillo, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                            <Weight size={12} /> a granel{p.unidad_medida ? ` (${p.unidad_medida})` : ""}
+                          <span
+                            style={{
+                              ...s.badge,
+                              marginLeft: 8,
+                              background: c.amarilloFondo,
+                              color: c.amarillo,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <Weight size={12} /> a granel
+                            {p.unidad_medida ? ` (${p.unidad_medida})` : ""}
                           </span>
                         )}
                       </span>
-                      <b style={{ fontVariantNumeric: "tabular-nums" }}>RD$ {money(p.precio_venta)}</b>
+                      <b style={{ fontVariantNumeric: "tabular-nums" }}>
+                        RD$ {money(p.precio_venta)}
+                      </b>
                     </div>
                     {p.precio_mayoreo ? (
-                      <div style={{ fontSize: 12, color: c.gris, marginTop: 2 }}>Mayoreo: RD$ {money(p.precio_mayoreo)}</div>
+                      <div style={{ fontSize: 12, color: c.gris, marginTop: 2 }}>
+                        Mayoreo: RD$ {money(p.precio_mayoreo)}
+                      </div>
                     ) : null}
                   </div>
                 ))}
@@ -1921,7 +2741,9 @@ export function Ventas() {
               <p style={{ color: c.gris, fontSize: 13, marginTop: 8 }}>Sin resultados.</p>
             )}
             <div style={s.formFooter}>
-              <button style={s.botonSecundario} onClick={cerrarConsultaPrecio}>Cerrar (Esc)</button>
+              <button style={s.botonSecundario} onClick={cerrarConsultaPrecio}>
+                Cerrar (Esc)
+              </button>
             </div>
           </div>
         </div>
@@ -1929,10 +2751,22 @@ export function Ventas() {
 
       {formEdicion && (
         <div
-          style={{ position: "fixed", inset: 0, background: "var(--sfr-overlay)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--sfr-overlay)",
+            backdropFilter: "blur(2px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
           onClick={cerrarEdicionProducto}
         >
-          <div style={{ width: 640, maxWidth: "90vw", maxHeight: "85vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+          <div
+            style={{ width: 640, maxWidth: "90vw", maxHeight: "85vh", overflow: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <FormularioProducto
               form={formEdicion}
               onCambiar={setFormEdicion}

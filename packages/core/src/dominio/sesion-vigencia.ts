@@ -81,7 +81,9 @@ export function restaurarSesion(
     try {
       parseada = JSON.parse(marca);
     } catch {
-      alAvisar?.("La sesión guardada en este navegador no es JSON válido; se pide iniciar sesión de nuevo.");
+      alAvisar?.(
+        "La sesión guardada en este navegador no es JSON válido; se pide iniciar sesión de nuevo.",
+      );
       return null;
     }
   } else {
@@ -89,7 +91,9 @@ export function restaurarSesion(
   }
 
   if (!esMarcaSesion(parseada)) {
-    alAvisar?.("La sesión guardada en este navegador tiene un formato inesperado; se pide iniciar sesión de nuevo.");
+    alAvisar?.(
+      "La sesión guardada en este navegador tiene un formato inesperado; se pide iniciar sesión de nuevo.",
+    );
     return null;
   }
 

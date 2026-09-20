@@ -92,7 +92,6 @@ function AccesoInterno(): ReactElement {
     return () => {
       cancelado = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function volverASeleccion() {
@@ -107,7 +106,11 @@ function AccesoInterno(): ReactElement {
     try {
       const resultado = await usuario.autenticar({ usuarioId, pin: pinIngresado });
       if (resultado.ok) {
-        iniciarSesion({ usuarioId: resultado.usuario.id, rol: resultado.usuario.rol, permisos: resultado.permisos });
+        iniciarSesion({
+          usuarioId: resultado.usuario.id,
+          rol: resultado.usuario.rol,
+          permisos: resultado.permisos,
+        });
         return;
       }
       if (resultado.motivo === "sin_pin") {
@@ -175,7 +178,13 @@ function AccesoInterno(): ReactElement {
   );
 }
 
-function SeleccionUsuario({ usuarios, onElegir }: { usuarios: Usuario[]; onElegir: (u: Usuario) => void }) {
+function SeleccionUsuario({
+  usuarios,
+  onElegir,
+}: {
+  usuarios: Usuario[];
+  onElegir: (u: Usuario) => void;
+}) {
   const tarjetaRef = useModalAccesible<HTMLDivElement>();
   return (
     <div ref={tarjetaRef} style={tarjeta}>
@@ -226,7 +235,17 @@ interface TecladoPinProps {
  * uno — hoy no hay ningún input de texto en esta pantalla, pero capturar aquí en vez
  * de sumar otra tecla al mapa global evita ese acoplamiento).
  */
-function TecladoPin({ titulo, subtitulo, pin, deshabilitado, onCambiarPin, onCancelar, onConfirmar, icono: Icono = ShieldAlert, zIndexTarjeta }: TecladoPinProps) {
+function TecladoPin({
+  titulo,
+  subtitulo,
+  pin,
+  deshabilitado,
+  onCambiarPin,
+  onCancelar,
+  onConfirmar,
+  icono: Icono = ShieldAlert,
+  zIndexTarjeta,
+}: TecladoPinProps) {
   const tarjetaRef = useModalAccesible<HTMLDivElement>();
   const primerBotonRef = useRef<HTMLButtonElement>(null);
 
@@ -256,7 +275,12 @@ function TecladoPin({ titulo, subtitulo, pin, deshabilitado, onCambiarPin, onCan
   }, [pin, deshabilitado, onCambiarPin, onConfirmar, onCancelar]);
 
   return (
-    <div ref={tarjetaRef} style={{ ...tarjeta, ...(zIndexTarjeta ? { zIndex: zIndexTarjeta } : {}) }} role="group" aria-label={titulo}>
+    <div
+      ref={tarjetaRef}
+      style={{ ...tarjeta, ...(zIndexTarjeta ? { zIndex: zIndexTarjeta } : {}) }}
+      role="group"
+      aria-label={titulo}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
         <span aria-hidden="true" style={iconoCirculo}>
           <Icono size={20} />
@@ -316,7 +340,12 @@ function TecladoPin({ titulo, subtitulo, pin, deshabilitado, onCambiarPin, onCan
         <button type="button" style={s.botonSecundario} onClick={onCancelar}>
           Cambiar de usuario (Esc)
         </button>
-        <button type="button" style={s.boton} disabled={deshabilitado || pin.length < 4} onClick={onConfirmar}>
+        <button
+          type="button"
+          style={s.boton}
+          disabled={deshabilitado || pin.length < 4}
+          onClick={onConfirmar}
+        >
           Entrar (Enter)
         </button>
       </div>

@@ -8,7 +8,13 @@
  *
  * Si el texto no termina en un paréntesis, se devuelve tal cual: pasarlo por acá siempre es seguro.
  */
-export function EtiquetaAtajo({ texto, ocultarAtajo = false }: { texto: string; ocultarAtajo?: boolean }) {
+export function EtiquetaAtajo({
+  texto,
+  ocultarAtajo = false,
+}: {
+  texto: string;
+  ocultarAtajo?: boolean;
+}) {
   const m = texto.match(/^(.*?)\s*\(([^()]+)\)\s*$/);
   if (!m) return <>{texto}</>;
   const [, base, atajo] = m;
@@ -18,7 +24,9 @@ export function EtiquetaAtajo({ texto, ocultarAtajo = false }: { texto: string; 
       {base}
       {/* `aria-hidden`: el lector de pantalla ya recibe el atajo por el `title`/`aria-label` del
           botón; leerlo dos veces solo alarga el anuncio. */}
-      <kbd className="sfr-kbd" aria-hidden="true">{atajo}</kbd>
+      <kbd className="sfr-kbd" aria-hidden="true">
+        {atajo}
+      </kbd>
     </>
   );
 }

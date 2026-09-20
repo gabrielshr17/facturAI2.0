@@ -43,16 +43,18 @@ const PIN_MAXIMO = 6;
  *  confirmada con el cliente: 5 minutos). */
 const LIMITE_INACTIVIDAD_MINUTOS = 5;
 
-const MENSAJE_POR_MOTIVO: Record<"pin_incorrecto" | "inactivo" | "bloqueado" | "sin_pin", string> = {
-  pin_incorrecto: "El PIN no es correcto.",
-  // `inactivo`/`bloqueado`/`sin_pin` no deberían poder pasar acá (el usuario que
-  // desbloquea ya tenía una sesión activa con PIN definido), pero se cubren igual:
-  // el tipo de `autenticar` los permite y un `Record` parcial dejaría pasar un
-  // mensaje `undefined` a `avisar()`.
-  inactivo: "Este usuario está desactivado. Pide a un dueño o superadmin que lo reactive.",
-  bloqueado: "Demasiados intentos fallidos. Este usuario queda bloqueado temporalmente.",
-  sin_pin: "Este usuario todavía no tiene PIN definido. Pide a un dueño que lo restablezca desde Personal.",
-};
+const MENSAJE_POR_MOTIVO: Record<"pin_incorrecto" | "inactivo" | "bloqueado" | "sin_pin", string> =
+  {
+    pin_incorrecto: "El PIN no es correcto.",
+    // `inactivo`/`bloqueado`/`sin_pin` no deberían poder pasar acá (el usuario que
+    // desbloquea ya tenía una sesión activa con PIN definido), pero se cubren igual:
+    // el tipo de `autenticar` los permite y un `Record` parcial dejaría pasar un
+    // mensaje `undefined` a `avisar()`.
+    inactivo: "Este usuario está desactivado. Pide a un dueño o superadmin que lo reactive.",
+    bloqueado: "Demasiados intentos fallidos. Este usuario queda bloqueado temporalmente.",
+    sin_pin:
+      "Este usuario todavía no tiene PIN definido. Pide a un dueño que lo restablezca desde Personal.",
+  };
 
 function mensajeDeError(error: unknown): string {
   if (error instanceof CriptoNoDisponibleError) return error.message;
@@ -69,7 +71,10 @@ export function BloqueoInactividad(): ReactElement | null {
   // montan `<AppShell>` directo, sin pasar por `<Acceso>` (mismo criterio que usa
   // `AppShell.tsx` para la tarjeta de cuenta).
   const habilitado = sesion.usuarioId !== null;
-  const { bloqueado, bloquearAhora, desbloquear } = useBloqueoInactividad(LIMITE_INACTIVIDAD_MINUTOS, habilitado);
+  const { bloqueado, bloquearAhora, desbloquear } = useBloqueoInactividad(
+    LIMITE_INACTIVIDAD_MINUTOS,
+    habilitado,
+  );
 
   const [pin, setPin] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -87,7 +92,14 @@ export function BloqueoInactividad(): ReactElement | null {
   // Atajo manual: bloquea de inmediato sin esperar el límite. Se apaga mientras ya
   // está bloqueada (`!bloqueado`) por la misma razón que `Ctrl+U` en
   // `CambioRapidoUsuario.tsx` se apaga mientras su propio modal ya está abierto.
-  useAtajosTeclado({ "Ctrl+L": () => { if (habilitado) bloquearAhora(); } }, !bloqueado && habilitado);
+  useAtajosTeclado(
+    {
+      "Ctrl+L": () => {
+        if (habilitado) bloquearAhora();
+      },
+    },
+    !bloqueado && habilitado,
+  );
 
   useEffect(() => {
     if (!bloqueado) {
@@ -155,7 +167,13 @@ interface TecladoDesbloqueoProps {
  *  propósito (ver la cabecera de `CambioRapidoUsuario.tsx`). A diferencia de esos dos,
  *  este NO escucha `Escape` para cerrar: el bloqueo por inactividad no se descarta con
  *  una tecla, esa es la razón de existir de esta pantalla. */
-function TecladoDesbloqueo({ nombreUsuario, pin, deshabilitado, onCambiarPin, onConfirmar }: TecladoDesbloqueoProps) {
+function TecladoDesbloqueo({
+  nombreUsuario,
+  pin,
+  deshabilitado,
+  onCambiarPin,
+  onConfirmar,
+}: TecladoDesbloqueoProps) {
   const tarjetaRef = useModalAccesible<HTMLDivElement>();
   const primerBotonRef = useRef<HTMLButtonElement>(null);
 
@@ -183,15 +201,25 @@ function TecladoDesbloqueo({ nombreUsuario, pin, deshabilitado, onCambiarPin, on
   }, [pin, deshabilitado, onCambiarPin, onConfirmar]);
 
   return (
-    <div ref={tarjetaRef} style={tarjeta} role="dialog" aria-modal="true" aria-labelledby="sfr-bloqueo-titulo">
+    <div
+      ref={tarjetaRef}
+      style={tarjeta}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sfr-bloqueo-titulo"
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
         <span aria-hidden="true" style={iconoCirculo}>
           <Lock size={20} />
         </span>
-        <h1 id="sfr-bloqueo-titulo" style={{ ...estiloTitulo, margin: 0 }}>Pantalla bloqueada</h1>
+        <h1 id="sfr-bloqueo-titulo" style={{ ...estiloTitulo, margin: 0 }}>
+          Pantalla bloqueada
+        </h1>
       </div>
       <p style={subtituloTexto}>
-        {nombreUsuario ? `Ingresa el PIN de ${nombreUsuario} para continuar.` : "Ingresa tu PIN para continuar."}
+        {nombreUsuario
+          ? `Ingresa el PIN de ${nombreUsuario} para continuar.`
+          : "Ingresa tu PIN para continuar."}
       </p>
 
       <div style={puntosPin} aria-label={`PIN, ${pin.length} de ${PIN_MAXIMO} dígitos`}>
@@ -242,7 +270,12 @@ function TecladoDesbloqueo({ nombreUsuario, pin, deshabilitado, onCambiarPin, on
       </div>
 
       <div style={{ ...s.formFooter, justifyContent: "flex-end" }}>
-        <button type="button" style={s.boton} disabled={deshabilitado || pin.length < 4} onClick={onConfirmar}>
+        <button
+          type="button"
+          style={s.boton}
+          disabled={deshabilitado || pin.length < 4}
+          onClick={onConfirmar}
+        >
           Desbloquear (Enter)
         </button>
       </div>

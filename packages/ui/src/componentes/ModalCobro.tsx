@@ -1,5 +1,11 @@
 import { useState, type CSSProperties } from "react";
-import { type MetodoPago, type TipoEcf, ETIQUETA_TIPO_ECF, tipoEcfSugerido, procesarCobro } from "@sfr/core";
+import {
+  type MetodoPago,
+  type TipoEcf,
+  ETIQUETA_TIPO_ECF,
+  tipoEcfSugerido,
+  procesarCobro,
+} from "@sfr/core";
 import { CreditCard } from "lucide-react";
 import { s, c, sombra, money } from "../estilos.js";
 import { useAtajosTeclado } from "../hooks/useAtajosTeclado.js";
@@ -70,9 +76,15 @@ export function ModalCobro({
 
   useAtajosTeclado({
     Escape: onCancelar,
-    F1: () => { if (!guardando) void confirmar("imprimir"); },
-    F2: () => { if (!guardando) void confirmar("ninguna"); },
-    F3: () => { if (!guardando) void confirmar("pdf"); },
+    F1: () => {
+      if (!guardando) void confirmar("imprimir");
+    },
+    F2: () => {
+      if (!guardando) void confirmar("ninguna");
+    },
+    F3: () => {
+      if (!guardando) void confirmar("pdf");
+    },
   });
 
   const pagos = filas.map((f) => ({ metodo: f.metodo, monto: Number(f.monto) || 0 }));
@@ -99,7 +111,11 @@ export function ModalCobro({
       return;
     }
     const fiscal: FiscalInput | null = emitirFiscal
-      ? { tipoEcf, receptorDocumentoTipo: receptorNumero.trim() ? receptorTipo : null, receptorDocumentoNumero: receptorNumero.trim() || null }
+      ? {
+          tipoEcf,
+          receptorDocumentoTipo: receptorNumero.trim() ? receptorTipo : null,
+          receptorDocumentoNumero: receptorNumero.trim() || null,
+        }
       : null;
 
     setGuardando(true);
@@ -114,9 +130,30 @@ export function ModalCobro({
 
   return (
     <div style={overlay} onClick={onCancelar}>
-      <div ref={tarjetaRef} role="dialog" aria-modal="true" aria-labelledby="sfr-cobro-titulo" style={tarjeta} onClick={(e) => e.stopPropagation()}>
-        <h3 id="sfr-cobro-titulo" style={{ marginTop: 0, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}><CreditCard size={18} aria-hidden="true" /> Cobrar</h3>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${c.borde}` }}>
+      <div
+        ref={tarjetaRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sfr-cobro-titulo"
+        style={tarjeta}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3
+          id="sfr-cobro-titulo"
+          style={{ marginTop: 0, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}
+        >
+          <CreditCard size={18} aria-hidden="true" /> Cobrar
+        </h3>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: 16,
+            paddingBottom: 12,
+            borderBottom: `1px solid ${c.borde}`,
+          }}
+        >
           <span style={{ color: c.gris, fontSize: 14 }}>{cantidadArticulos} artículo(s)</span>
           <span style={{ fontSize: 24, fontWeight: 700, color: c.texto }}>RD$ {money(total)}</span>
         </div>
@@ -133,7 +170,9 @@ export function ModalCobro({
               onChange={(e) => actualizarFila(i, { metodo: e.target.value as MetodoPago })}
             >
               {METODOS.map((m) => (
-                <option key={m.valor} value={m.valor}>{m.etiqueta}</option>
+                <option key={m.valor} value={m.valor}>
+                  {m.etiqueta}
+                </option>
               ))}
             </select>
             <input
@@ -147,7 +186,14 @@ export function ModalCobro({
               onChange={(e) => actualizarFila(i, { monto: filtrarNumero(e.target.value) })}
             />
             {filas.length > 1 && (
-              <button className="sfr-peligro" aria-label={`Quitar método de pago ${i + 1}`} style={s.botonPeligro} onClick={() => quitarFila(i)}>×</button>
+              <button
+                className="sfr-peligro"
+                aria-label={`Quitar método de pago ${i + 1}`}
+                style={s.botonPeligro}
+                onClick={() => quitarFila(i)}
+              >
+                ×
+              </button>
             )}
           </div>
         ))}
@@ -155,8 +201,17 @@ export function ModalCobro({
           + Agregar método (pago mixto)
         </button>
 
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: c.gris, marginBottom: 8 }}>
-          <span>Pagado</span><span>RD$ {money(resultado.montoPagado)}</span>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            fontSize: 14,
+            color: c.gris,
+            marginBottom: 8,
+          }}
+        >
+          <span>Pagado</span>
+          <span>RD$ {money(resultado.montoPagado)}</span>
         </div>
         {/* El cambio se recalcula mientras se teclea el monto: `aria-live` hace que el lector lo
             cante solo, que es justo el dato que se necesita en el momento de cobrar. `polite` para
@@ -165,8 +220,14 @@ export function ModalCobro({
           aria-live="polite"
           aria-atomic="true"
           style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            fontSize: 18, fontWeight: 700, borderRadius: 8, padding: "10px 14px", marginBottom: 14,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: 18,
+            fontWeight: 700,
+            borderRadius: 8,
+            padding: "10px 14px",
+            marginBottom: 14,
             background: resultado.suficiente ? c.verdeFondo : c.rojoFondo,
             color: resultado.suficiente ? c.verde : c.rojo,
           }}
@@ -176,21 +237,39 @@ export function ModalCobro({
         </div>
 
         <label style={{ ...s.label, display: "flex", alignItems: "center", gap: 8 }}>
-          <input type="checkbox" checked={emitirFiscal} onChange={(e) => setEmitirFiscal(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={emitirFiscal}
+            onChange={(e) => setEmitirFiscal(e.target.checked)}
+          />
           Factura con comprobante fiscal (NCF)
         </label>
         {emitirFiscal && (
           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-            <select style={{ ...s.input, flex: 1 }} value={tipoEcf} onChange={(e) => setTipoEcf(e.target.value as TipoEcf)}>
-              {TIPOS_ECF_DISPONIBLES.map((t) => <option key={t} value={t}>{ETIQUETA_TIPO_ECF[t]}</option>)}
+            <select
+              style={{ ...s.input, flex: 1 }}
+              value={tipoEcf}
+              onChange={(e) => setTipoEcf(e.target.value as TipoEcf)}
+            >
+              {TIPOS_ECF_DISPONIBLES.map((t) => (
+                <option key={t} value={t}>
+                  {ETIQUETA_TIPO_ECF[t]}
+                </option>
+              ))}
             </select>
-            <select style={{ ...s.input, width: 90 }} value={receptorTipo} onChange={(e) => setReceptorTipo(e.target.value as "rnc" | "cedula")}>
+            <select
+              style={{ ...s.input, width: 90 }}
+              value={receptorTipo}
+              onChange={(e) => setReceptorTipo(e.target.value as "rnc" | "cedula")}
+            >
               <option value="rnc">RNC</option>
               <option value="cedula">Cédula</option>
             </select>
             <input
               style={{ ...s.input, flex: 1 }}
-              placeholder={tipoEcf === "31" ? "RNC del comprador (obligatorio)" : "RNC/cédula (opcional)"}
+              placeholder={
+                tipoEcf === "31" ? "RNC del comprador (obligatorio)" : "RNC/cédula (opcional)"
+              }
               value={receptorNumero}
               onChange={(e) => setReceptorNumero(e.target.value)}
             />
@@ -204,13 +283,21 @@ export function ModalCobro({
           onChange={(e) => setNotas(e.target.value)}
         />
 
-        {error && <div role="alert" style={s.errorBox}>{error}</div>}
+        {error && (
+          <div role="alert" style={s.errorBox}>
+            {error}
+          </div>
+        )}
 
         <div style={{ ...s.formFooter, flexWrap: "wrap" }}>
           <button style={s.boton} disabled={guardando} onClick={() => confirmar("imprimir")}>
             Cobrar e imprimir (F1)
           </button>
-          <button style={s.botonSecundario} disabled={guardando} onClick={() => confirmar("ninguna")}>
+          <button
+            style={s.botonSecundario}
+            disabled={guardando}
+            onClick={() => confirmar("ninguna")}
+          >
             Cobrar sin imprimir (F2)
           </button>
           <button style={s.botonSecundario} disabled={guardando} onClick={() => confirmar("pdf")}>

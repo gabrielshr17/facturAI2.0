@@ -23,7 +23,8 @@ interface SpeechRecognitionInstancia {
 
 function obtenerConstructor(): (new () => SpeechRecognitionInstancia) | null {
   const w = window as unknown as Record<string, unknown>;
-  const Ctor = (w.SpeechRecognition ?? w.webkitSpeechRecognition) as (new () => SpeechRecognitionInstancia) | undefined;
+  const Ctor = (w.SpeechRecognition ?? w.webkitSpeechRecognition) as
+    (new () => SpeechRecognitionInstancia) | undefined;
   return Ctor ?? null;
 }
 
@@ -72,7 +73,9 @@ export function BotonVoz({ onResultado, idioma = "es-DO" }: BotonVozProps) {
         type="button"
         style={{
           ...s.botonSecundario,
-          display: "inline-flex", alignItems: "center", gap: 6,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
           ...(escuchando ? { background: c.rojo, color: "white", borderColor: c.rojo } : {}),
         }}
         onClick={escuchando ? detener : iniciar}

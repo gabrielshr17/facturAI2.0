@@ -25,10 +25,21 @@ import {
  */
 
 export interface ReciboDatos {
-  negocio: Pick<Negocio, "nombre_comercial" | "rnc" | "direccion" | "telefono" | "ancho_impresora_default">;
+  negocio: Pick<
+    Negocio,
+    "nombre_comercial" | "rnc" | "direccion" | "telefono" | "ancho_impresora_default"
+  >;
   factura: Pick<
     Factura,
-    "numero_interno" | "fecha_hora" | "subtotal_gravado" | "subtotal_exento" | "total_itbis" | "total" | "monto_pagado" | "cambio" | "notas"
+    | "numero_interno"
+    | "fecha_hora"
+    | "subtotal_gravado"
+    | "subtotal_exento"
+    | "total_itbis"
+    | "total"
+    | "monto_pagado"
+    | "cambio"
+    | "notas"
   >;
   lineas: Pick<FacturaLinea, "descripcion" | "cantidad" | "precio_unitario" | "subtotal">[];
   pagos: { metodo: string; monto: number }[];
@@ -76,7 +87,8 @@ function generarHtmlRecibo(datos: ReciboDatos): string {
 
   const filasPagos = pagos
     .map(
-      (p) => `<div class="linea"><span>${ETIQUETA_METODO[p.metodo] ?? p.metodo}</span><span>RD$ ${money(p.monto)}</span></div>`,
+      (p) =>
+        `<div class="linea"><span>${ETIQUETA_METODO[p.metodo] ?? p.metodo}</span><span>RD$ ${money(p.monto)}</span></div>`,
     )
     .join("");
 
@@ -107,11 +119,15 @@ function generarHtmlRecibo(datos: ReciboDatos): string {
   <hr/>
   <div class="linea"><span>Ticket #${factura.numero_interno}</span><span>${fecha.toLocaleDateString("es-DO")} ${fecha.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" })}</span></div>
   ${cliente ? `<div>Cliente: ${escapeHtml(cliente.nombre)} ${escapeHtml(cliente.apellidos ?? "")}</div>` : ""}
-  ${comprobante ? `
+  ${
+    comprobante
+      ? `
   <div class="centro" style="font-weight:bold; margin-top:4px;">${escapeHtml(comprobante.tipoEcfEtiqueta)}</div>
   <div class="centro">NCF: ${escapeHtml(comprobante.ncf)}</div>
   ${comprobante.codigoSeguridad ? `<div class="centro">Cód. seguridad: ${escapeHtml(comprobante.codigoSeguridad)}</div>` : ""}
-  ` : ""}
+  `
+      : ""
+  }
   <hr/>
   <table>${filasLineas}</table>
   <hr/>
@@ -131,7 +147,10 @@ function generarHtmlRecibo(datos: ReciboDatos): string {
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+  );
 }
 
 const ANCHO_TEXTO = 46;
@@ -154,10 +173,12 @@ function generarTextoRecibo(datos: ReciboDatos): string[] {
   if (negocio.telefono) out.push(`Tel: ${negocio.telefono}`);
   out.push(separador);
 
-  out.push(columnasTexto(
-    `Ticket #${factura.numero_interno}`,
-    `${fecha.toLocaleDateString("es-DO")} ${fecha.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" })}`,
-  ));
+  out.push(
+    columnasTexto(
+      `Ticket #${factura.numero_interno}`,
+      `${fecha.toLocaleDateString("es-DO")} ${fecha.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" })}`,
+    ),
+  );
   if (cliente) out.push(`Cliente: ${cliente.nombre} ${cliente.apellidos ?? ""}`.trim());
 
   if (comprobante) {
@@ -169,7 +190,9 @@ function generarTextoRecibo(datos: ReciboDatos): string[] {
   out.push(separador);
   for (const l of lineas) {
     out.push(l.descripcion);
-    out.push(columnasTexto(`${cantidad(l.cantidad)} x ${money(l.precio_unitario)}`, money(l.subtotal)));
+    out.push(
+      columnasTexto(`${cantidad(l.cantidad)} x ${money(l.precio_unitario)}`, money(l.subtotal)),
+    );
   }
   out.push(separador);
 
@@ -179,7 +202,8 @@ function generarTextoRecibo(datos: ReciboDatos): string[] {
   out.push(columnasTexto("TOTAL", `RD$ ${money(factura.total)}`));
   out.push(separador);
 
-  for (const p of pagos) out.push(columnasTexto(ETIQUETA_METODO[p.metodo] ?? p.metodo, `RD$ ${money(p.monto)}`));
+  for (const p of pagos)
+    out.push(columnasTexto(ETIQUETA_METODO[p.metodo] ?? p.metodo, `RD$ ${money(p.monto)}`));
   out.push(columnasTexto("Pagado", `RD$ ${money(factura.monto_pagado)}`));
   out.push(columnasTexto("Cambio", `RD$ ${money(factura.cambio)}`));
 

@@ -55,7 +55,10 @@ export function Acceso(): JSX.Element {
           Panel remoto del dueño
         </p>
 
-        <label htmlFor="correo" style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>
+        <label
+          htmlFor="correo"
+          style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
+        >
           Correo
         </label>
         <input
@@ -76,7 +79,10 @@ export function Acceso(): JSX.Element {
           }}
         />
 
-        <label htmlFor="clave" style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>
+        <label
+          htmlFor="clave"
+          style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
+        >
           Contraseña
         </label>
         <input

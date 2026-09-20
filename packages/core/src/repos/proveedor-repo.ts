@@ -1,6 +1,11 @@
 import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
-import { tieneValor, normalizar, esCorreoValido, type ErrorValidacion } from "../dominio/validacion.js";
+import {
+  tieneValor,
+  normalizar,
+  esCorreoValido,
+  type ErrorValidacion,
+} from "../dominio/validacion.js";
 import { exigirPermiso } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
@@ -47,7 +52,15 @@ export function crearProveedorRepo(db: SqlDriver) {
       };
 
       await db.run(`INSERT INTO proveedor (${COLS}) VALUES (${Array(9).fill("?").join(",")})`, [
-        p.id, p.nombre, p.rnc, p.telefono, p.correo, p.direccion, p.created_at, p.updated_at, p.deleted_at,
+        p.id,
+        p.nombre,
+        p.rnc,
+        p.telefono,
+        p.correo,
+        p.direccion,
+        p.created_at,
+        p.updated_at,
+        p.deleted_at,
       ]);
       return p;
     },
@@ -67,7 +80,8 @@ export function crearProveedorRepo(db: SqlDriver) {
           input.telefono ?? actual.telefono,
           input.correo ?? actual.correo,
           input.direccion ?? actual.direccion,
-          now(), id,
+          now(),
+          id,
         ],
       );
     },
@@ -75,15 +89,23 @@ export function crearProveedorRepo(db: SqlDriver) {
     async eliminar(id: string): Promise<void> {
       exigirPermiso(db, "proveedor.eliminar");
       const actual = await this.obtener(id);
-      await db.run("UPDATE proveedor SET deleted_at=?, updated_at=? WHERE id=?", [now(), now(), id]);
+      await db.run("UPDATE proveedor SET deleted_at=?, updated_at=? WHERE id=?", [
+        now(),
+        now(),
+        id,
+      ]);
       await registrarAccion(db, {
-        accion: "eliminar", entidad: "proveedor", entidadId: id,
+        accion: "eliminar",
+        entidad: "proveedor",
+        entidadId: id,
         resumen: actual ? `Proveedor eliminado: ${actual.nombre}` : null,
       });
     },
 
     async obtener(id: string): Promise<Proveedor | undefined> {
-      return db.get<Proveedor>(`SELECT ${COLS} FROM proveedor WHERE id=? AND deleted_at IS NULL`, [id]);
+      return db.get<Proveedor>(`SELECT ${COLS} FROM proveedor WHERE id=? AND deleted_at IS NULL`, [
+        id,
+      ]);
     },
 
     /** Lista/busca por nombre, ignorando acentos y mayúsculas. */

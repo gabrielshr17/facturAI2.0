@@ -16,8 +16,17 @@
  */
 import type { ComponentType } from "react";
 import {
-  ShoppingCart, Package, Users, Receipt, Truck,
-  Banknote, ChartColumn, Tag, Settings, UserCog, type LucideProps,
+  ShoppingCart,
+  Package,
+  Users,
+  Receipt,
+  Truck,
+  Banknote,
+  ChartColumn,
+  Tag,
+  Settings,
+  UserCog,
+  type LucideProps,
 } from "lucide-react";
 import type { Permiso } from "@sfr/core";
 import { Ventas } from "../pantallas/Ventas.js";
@@ -43,18 +52,88 @@ export interface ModuloDef {
 }
 
 export const MODULOS: ModuloDef[] = [
-  { id: "ventas", etiqueta: "Ventas", icono: ShoppingCart, atajo: "Alt+1", permiso: "modulo.ventas", componente: Ventas },
-  { id: "productos", etiqueta: "Productos", icono: Package, atajo: "Alt+2", permiso: "modulo.productos", componente: Productos },
-  { id: "clientes", etiqueta: "Clientes", icono: Users, atajo: "Alt+3", permiso: "modulo.clientes", componente: Clientes },
-  { id: "facturas", etiqueta: "Facturas", icono: Receipt, atajo: "Alt+4", permiso: "modulo.facturas", componente: ConsultaFacturas },
-  { id: "compras", etiqueta: "Compras", icono: Truck, atajo: "Alt+5", permiso: "modulo.compras", componente: Compras },
-  { id: "corte_caja", etiqueta: "Corte de caja", icono: Banknote, atajo: "Alt+6", permiso: "modulo.corte_caja", componente: CorteCaja },
-  { id: "reportes", etiqueta: "Reportes", icono: ChartColumn, atajo: "Alt+7", permiso: "modulo.reportes", componente: Reportes },
-  { id: "promociones", etiqueta: "Promociones", icono: Tag, atajo: "Alt+8", permiso: "modulo.promociones", componente: Promociones },
-  { id: "configuracion", etiqueta: "Configuración", icono: Settings, atajo: "Alt+9", permiso: "modulo.configuracion", componente: Configuracion },
+  {
+    id: "ventas",
+    etiqueta: "Ventas",
+    icono: ShoppingCart,
+    atajo: "Alt+1",
+    permiso: "modulo.ventas",
+    componente: Ventas,
+  },
+  {
+    id: "productos",
+    etiqueta: "Productos",
+    icono: Package,
+    atajo: "Alt+2",
+    permiso: "modulo.productos",
+    componente: Productos,
+  },
+  {
+    id: "clientes",
+    etiqueta: "Clientes",
+    icono: Users,
+    atajo: "Alt+3",
+    permiso: "modulo.clientes",
+    componente: Clientes,
+  },
+  {
+    id: "facturas",
+    etiqueta: "Facturas",
+    icono: Receipt,
+    atajo: "Alt+4",
+    permiso: "modulo.facturas",
+    componente: ConsultaFacturas,
+  },
+  {
+    id: "compras",
+    etiqueta: "Compras",
+    icono: Truck,
+    atajo: "Alt+5",
+    permiso: "modulo.compras",
+    componente: Compras,
+  },
+  {
+    id: "corte_caja",
+    etiqueta: "Corte de caja",
+    icono: Banknote,
+    atajo: "Alt+6",
+    permiso: "modulo.corte_caja",
+    componente: CorteCaja,
+  },
+  {
+    id: "reportes",
+    etiqueta: "Reportes",
+    icono: ChartColumn,
+    atajo: "Alt+7",
+    permiso: "modulo.reportes",
+    componente: Reportes,
+  },
+  {
+    id: "promociones",
+    etiqueta: "Promociones",
+    icono: Tag,
+    atajo: "Alt+8",
+    permiso: "modulo.promociones",
+    componente: Promociones,
+  },
+  {
+    id: "configuracion",
+    etiqueta: "Configuración",
+    icono: Settings,
+    atajo: "Alt+9",
+    permiso: "modulo.configuracion",
+    componente: Configuracion,
+  },
   // Décimo módulo (§ RBAC-07, parte A): sin Alt+10, porque `useAtajosTeclado`/`normalizarTecla`
   // nunca produce esa combinación — `atajo: null` es justo lo que este registro previó para eso.
-  { id: "personal", etiqueta: "Personal", icono: UserCog, atajo: null, permiso: "personal.gestionar", componente: Personal },
+  {
+    id: "personal",
+    etiqueta: "Personal",
+    icono: UserCog,
+    atajo: null,
+    permiso: "personal.gestionar",
+    componente: Personal,
+  },
 ];
 
 export const MODULO_POR_DEFECTO_ID = "ventas";

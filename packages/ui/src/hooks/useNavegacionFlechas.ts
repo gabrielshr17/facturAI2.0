@@ -33,7 +33,9 @@ export function useNavegacionFlechas() {
       const activo = document.activeElement;
       if (!activo || !esCampoQueDebeNavegar(activo)) return;
 
-      const enfocables = Array.from(document.querySelectorAll(SELECTOR_ENFOCABLE)).filter(esEnfocable);
+      const enfocables = Array.from(document.querySelectorAll(SELECTOR_ENFOCABLE)).filter(
+        esEnfocable,
+      );
       const indice = enfocables.indexOf(activo as HTMLElement);
       if (indice === -1) return;
 

@@ -73,25 +73,61 @@ export function SeccionImpresoraTermica() {
 
   return (
     <div style={{ ...s.tarjeta, marginTop: 16 }}>
-      <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}><Printer size={18} /> Impresora térmica (ESC/POS)</h3>
+      <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <Printer size={18} /> Impresora térmica (ESC/POS)
+      </h3>
       <p style={{ color: c.gris, fontSize: 13 }}>
         Selecciona la impresora térmica instalada en Windows para imprimir los tickets directamente,
-        sin el diálogo del navegador. Si no seleccionas ninguna, se sigue usando la impresión normal.
+        sin el diálogo del navegador. Si no seleccionas ninguna, se sigue usando la impresión
+        normal.
       </p>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <select style={{ ...s.input, minWidth: 240 }} value={seleccionada} onChange={(e) => elegir(e.target.value)}>
+        <select
+          style={{ ...s.input, minWidth: 240 }}
+          value={seleccionada}
+          onChange={(e) => elegir(e.target.value)}
+        >
           <option value="">(No usar impresora térmica)</option>
           {impresoras.map((nombre) => (
-            <option key={nombre} value={nombre}>{nombre}</option>
+            <option key={nombre} value={nombre}>
+              {nombre}
+            </option>
           ))}
         </select>
-        <button type="button" style={{ ...s.botonSecundario, display: "inline-flex", alignItems: "center", gap: 6 }} disabled={cargando} onClick={() => void refrescar()}>
-          {cargando ? "Buscando…" : <><RefreshCw size={15} /> Buscar impresoras</>}
+        <button
+          type="button"
+          style={{ ...s.botonSecundario, display: "inline-flex", alignItems: "center", gap: 6 }}
+          disabled={cargando}
+          onClick={() => void refrescar()}
+        >
+          {cargando ? (
+            "Buscando…"
+          ) : (
+            <>
+              <RefreshCw size={15} /> Buscar impresoras
+            </>
+          )}
         </button>
-        <button type="button" style={{ ...s.botonSecundario, display: "inline-flex", alignItems: "center", gap: 6 }} disabled={!seleccionada || probando} onClick={() => void probar()}>
-          {probando ? "Imprimiendo…" : <><Printer size={15} /> Imprimir ticket de prueba</>}
+        <button
+          type="button"
+          style={{ ...s.botonSecundario, display: "inline-flex", alignItems: "center", gap: 6 }}
+          disabled={!seleccionada || probando}
+          onClick={() => void probar()}
+        >
+          {probando ? (
+            "Imprimiendo…"
+          ) : (
+            <>
+              <Printer size={15} /> Imprimir ticket de prueba
+            </>
+          )}
         </button>
-        <button type="button" style={{ ...s.botonSecundario, display: "inline-flex", alignItems: "center", gap: 6 }} disabled={!seleccionada} onClick={() => void gaveta()}>
+        <button
+          type="button"
+          style={{ ...s.botonSecundario, display: "inline-flex", alignItems: "center", gap: 6 }}
+          disabled={!seleccionada}
+          onClick={() => void gaveta()}
+        >
           <Wallet size={15} /> Abrir gaveta
         </button>
       </div>
@@ -102,7 +138,15 @@ export function SeccionImpresoraTermica() {
         </p>
       )}
       {mensaje && (
-        <div style={{ ...s.errorBox, marginTop: 8, ...(mensaje.error ? {} : { background: c.verdeFondo, borderColor: c.verde, color: c.verde }) }}>
+        <div
+          style={{
+            ...s.errorBox,
+            marginTop: 8,
+            ...(mensaje.error
+              ? {}
+              : { background: c.verdeFondo, borderColor: c.verde, color: c.verde }),
+          }}
+        >
           {mensaje.texto}
         </div>
       )}

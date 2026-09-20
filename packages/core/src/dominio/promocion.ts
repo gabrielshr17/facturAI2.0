@@ -11,6 +11,7 @@ export interface DescuentoInput {
 
 /** Aplica el descuento de una promoción a un precio base; nunca deja el precio negativo. */
 export function aplicarDescuento(precioBase: number, promocion: DescuentoInput): number {
-  const descuento = promocion.tipo === "porcentaje" ? precioBase * (promocion.valor / 100) : promocion.valor;
+  const descuento =
+    promocion.tipo === "porcentaje" ? precioBase * (promocion.valor / 100) : promocion.valor;
   return redondear2(Math.max(0, precioBase - descuento));
 }

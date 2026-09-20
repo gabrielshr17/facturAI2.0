@@ -44,7 +44,8 @@ export function hayImpresionTextoDisponible(): boolean {
 }
 
 export async function imprimirTexto(lineas: string[]): Promise<void> {
-  if (!adaptadorTexto) throw new Error("La impresión de texto genérica no está disponible en esta plataforma.");
+  if (!adaptadorTexto)
+    throw new Error("La impresión de texto genérica no está disponible en esta plataforma.");
   await adaptadorTexto.imprimir(lineas);
 }
 
@@ -68,7 +69,8 @@ export function seleccionarImpresoraTermica(nombre: string | null): void {
 export async function imprimirTermico(datos: Uint8Array): Promise<void> {
   if (!adaptador) throw new Error("La impresión térmica no está disponible en esta plataforma.");
   const nombre = obtenerImpresoraSeleccionada();
-  if (!nombre) throw new Error("No hay ninguna impresora térmica seleccionada (ver Configuración).");
+  if (!nombre)
+    throw new Error("No hay ninguna impresora térmica seleccionada (ver Configuración).");
   await adaptador.imprimir(datos, nombre);
 }
 

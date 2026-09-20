@@ -80,7 +80,11 @@ export function Compras(): JSX.Element {
         .order("fecha", { ascending: false })
         .limit(50),
       supabase.from("proveedor").select("id, nombre").is("deleted_at", null).order("nombre"),
-      supabase.from("producto").select("id, descripcion").is("deleted_at", null).order("descripcion"),
+      supabase
+        .from("producto")
+        .select("id, descripcion")
+        .is("deleted_at", null)
+        .order("descripcion"),
     ]);
     if (resCompras.error) {
       setError(resCompras.error.message);
@@ -97,7 +101,9 @@ export function Compras(): JSX.Element {
   }, [cargar]);
 
   function actualizarLinea(indice: number, cambios: Partial<LineaNueva>): void {
-    setLineas((actuales) => actuales.map((linea, i) => (i === indice ? { ...linea, ...cambios } : linea)));
+    setLineas((actuales) =>
+      actuales.map((linea, i) => (i === indice ? { ...linea, ...cambios } : linea)),
+    );
   }
 
   function agregarLinea(): void {
@@ -122,7 +128,9 @@ export function Compras(): JSX.Element {
   async function guardarCompra(): Promise<void> {
     setError(null);
 
-    const lineasValidas = lineas.filter((linea) => linea.descripcion.trim() !== "" && Number(linea.cantidad) > 0);
+    const lineasValidas = lineas.filter(
+      (linea) => linea.descripcion.trim() !== "" && Number(linea.cantidad) > 0,
+    );
     if (lineasValidas.length === 0) {
       setError("Agrega al menos una línea con descripción y cantidad mayor a cero.");
       return;
@@ -240,7 +248,9 @@ export function Compras(): JSX.Element {
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
           <div>
-            <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>
+            <label
+              style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
+            >
               Proveedor existente
             </label>
             <select
@@ -257,7 +267,9 @@ export function Compras(): JSX.Element {
             </select>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>
+            <label
+              style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
+            >
               O proveedor nuevo
             </label>
             <input
@@ -270,7 +282,11 @@ export function Compras(): JSX.Element {
             />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>Fecha</label>
+            <label
+              style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
+            >
+              Fecha
+            </label>
             <input
               type="date"
               value={fecha}
@@ -304,7 +320,11 @@ export function Compras(): JSX.Element {
                         descripcion: producto ? producto.descripcion : linea.descripcion,
                       });
                     }}
-                    style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid var(--sfr-borde)" }}
+                    style={{
+                      padding: "6px 8px",
+                      borderRadius: 6,
+                      border: "1px solid var(--sfr-borde)",
+                    }}
                   >
                     <option value="">— Libre —</option>
                     {productos.map((producto) => (
@@ -318,8 +338,15 @@ export function Compras(): JSX.Element {
                   <input
                     type="text"
                     value={linea.descripcion}
-                    onChange={(evento) => actualizarLinea(indice, { descripcion: evento.target.value })}
-                    style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid var(--sfr-borde)", width: 180 }}
+                    onChange={(evento) =>
+                      actualizarLinea(indice, { descripcion: evento.target.value })
+                    }
+                    style={{
+                      padding: "6px 8px",
+                      borderRadius: 6,
+                      border: "1px solid var(--sfr-borde)",
+                      width: 180,
+                    }}
                   />
                 </td>
                 <td>
@@ -327,8 +354,15 @@ export function Compras(): JSX.Element {
                     type="number"
                     step="0.01"
                     value={linea.cantidad}
-                    onChange={(evento) => actualizarLinea(indice, { cantidad: evento.target.value })}
-                    style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid var(--sfr-borde)", width: 90 }}
+                    onChange={(evento) =>
+                      actualizarLinea(indice, { cantidad: evento.target.value })
+                    }
+                    style={{
+                      padding: "6px 8px",
+                      borderRadius: 6,
+                      border: "1px solid var(--sfr-borde)",
+                      width: 90,
+                    }}
                   />
                 </td>
                 <td>
@@ -336,8 +370,15 @@ export function Compras(): JSX.Element {
                     type="number"
                     step="0.01"
                     value={linea.costo_unitario}
-                    onChange={(evento) => actualizarLinea(indice, { costo_unitario: evento.target.value })}
-                    style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid var(--sfr-borde)", width: 100 }}
+                    onChange={(evento) =>
+                      actualizarLinea(indice, { costo_unitario: evento.target.value })
+                    }
+                    style={{
+                      padding: "6px 8px",
+                      borderRadius: 6,
+                      border: "1px solid var(--sfr-borde)",
+                      width: 100,
+                    }}
                   />
                 </td>
                 <td>
@@ -345,7 +386,12 @@ export function Compras(): JSX.Element {
                     type="button"
                     onClick={() => quitarLinea(indice)}
                     disabled={lineas.length === 1}
-                    style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--sfr-gris)" }}
+                    style={{
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      color: "var(--sfr-gris)",
+                    }}
                   >
                     Quitar
                   </button>

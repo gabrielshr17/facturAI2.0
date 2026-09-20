@@ -29,7 +29,10 @@ export function ChatBot() {
   const inputArchivoRef = useRef<HTMLInputElement>(null);
 
   function adjuntarImagen(file: File | null) {
-    if (!file) { setImagen(null); return; }
+    if (!file) {
+      setImagen(null);
+      return;
+    }
     setImagen({ archivo: file, previewUrl: URL.createObjectURL(file) });
   }
 
@@ -39,7 +42,10 @@ export function ChatBot() {
     setError(null);
     setEnviando(true);
     const historialPrevio = historial;
-    const nuevoHistorial: MensajeChat[] = [...historialPrevio, { rol: "user", texto: mensajeTexto || "(foto adjunta)" }];
+    const nuevoHistorial: MensajeChat[] = [
+      ...historialPrevio,
+      { rol: "user", texto: mensajeTexto || "(foto adjunta)" },
+    ];
     setHistorial(nuevoHistorial);
     setTexto("");
     const archivoAdjunto = imagen?.archivo ?? null;
@@ -47,7 +53,10 @@ export function ChatBot() {
     if (inputArchivoRef.current) inputArchivoRef.current.value = "";
     try {
       const imagenAdjunta = archivoAdjunto
-        ? { data: await leerArchivoComoBase64(archivoAdjunto), tipoMime: archivoAdjunto.type || "image/jpeg" }
+        ? {
+            data: await leerArchivoComoBase64(archivoAdjunto),
+            tipoMime: archivoAdjunto.type || "image/jpeg",
+          }
         : undefined;
       const respuesta = await enviarMensaje(historialPrevio, mensajeTexto, imagenAdjunta);
       setHistorial((prev) => [...prev, { rol: "assistant", texto: respuesta }]);
@@ -64,10 +73,21 @@ export function ChatBot() {
       <button
         onClick={() => setAbierto(true)}
         style={{
-          position: "fixed", bottom: 20, right: 20, zIndex: 100,
-          borderRadius: 999, width: 56, height: 56,
-          background: c.azul, color: "white", border: "none", cursor: "pointer",
-          boxShadow: sombra.md, display: "flex", alignItems: "center", justifyContent: "center",
+          position: "fixed",
+          bottom: 20,
+          right: 20,
+          zIndex: 100,
+          borderRadius: 999,
+          width: 56,
+          height: 56,
+          background: c.azul,
+          color: "white",
+          border: "none",
+          cursor: "pointer",
+          boxShadow: sombra.md,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
         title="Asistente"
       >
@@ -79,30 +99,80 @@ export function ChatBot() {
   return (
     <div
       style={{
-        position: "fixed", bottom: 20, right: 20, zIndex: 100,
-        width: 340, maxHeight: 480, display: "flex", flexDirection: "column",
-        background: "white", borderRadius: 16,
-        boxShadow: sombra.md, overflow: "hidden",
+        position: "fixed",
+        bottom: 20,
+        right: 20,
+        zIndex: 100,
+        width: 340,
+        maxHeight: 480,
+        display: "flex",
+        flexDirection: "column",
+        background: "white",
+        borderRadius: 16,
+        boxShadow: sombra.md,
+        overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: c.azul, color: "white" }}>
-        <strong style={{ display: "flex", alignItems: "center", gap: 6 }}><Bot size={17} /> Asistente</strong>
-        <button onClick={() => setAbierto(false)} style={{ background: "none", border: "none", color: "white", cursor: "pointer", padding: 0, lineHeight: 1, display: "flex" }}><X size={18} /></button>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "12px 14px",
+          background: c.azul,
+          color: "white",
+        }}
+      >
+        <strong style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Bot size={17} /> Asistente
+        </strong>
+        <button
+          onClick={() => setAbierto(false)}
+          style={{
+            background: "none",
+            border: "none",
+            color: "white",
+            cursor: "pointer",
+            padding: 0,
+            lineHeight: 1,
+            display: "flex",
+          }}
+        >
+          <X size={18} />
+        </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8, minHeight: 200 }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: 10,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          minHeight: 200,
+        }}
+      >
         {historial.length === 0 && (
           <p style={{ color: c.gris, fontSize: 13, margin: 0 }}>
-            Pregúntame sobre productos, precios o el sistema. También puedes adjuntar una foto de un comprobante.
+            Pregúntame sobre productos, precios o el sistema. También puedes adjuntar una foto de un
+            comprobante.
           </p>
         )}
         {historial.map((m, i) => (
-          <div key={i} style={{
-            alignSelf: m.rol === "user" ? "flex-end" : "flex-start",
-            background: m.rol === "user" ? c.azul : c.grisClaro,
-            color: m.rol === "user" ? "white" : c.texto,
-            padding: "7px 11px", borderRadius: 12, maxWidth: "85%", fontSize: 13, whiteSpace: "pre-wrap",
-          }}>
+          <div
+            key={i}
+            style={{
+              alignSelf: m.rol === "user" ? "flex-end" : "flex-start",
+              background: m.rol === "user" ? c.azul : c.grisClaro,
+              color: m.rol === "user" ? "white" : c.texto,
+              padding: "7px 11px",
+              borderRadius: 12,
+              maxWidth: "85%",
+              fontSize: 13,
+              whiteSpace: "pre-wrap",
+            }}
+          >
             {m.texto}
           </div>
         ))}
@@ -114,11 +184,24 @@ export function ChatBot() {
       {imagen && (
         <div style={{ padding: "0 10px 8px", display: "flex", alignItems: "center", gap: 8 }}>
           <img src={imagen.previewUrl} alt="Adjunto" style={{ height: 40, borderRadius: 4 }} />
-          <button onClick={() => adjuntarImagen(null)} style={{ ...s.botonSecundario, fontSize: 11, padding: "2px 8px" }}>Quitar</button>
+          <button
+            onClick={() => adjuntarImagen(null)}
+            style={{ ...s.botonSecundario, fontSize: 11, padding: "2px 8px" }}
+          >
+            Quitar
+          </button>
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 6, padding: 10, borderTop: `1px solid ${c.borde}`, alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          padding: 10,
+          borderTop: `1px solid ${c.borde}`,
+          alignItems: "center",
+        }}
+      >
         <input
           ref={inputArchivoRef}
           type="file"
@@ -140,9 +223,13 @@ export function ChatBot() {
           placeholder="Escribe…"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !enviando) void enviar(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !enviando) void enviar();
+          }}
         />
-        <button style={s.boton} disabled={enviando} onClick={() => void enviar()}>Enviar</button>
+        <button style={s.boton} disabled={enviando} onClick={() => void enviar()}>
+          Enviar
+        </button>
       </div>
     </div>
   );

@@ -70,7 +70,11 @@ const COLS_LINEA = `id, compra_id, producto_id, descripcion, cantidad, costo_uni
 
 export function crearCompraRepo(db: SqlDriver) {
   /** Actualiza el costo del producto (siempre) y la existencia (solo si inventario activo). */
-  async function aplicarEfectosInventario(compraId: string, lineas: LineaCompraInput[], ts: string): Promise<void> {
+  async function aplicarEfectosInventario(
+    compraId: string,
+    lineas: LineaCompraInput[],
+    ts: string,
+  ): Promise<void> {
     const negocio = await db.get<{ inventario_activo: number }>(
       "SELECT inventario_activo FROM negocio LIMIT 1",
     );
@@ -79,7 +83,11 @@ export function crearCompraRepo(db: SqlDriver) {
     for (const l of lineas) {
       if (!l.producto_id) continue;
 
-      await db.run("UPDATE producto SET costo=?, updated_at=? WHERE id=?", [l.costoUnitario, ts, l.producto_id]);
+      await db.run("UPDATE producto SET costo=?, updated_at=? WHERE id=?", [
+        l.costoUnitario,
+        ts,
+        l.producto_id,
+      ]);
       if (!inventarioActivo) continue;
 
       const producto = await db.get<{ existencia: number | null }>(
@@ -87,12 +95,29 @@ export function crearCompraRepo(db: SqlDriver) {
         [l.producto_id],
       );
       const nuevaExistencia = (producto?.existencia ?? 0) + l.cantidad;
-      await db.run("UPDATE producto SET existencia=?, updated_at=? WHERE id=?", [nuevaExistencia, ts, l.producto_id]);
+      await db.run("UPDATE producto SET existencia=?, updated_at=? WHERE id=?", [
+        nuevaExistencia,
+        ts,
+        l.producto_id,
+      ]);
       await db.run(
         `INSERT INTO movimiento_inventario
            (id, producto_id, tipo, cantidad, costo, referencia_tipo, referencia_id, fecha, usuario_id, created_at, updated_at, deleted_at)
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [newId(), l.producto_id, "compra", l.cantidad, l.costoUnitario, "compra", compraId, ts, null, ts, ts, null],
+        [
+          newId(),
+          l.producto_id,
+          "compra",
+          l.cantidad,
+          l.costoUnitario,
+          "compra",
+          compraId,
+          ts,
+          null,
+          ts,
+          ts,
+          null,
+        ],
       );
     }
   }
@@ -101,7 +126,9 @@ export function crearCompraRepo(db: SqlDriver) {
     async crear(input: CompraInput): Promise<Compra> {
       exigirPermiso(db, "compra.registrar");
       if (input.lineas.length === 0) {
-        throw new ValidacionError([{ campo: "lineas", mensaje: "La compra debe tener al menos un artículo." }]);
+        throw new ValidacionError([
+          { campo: "lineas", mensaje: "La compra debe tener al menos un artículo." },
+        ]);
       }
       const errores = input.lineas.flatMap(validarLineaCompra);
       if (errores.length) throw new ValidacionError(errores);
@@ -146,16 +173,37 @@ export function crearCompraRepo(db: SqlDriver) {
       await db.run(
         `INSERT INTO compra (${COLS_COMPRA}) VALUES (${Array(22).fill("?").join(",")})`,
         [
-          c.id, c.fecha, c.proveedor_id, c.subtotal, c.itbis, c.total, c.ncf_proveedor,
-          c.tiene_comprobante_fiscal, c.mes_ano_contable, c.estado_clasificacion, c.origen, c.notas,
-          c.condicion_pago, c.dias_credito, c.fecha_vencimiento, c.monto_pagado, c.estado_pago,
-          c.estado_recepcion, c.fecha_recepcion,
-          c.created_at, c.updated_at, c.deleted_at,
+          c.id,
+          c.fecha,
+          c.proveedor_id,
+          c.subtotal,
+          c.itbis,
+          c.total,
+          c.ncf_proveedor,
+          c.tiene_comprobante_fiscal,
+          c.mes_ano_contable,
+          c.estado_clasificacion,
+          c.origen,
+          c.notas,
+          c.condicion_pago,
+          c.dias_credito,
+          c.fecha_vencimiento,
+          c.monto_pagado,
+          c.estado_pago,
+          c.estado_recepcion,
+          c.fecha_recepcion,
+          c.created_at,
+          c.updated_at,
+          c.deleted_at,
         ],
       );
 
       for (const l of input.lineas) {
-        const calc = calcularLinea({ precioUnitario: l.costoUnitario, cantidad: l.cantidad, tasaImpuesto: l.tasaImpuesto });
+        const calc = calcularLinea({
+          precioUnitario: l.costoUnitario,
+          cantidad: l.cantidad,
+          tasaImpuesto: l.tasaImpuesto,
+        });
         const linea: CompraLinea = {
           id: newId(),
           compra_id: c.id,
@@ -175,23 +223,38 @@ export function crearCompraRepo(db: SqlDriver) {
         await db.run(
           `INSERT INTO compra_linea (${COLS_LINEA}) VALUES (${Array(14).fill("?").join(",")})`,
           [
-            linea.id, linea.compra_id, linea.producto_id, linea.descripcion, linea.cantidad,
-            linea.costo_unitario, linea.impuesto_tipo, linea.tasa_impuesto, linea.monto_itbis,
-            linea.subtotal, linea.cantidad_recibida, linea.created_at, linea.updated_at, linea.deleted_at,
+            linea.id,
+            linea.compra_id,
+            linea.producto_id,
+            linea.descripcion,
+            linea.cantidad,
+            linea.costo_unitario,
+            linea.impuesto_tipo,
+            linea.tasa_impuesto,
+            linea.monto_itbis,
+            linea.subtotal,
+            linea.cantidad_recibida,
+            linea.created_at,
+            linea.updated_at,
+            linea.deleted_at,
           ],
         );
       }
 
       await aplicarEfectosInventario(c.id, input.lineas, ts);
       await registrarAccion(db, {
-        accion: "registrar_compra", entidad: "compra", entidadId: c.id,
+        accion: "registrar_compra",
+        entidad: "compra",
+        entidadId: c.id,
         resumen: `Total RD$ ${c.total.toFixed(2)}`,
       });
       return c;
     },
 
     async obtener(id: string): Promise<Compra | undefined> {
-      return db.get<Compra>(`SELECT ${COLS_COMPRA} FROM compra WHERE id=? AND deleted_at IS NULL`, [id]);
+      return db.get<Compra>(`SELECT ${COLS_COMPRA} FROM compra WHERE id=? AND deleted_at IS NULL`, [
+        id,
+      ]);
     },
 
     async obtenerLineas(compraId: string): Promise<CompraLinea[]> {
@@ -202,12 +265,23 @@ export function crearCompraRepo(db: SqlDriver) {
     },
 
     /** Lista de compras, filtrable por período y proveedor, más reciente primero. */
-    async listar(filtro: { desde?: string | null; hasta?: string | null; proveedorId?: string | null } = {}): Promise<Compra[]> {
+    async listar(
+      filtro: { desde?: string | null; hasta?: string | null; proveedorId?: string | null } = {},
+    ): Promise<Compra[]> {
       const condiciones = ["deleted_at IS NULL"];
       const params: unknown[] = [];
-      if (filtro.desde) { condiciones.push("date(fecha) >= date(?)"); params.push(filtro.desde); }
-      if (filtro.hasta) { condiciones.push("date(fecha) <= date(?)"); params.push(filtro.hasta); }
-      if (filtro.proveedorId) { condiciones.push("proveedor_id = ?"); params.push(filtro.proveedorId); }
+      if (filtro.desde) {
+        condiciones.push("date(fecha) >= date(?)");
+        params.push(filtro.desde);
+      }
+      if (filtro.hasta) {
+        condiciones.push("date(fecha) <= date(?)");
+        params.push(filtro.hasta);
+      }
+      if (filtro.proveedorId) {
+        condiciones.push("proveedor_id = ?");
+        params.push(filtro.proveedorId);
+      }
       return db.all<Compra>(
         `SELECT ${COLS_COMPRA} FROM compra WHERE ${condiciones.join(" AND ")} ORDER BY fecha DESC`,
         params,

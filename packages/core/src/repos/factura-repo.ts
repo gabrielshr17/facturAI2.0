@@ -105,10 +105,10 @@ export function crearFacturaRepo(db: SqlDriver) {
     const negocio = await db.get<{ inventario_activo: number }>(
       "SELECT inventario_activo FROM negocio LIMIT 1",
     );
-    const producto = await db.get<{ existencia: number | null; politica_sin_existencia: "bloquear" | "advertir" }>(
-      "SELECT existencia, politica_sin_existencia FROM producto WHERE id=?",
-      [productoId],
-    );
+    const producto = await db.get<{
+      existencia: number | null;
+      politica_sin_existencia: "bloquear" | "advertir";
+    }>("SELECT existencia, politica_sin_existencia FROM producto WHERE id=?", [productoId]);
     if (!producto) return;
 
     const { permitido, faltante } = evaluarDisponibilidad({
@@ -125,7 +125,10 @@ export function crearFacturaRepo(db: SqlDriver) {
   }
 
   /** Descuenta existencia y registra el movimiento 'venta' (solo si inventario está activo). */
-  async function descontarExistenciaPorVenta(facturaId: string, lineas: FacturaLinea[]): Promise<void> {
+  async function descontarExistenciaPorVenta(
+    facturaId: string,
+    lineas: FacturaLinea[],
+  ): Promise<void> {
     const negocio = await db.get<{ inventario_activo: number }>(
       "SELECT inventario_activo FROM negocio LIMIT 1",
     );
@@ -142,13 +145,28 @@ export function crearFacturaRepo(db: SqlDriver) {
 
       const nuevaExistencia = (producto.existencia ?? 0) - l.cantidad;
       await db.run("UPDATE producto SET existencia=?, updated_at=? WHERE id=?", [
-        nuevaExistencia, ts, l.producto_id,
+        nuevaExistencia,
+        ts,
+        l.producto_id,
       ]);
       await db.run(
         `INSERT INTO movimiento_inventario
            (id, producto_id, tipo, cantidad, costo, referencia_tipo, referencia_id, fecha, usuario_id, created_at, updated_at, deleted_at)
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [newId(), l.producto_id, "venta", -l.cantidad, producto.costo, "factura", facturaId, ts, null, ts, ts, null],
+        [
+          newId(),
+          l.producto_id,
+          "venta",
+          -l.cantidad,
+          producto.costo,
+          "factura",
+          facturaId,
+          ts,
+          null,
+          ts,
+          ts,
+          null,
+        ],
       );
     }
   }
@@ -206,9 +224,26 @@ export function crearFacturaRepo(db: SqlDriver) {
       await db.run(
         `INSERT INTO factura (${COLS_FACTURA}) VALUES (${Array(20).fill("?").join(",")})`,
         [
-          f.id, f.numero_interno, f.fecha_hora, f.cliente_id, f.caja_id, f.usuario_id, f.tipo,
-          f.subtotal_gravado, f.subtotal_exento, f.total_itbis, f.total, f.monto_pagado, f.cambio,
-          f.notas, f.estado, f.comprobante_id, f.prefijo_caja, f.created_at, f.updated_at, f.deleted_at,
+          f.id,
+          f.numero_interno,
+          f.fecha_hora,
+          f.cliente_id,
+          f.caja_id,
+          f.usuario_id,
+          f.tipo,
+          f.subtotal_gravado,
+          f.subtotal_exento,
+          f.total_itbis,
+          f.total,
+          f.monto_pagado,
+          f.cambio,
+          f.notas,
+          f.estado,
+          f.comprobante_id,
+          f.prefijo_caja,
+          f.created_at,
+          f.updated_at,
+          f.deleted_at,
         ],
       );
       return f;
@@ -274,10 +309,22 @@ export function crearFacturaRepo(db: SqlDriver) {
       await db.run(
         `INSERT INTO factura_linea (${COLS_LINEA}) VALUES (${Array(16).fill("?").join(",")})`,
         [
-          l.id, l.factura_id, l.producto_id, l.descripcion, l.cantidad, l.precio_unitario,
-          l.es_mayoreo, l.impuesto_tipo, l.tasa_impuesto, l.monto_itbis, l.subtotal,
-          l.nivel_precio, l.costo_unitario,
-          l.created_at, l.updated_at, l.deleted_at,
+          l.id,
+          l.factura_id,
+          l.producto_id,
+          l.descripcion,
+          l.cantidad,
+          l.precio_unitario,
+          l.es_mayoreo,
+          l.impuesto_tipo,
+          l.tasa_impuesto,
+          l.monto_itbis,
+          l.subtotal,
+          l.nivel_precio,
+          l.costo_unitario,
+          l.created_at,
+          l.updated_at,
+          l.deleted_at,
         ],
       );
       await recalcularTotales(facturaId);
@@ -287,7 +334,9 @@ export function crearFacturaRepo(db: SqlDriver) {
     /** Cambia la cantidad de una línea (sumar/restar) y recalcula. */
     async actualizarCantidadLinea(lineaId: string, cantidad: number): Promise<void> {
       if (!(cantidad > 0)) {
-        throw new ValidacionError([{ campo: "cantidad", mensaje: "La cantidad debe ser mayor que cero." }]);
+        throw new ValidacionError([
+          { campo: "cantidad", mensaje: "La cantidad debe ser mayor que cero." },
+        ]);
       }
       const linea = await db.get<FacturaLinea>(
         `SELECT ${COLS_LINEA} FROM factura_linea WHERE id=?`,
@@ -317,7 +366,9 @@ export function crearFacturaRepo(db: SqlDriver) {
       );
       if (!linea) return;
       await db.run("UPDATE factura_linea SET deleted_at=?, updated_at=? WHERE id=?", [
-        now(), now(), lineaId,
+        now(),
+        now(),
+        lineaId,
       ]);
       await recalcularTotales(linea.factura_id);
     },
@@ -333,7 +384,8 @@ export function crearFacturaRepo(db: SqlDriver) {
       if (!linea) return;
       if (linea.producto_id) await verificarDisponibilidad(linea.producto_id, linea.cantidad);
       await db.run("UPDATE factura_linea SET deleted_at=NULL, updated_at=? WHERE id=?", [
-        now(), lineaId,
+        now(),
+        lineaId,
       ]);
       await recalcularTotales(linea.factura_id);
     },
@@ -341,12 +393,18 @@ export function crearFacturaRepo(db: SqlDriver) {
     /** Asigna (o quita, con null) el cliente del ticket. */
     async asignarCliente(facturaId: string, clienteId: string | null): Promise<void> {
       await db.run("UPDATE factura SET cliente_id=?, updated_at=? WHERE id=?", [
-        clienteId, now(), facturaId,
+        clienteId,
+        now(),
+        facturaId,
       ]);
     },
 
     async actualizarNotas(facturaId: string, notas: string): Promise<void> {
-      await db.run("UPDATE factura SET notas=?, updated_at=? WHERE id=?", [notas, now(), facturaId]);
+      await db.run("UPDATE factura SET notas=?, updated_at=? WHERE id=?", [
+        notas,
+        now(),
+        facturaId,
+      ]);
     },
 
     /**
@@ -357,7 +415,12 @@ export function crearFacturaRepo(db: SqlDriver) {
      * (y en el caso fiscal, ya reportado con un NCF por ese monto exacto).
      */
     async actualizarPrecioEnTicketsAbiertos(input: SincronizarPrecioProductoInput): Promise<void> {
-      const lineas = await db.all<{ id: string; factura_id: string; cantidad: number; es_mayoreo: number }>(
+      const lineas = await db.all<{
+        id: string;
+        factura_id: string;
+        cantidad: number;
+        es_mayoreo: number;
+      }>(
         `SELECT fl.id, fl.factura_id, fl.cantidad, fl.es_mayoreo
          FROM factura_linea fl
          JOIN factura f ON f.id = fl.factura_id
@@ -372,12 +435,24 @@ export function crearFacturaRepo(db: SqlDriver) {
         const nuevoPrecio = l.es_mayoreo ? input.precioMayoreo : input.precioVenta;
         if (nuevoPrecio == null) continue;
 
-        const calc = calcularLinea({ precioUnitario: nuevoPrecio, cantidad: l.cantidad, tasaImpuesto: input.tasaImpuesto });
+        const calc = calcularLinea({
+          precioUnitario: nuevoPrecio,
+          cantidad: l.cantidad,
+          tasaImpuesto: input.tasaImpuesto,
+        });
         await db.run(
           `UPDATE factura_linea
              SET precio_unitario=?, impuesto_tipo=?, tasa_impuesto=?, monto_itbis=?, subtotal=?, updated_at=?
            WHERE id=?`,
-          [nuevoPrecio, input.impuestoTipo, input.tasaImpuesto, calc.montoItbis, calc.subtotal, now(), l.id],
+          [
+            nuevoPrecio,
+            input.impuestoTipo,
+            input.tasaImpuesto,
+            calc.montoItbis,
+            calc.subtotal,
+            now(),
+            l.id,
+          ],
         );
         facturasAfectadas.add(l.factura_id);
       }
@@ -390,7 +465,9 @@ export function crearFacturaRepo(db: SqlDriver) {
       exigirPermiso(db, "factura.eliminar");
       const ts = now();
       await db.run("UPDATE factura_linea SET deleted_at=?, updated_at=? WHERE factura_id=?", [
-        ts, ts, facturaId,
+        ts,
+        ts,
+        facturaId,
       ]);
       await db.run("UPDATE factura SET deleted_at=?, updated_at=? WHERE id=?", [ts, ts, facturaId]);
       await registrarAccion(db, { accion: "eliminar", entidad: "factura", entidadId: facturaId });
@@ -410,7 +487,9 @@ export function crearFacturaRepo(db: SqlDriver) {
       const factura = await this.obtener(facturaId);
       if (!factura) throw new Error(`Ticket ${facturaId} no existe`);
       if (factura.estado !== "abierta") {
-        throw new ValidacionError([{ campo: "estado", mensaje: "Este ticket ya fue cobrado o anulado." }]);
+        throw new ValidacionError([
+          { campo: "estado", mensaje: "Este ticket ya fue cobrado o anulado." },
+        ]);
       }
 
       const lineas = await this.obtenerLineas(facturaId);
@@ -430,10 +509,16 @@ export function crearFacturaRepo(db: SqlDriver) {
 
       const ts = now();
       for (const p of input.pagos) {
-        await db.run(
-          `INSERT INTO pago (${COLS_PAGO}) VALUES (?,?,?,?,?,?,?,?)`,
-          [newId(), facturaId, p.metodo, p.monto, null, ts, ts, null],
-        );
+        await db.run(`INSERT INTO pago (${COLS_PAGO}) VALUES (?,?,?,?,?,?,?,?)`, [
+          newId(),
+          facturaId,
+          p.metodo,
+          p.monto,
+          null,
+          ts,
+          ts,
+          null,
+        ]);
       }
 
       await db.run(
@@ -444,7 +529,9 @@ export function crearFacturaRepo(db: SqlDriver) {
 
       await descontarExistenciaPorVenta(facturaId, lineas);
       await registrarAccion(db, {
-        accion: "cobrar", entidad: "factura", entidadId: facturaId,
+        accion: "cobrar",
+        entidad: "factura",
+        entidadId: facturaId,
         resumen: `Total RD$ ${factura.total.toFixed(2)}, cambio RD$ ${resultado.cambio.toFixed(2)}`,
       });
 
@@ -460,10 +547,11 @@ export function crearFacturaRepo(db: SqlDriver) {
 
     /** Enlaza la factura a su comprobante fiscal y la marca tipo='fiscal'. */
     async marcarFiscal(facturaId: string, comprobanteId: string): Promise<void> {
-      await db.run(
-        "UPDATE factura SET tipo='fiscal', comprobante_id=?, updated_at=? WHERE id=?",
-        [comprobanteId, now(), facturaId],
-      );
+      await db.run("UPDATE factura SET tipo='fiscal', comprobante_id=?, updated_at=? WHERE id=?", [
+        comprobanteId,
+        now(),
+        facturaId,
+      ]);
     },
 
     /** Última factura cobrada (para "reimprimir último ticket"). */

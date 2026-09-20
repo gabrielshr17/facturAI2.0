@@ -34,7 +34,15 @@
  * vive en `iniciarSesion`/`cerrarSesion`/el efecto de restauración de este archivo,
  * nunca en SQLite (decisión tomada, ver brief de la tarea).
  */
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   conSesion,
   crearPortadorSesion,
@@ -100,7 +108,13 @@ export interface ProveedorSesionProps {
   sesionInicial?: PortadorSesion;
 }
 
-export function ProveedorSesion({ db, children, revalidarUsuarioActivo, onAvisoRestauracion, sesionInicial }: ProveedorSesionProps) {
+export function ProveedorSesion({
+  db,
+  children,
+  revalidarUsuarioActivo,
+  onAvisoRestauracion,
+  sesionInicial,
+}: ProveedorSesionProps) {
   const portadorRef = useRef(crearPortadorSesion(sesionInicial ?? null));
   const dbConSesion = useMemo(() => conSesion(db, portadorRef.current), [db]);
 
@@ -115,7 +129,7 @@ export function ProveedorSesion({ db, children, revalidarUsuarioActivo, onAvisoR
 
     let cancelado = false;
     void (async () => {
-      let usuarioId: string | null = null;
+      let usuarioId: string | null;
       try {
         const parcial = JSON.parse(marca) as { usuarioId?: unknown };
         usuarioId = typeof parcial.usuarioId === "string" ? parcial.usuarioId : null;
@@ -137,7 +151,6 @@ export function ProveedorSesion({ db, children, revalidarUsuarioActivo, onAvisoR
       cancelado = true;
     };
     // Solo al montar: la restauración de una pestaña recién abierta ocurre una única vez.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function iniciarSesion(nueva: PortadorSesion): void {
@@ -155,7 +168,9 @@ export function ProveedorSesion({ db, children, revalidarUsuarioActivo, onAvisoR
   }
 
   return (
-    <SesionContext.Provider value={{ sesion, autenticado, db: dbConSesion, iniciarSesion, cerrarSesion }}>
+    <SesionContext.Provider
+      value={{ sesion, autenticado, db: dbConSesion, iniciarSesion, cerrarSesion }}
+    >
       {children}
     </SesionContext.Provider>
   );

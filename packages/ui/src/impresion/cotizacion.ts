@@ -12,7 +12,10 @@ import {
  *  texto GDI → diálogo del navegador). A diferencia del recibo, no tiene pagos ni comprobante
  *  fiscal, pero sí fecha de vencimiento. */
 export interface CotizacionImpresionDatos {
-  negocio: Pick<Negocio, "nombre_comercial" | "rnc" | "direccion" | "telefono" | "ancho_impresora_default">;
+  negocio: Pick<
+    Negocio,
+    "nombre_comercial" | "rnc" | "direccion" | "telefono" | "ancho_impresora_default"
+  >;
   numero: number;
   fecha: string;
   fechaVencimiento: string;
@@ -41,7 +44,10 @@ function formatearFechaIsoLocal(fechaIso: string): string {
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+  );
 }
 
 function generarHtmlCotizacion(datos: CotizacionImpresionDatos): string {
@@ -134,7 +140,9 @@ function generarTextoCotizacion(datos: CotizacionImpresionDatos): string[] {
 
   for (const l of lineas) {
     out.push(l.descripcion);
-    out.push(columnasTexto(`${cantidad(l.cantidad)} x ${money(l.precio_unitario)}`, money(l.subtotal)));
+    out.push(
+      columnasTexto(`${cantidad(l.cantidad)} x ${money(l.precio_unitario)}`, money(l.subtotal)),
+    );
   }
   out.push(separador);
 
@@ -157,7 +165,10 @@ function generarTextoCotizacion(datos: CotizacionImpresionDatos): string[] {
 export function imprimirCotizacion(datos: CotizacionImpresionDatos): void {
   if (hayImpresoraTermicaDisponible() && obtenerImpresoraSeleccionada()) {
     void imprimirTermico(generarEscPosCotizacion(datos)).catch((e) => {
-      console.error("Fallo la impresión térmica de la cotización, usando el siguiente método disponible:", e);
+      console.error(
+        "Fallo la impresión térmica de la cotización, usando el siguiente método disponible:",
+        e,
+      );
       imprimirCotizacionAlternativo(datos);
     });
     return;
@@ -168,7 +179,10 @@ export function imprimirCotizacion(datos: CotizacionImpresionDatos): void {
 function imprimirCotizacionAlternativo(datos: CotizacionImpresionDatos): void {
   if (hayImpresionTextoDisponible()) {
     void imprimirTexto(generarTextoCotizacion(datos)).catch((e) => {
-      console.error("Fallo la impresión de texto genérica de la cotización, usando el diálogo del navegador:", e);
+      console.error(
+        "Fallo la impresión de texto genérica de la cotización, usando el diálogo del navegador:",
+        e,
+      );
       imprimirCotizacionNavegador(datos);
     });
     return;

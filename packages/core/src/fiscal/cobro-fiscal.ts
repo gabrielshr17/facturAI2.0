@@ -53,10 +53,16 @@ export async function cobrarConFiscal(
 
   if (input.tipoEcf === "31" && !input.receptorDocumentoNumero) {
     throw new ValidacionError([
-      { campo: "receptorDocumentoNumero", mensaje: "El Crédito Fiscal (E31) requiere el RNC del comprador." },
+      {
+        campo: "receptorDocumentoNumero",
+        mensaje: "El Crédito Fiscal (E31) requiere el RNC del comprador.",
+      },
     ]);
   }
-  if (input.receptorDocumentoNumero && !esDocumentoValido(input.receptorDocumentoTipo, input.receptorDocumentoNumero)) {
+  if (
+    input.receptorDocumentoNumero &&
+    !esDocumentoValido(input.receptorDocumentoTipo, input.receptorDocumentoNumero)
+  ) {
     const etiqueta = input.receptorDocumentoTipo === "cedula" ? "cédula" : "RNC";
     throw new ValidacionError([
       { campo: "receptorDocumentoNumero", mensaje: `El ${etiqueta} del comprador no es válido.` },
@@ -66,7 +72,9 @@ export async function cobrarConFiscal(
   const factura = await facturaRepo.obtener(facturaId);
   if (!factura) throw new Error(`Ticket ${facturaId} no existe`);
   if (factura.estado !== "abierta") {
-    throw new ValidacionError([{ campo: "estado", mensaje: "Este ticket ya fue cobrado o anulado." }]);
+    throw new ValidacionError([
+      { campo: "estado", mensaje: "Este ticket ya fue cobrado o anulado." },
+    ]);
   }
 
   const lineas = await facturaRepo.obtenerLineas(facturaId);
@@ -86,7 +94,8 @@ export async function cobrarConFiscal(
     throw new ValidacionError([
       {
         campo: "secuencia",
-        mensaje: "No hay una secuencia de NCF vigente para este tipo. Configúrela en Configuración antes de emitir.",
+        mensaje:
+          "No hay una secuencia de NCF vigente para este tipo. Configúrela en Configuración antes de emitir.",
       },
     ]);
   }
@@ -112,14 +121,18 @@ export async function cobrarConFiscal(
     throw new ValidacionError([
       {
         campo: "fiscal",
-        mensaje: "No se pudo transmitir el comprobante a la DGII (sin conexión). No se permite cobrar con NCF sin conexión; puede cobrar sin comprobante fiscal.",
+        mensaje:
+          "No se pudo transmitir el comprobante a la DGII (sin conexión). No se permite cobrar con NCF sin conexión; puede cobrar sin comprobante fiscal.",
       },
     ]);
   }
 
   if (resultadoTransmision.estado !== "aceptado") {
     throw new ValidacionError([
-      { campo: "fiscal", mensaje: `La DGII rechazó el comprobante: ${resultadoTransmision.motivoRechazo ?? "sin detalle"}.` },
+      {
+        campo: "fiscal",
+        mensaje: `La DGII rechazó el comprobante: ${resultadoTransmision.motivoRechazo ?? "sin detalle"}.`,
+      },
     ]);
   }
 

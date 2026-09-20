@@ -94,7 +94,8 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
   const [activoId, setActivoId] = useState<string>(() => {
     const persistidoId = leerModuloPersistido();
     const persistido = persistidoId ? MODULOS.find((m) => m.id === persistidoId) : undefined;
-    const persistidoPermitido = persistido && (persistido.permiso === null || sesion.permisos.has(persistido.permiso));
+    const persistidoPermitido =
+      persistido && (persistido.permiso === null || sesion.permisos.has(persistido.permiso));
     if (persistidoPermitido && persistido) return persistido.id;
     return MODULO_POR_DEFECTO_ID;
   });
@@ -108,7 +109,10 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
     if (reemplazo) setActivoId(reemplazo.id);
   }, [permitidos, activoId]);
 
-  const activo = moduloPorId(permitidos, activoId) ?? moduloPorId(permitidos, MODULO_POR_DEFECTO_ID) ?? permitidos[0];
+  const activo =
+    moduloPorId(permitidos, activoId) ??
+    moduloPorId(permitidos, MODULO_POR_DEFECTO_ID) ??
+    permitidos[0];
 
   const [tema, alternarTema] = useTema();
   const tramo = useBreakpoint();
@@ -141,7 +145,9 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
 
   // El cajón se cierra solo al ensanchar la ventana: si no, al volver a escritorio quedaría un
   // overlay abierto encima de una barra lateral que ya es visible de por sí.
-  useEffect(() => { if (!enCajon) setCajonAbierto(false); }, [enCajon]);
+  useEffect(() => {
+    if (!enCajon) setCajonAbierto(false);
+  }, [enCajon]);
   useAtajosTeclado({ Escape: () => setCajonAbierto(false) }, cajonAbierto);
 
   // Al abrir el cajón el foco entra en él, y al cerrarlo vuelve al botón que lo abrió. Sin esto,
@@ -168,10 +174,17 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
       style={{
         ...styles.nav,
         ...(soloIconos ? { width: 60, padding: "16px 6px", alignItems: "center" } : {}),
-        ...(enCajon ? { position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 300, boxShadow: sombra.md } : {}),
+        ...(enCajon
+          ? { position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 300, boxShadow: sombra.md }
+          : {}),
       }}
     >
-      <div style={{ ...styles.marca, ...(soloIconos ? { alignItems: "center", padding: "4px 0 16px" } : {}) }}>
+      <div
+        style={{
+          ...styles.marca,
+          ...(soloIconos ? { alignItems: "center", padding: "4px 0 16px" } : {}),
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Marca size={20} aria-hidden="true" />
           {!soloIconos && <span style={styles.marcaTexto}>facturAI</span>}
@@ -187,7 +200,11 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
             title={tema === "oscuro" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
             style={styles.botonTema}
           >
-            {tema === "oscuro" ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
+            {tema === "oscuro" ? (
+              <Sun size={14} aria-hidden="true" />
+            ) : (
+              <Moon size={14} aria-hidden="true" />
+            )}
           </button>
         </div>
       </div>
@@ -210,7 +227,11 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
           <button
             onClick={cerrarSesion}
             aria-label="Cerrar sesión"
-            title={soloIconos ? `Cerrar sesión${nombreUsuario ? ` (${nombreUsuario})` : ""}` : "Cerrar sesión"}
+            title={
+              soloIconos
+                ? `Cerrar sesión${nombreUsuario ? ` (${nombreUsuario})` : ""}`
+                : "Cerrar sesión"
+            }
             style={styles.botonTema}
           >
             <LogOut size={14} aria-hidden="true" />
@@ -225,7 +246,7 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
             key={m.id}
             onClick={() => irA(m.id)}
             // Sin etiqueta visible el tooltip pasa a ser la única forma de saber qué es cada icono.
-            title={soloIconos ? `${m.etiqueta}${pistaAtajo}` : m.atajo ?? undefined}
+            title={soloIconos ? `${m.etiqueta}${pistaAtajo}` : (m.atajo ?? undefined)}
             // En modo tira de iconos no queda texto dentro del botón: sin esto el lector de
             // pantalla lo anunciaría como "botón" a secas.
             aria-label={soloIconos ? m.etiqueta : undefined}
@@ -243,7 +264,11 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
                 <span style={{ flex: 1 }}>{m.etiqueta}</span>
                 {/* El atajo leído en voz alta no significa nada; la pista real ya va en el
                     `title`, así que para el lector este adorno se oculta. */}
-                {m.atajo && <span style={styles.navAtajo} aria-hidden="true">{m.atajo.replace("Alt+", "")}</span>}
+                {m.atajo && (
+                  <span style={styles.navAtajo} aria-hidden="true">
+                    {m.atajo.replace("Alt+", "")}
+                  </span>
+                )}
               </>
             )}
           </button>
@@ -257,54 +282,70 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
 
   return (
     <ProveedorAlertas>
-    <div style={styles.root}>
-      {/* Primer tabulador de la página: salta los módulos y va directo al contenido. Solo se
+      <div style={styles.root}>
+        {/* Primer tabulador de la página: salta los módulos y va directo al contenido. Solo se
           ve cuando tiene el foco (§ .sfr-salto-contenido en estilos-globales.css). */}
-      <a href="#contenido-principal" className="sfr-salto-contenido">Saltar al contenido</a>
-      {!enCajon && nav}
-      {enCajon && cajonAbierto && (
-        <>
-          <div
-            onClick={() => setCajonAbierto(false)}
-            aria-hidden="true"
-            style={{ position: "fixed", inset: 0, background: "var(--sfr-overlay)", zIndex: 290 }}
-          />
-          {nav}
-        </>
-      )}
+        <a href="#contenido-principal" className="sfr-salto-contenido">
+          Saltar al contenido
+        </a>
+        {!enCajon && nav}
+        {enCajon && cajonAbierto && (
+          <>
+            <div
+              onClick={() => setCajonAbierto(false)}
+              aria-hidden="true"
+              style={{ position: "fixed", inset: 0, background: "var(--sfr-overlay)", zIndex: 290 }}
+            />
+            {nav}
+          </>
+        )}
 
-      {/* El padding se achica recién cuando el contenido ya se está apilando; en `medio` (barra en
+        {/* El padding se achica recién cuando el contenido ya se está apilando; en `medio` (barra en
           tira de iconos pero dos columnas todavía) el respiro de escritorio se mantiene. */}
-      <main id="contenido-principal" style={{ ...styles.main, ...(tramo === "compacto" || tramo === "movil" ? { padding: "12px 14px" } : {}) }}>
-        <h2 style={{ ...styles.titulo, display: "flex", alignItems: "center", gap: 10, ...(enCajon ? { fontSize: 18, marginBottom: 14 } : {}) }}>
-          {enCajon && (
-            <button
-              ref={botonMenuRef}
-              onClick={() => setCajonAbierto(true)}
-              aria-label="Abrir menú de módulos"
-              aria-expanded={cajonAbierto}
-              title="Menú"
-              style={styles.botonMenu}
-            >
-              <Menu size={20} aria-hidden="true" />
-            </button>
-          )}
-          <IconoActivo size={enCajon ? 18 : 22} aria-hidden="true" /> {activo.etiqueta}
-        </h2>
-        <ErrorBoundary key={activo.id}>
-          <Componente />
-        </ErrorBoundary>
-      </main>
-      {/* Ctrl+U, global sin importar el módulo activo (§ RBAC-07 parte C). Vive DENTRO
+        <main
+          id="contenido-principal"
+          style={{
+            ...styles.main,
+            ...(tramo === "compacto" || tramo === "movil" ? { padding: "12px 14px" } : {}),
+          }}
+        >
+          <h2
+            style={{
+              ...styles.titulo,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              ...(enCajon ? { fontSize: 18, marginBottom: 14 } : {}),
+            }}
+          >
+            {enCajon && (
+              <button
+                ref={botonMenuRef}
+                onClick={() => setCajonAbierto(true)}
+                aria-label="Abrir menú de módulos"
+                aria-expanded={cajonAbierto}
+                title="Menú"
+                style={styles.botonMenu}
+              >
+                <Menu size={20} aria-hidden="true" />
+              </button>
+            )}
+            <IconoActivo size={enCajon ? 18 : 22} aria-hidden="true" /> {activo.etiqueta}
+          </h2>
+          <ErrorBoundary key={activo.id}>
+            <Componente />
+          </ErrorBoundary>
+        </main>
+        {/* Ctrl+U, global sin importar el módulo activo (§ RBAC-07 parte C). Vive DENTRO
           de este `<ProveedorAlertas>` (montado arriba, no consumido por `AppShell`
           mismo) porque el modal necesita `useAlertas()` para el mensaje de bloqueo
           por ticket abierto. Ver la cabecera de `CambioRapidoUsuario.tsx`. */}
-      <CambioRapidoUsuario />
-      {/* Bloqueo por inactividad / Ctrl+L (§ RBAC-07 parte B). Mismo motivo que
+        <CambioRapidoUsuario />
+        {/* Bloqueo por inactividad / Ctrl+L (§ RBAC-07 parte B). Mismo motivo que
           `CambioRapidoUsuario` para vivir acá: necesita `useAlertas()` para el PIN
           incorrecto, y no debe desmontar ningún módulo activo al bloquear. */}
-      <BloqueoInactividad />
-    </div>
+        <BloqueoInactividad />
+      </div>
     </ProveedorAlertas>
   );
 }
@@ -315,7 +356,8 @@ const styles: Record<string, CSSProperties> = {
     // `dvh` en vez de `vh`: en el navegador del teléfono la barra de direcciones se muestra y se
     // esconde al scrollear, y `100vh` (que no la cuenta) deja el final de la app tapado.
     height: "100dvh",
-    fontFamily: "'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    fontFamily:
+      "'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     color: c.texto,
     background: c.fondo,
   },
