@@ -8,6 +8,7 @@ import {
   type PagoInput,
 } from "@sfr/core";
 import { supabase } from "../supabaseClient";
+import { s, c, money } from "../estilos";
 
 /**
  * IMPORTANTE — no atómica, mismo motivo que Compras.tsx: PostgREST no
@@ -152,11 +153,11 @@ export function Ventas(): JSX.Element {
     const termino = busquedaCliente.trim().toLowerCase();
     if (termino === "") return clientes.slice(0, 15);
     return clientes
-      .filter((c) => `${c.nombre} ${c.apellidos ?? ""}`.toLowerCase().includes(termino))
+      .filter((cli) => `${cli.nombre} ${cli.apellidos ?? ""}`.toLowerCase().includes(termino))
       .slice(0, 15);
   }, [clientes, busquedaCliente]);
 
-  const clienteSeleccionado = clientes.find((c) => c.id === clienteId) ?? null;
+  const clienteSeleccionado = clientes.find((cli) => cli.id === clienteId) ?? null;
 
   function agregarProducto(producto: ProductoOpcion, mayoreo: boolean): void {
     const precioUnitario =
@@ -425,17 +426,15 @@ export function Ventas(): JSX.Element {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Ventas</h2>
+      <h2 style={{ marginTop: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3 }}>Ventas</h2>
 
       <div
         role="note"
         style={{
-          background: "var(--sfr-superficie)",
-          border: "1px solid var(--sfr-borde)",
-          borderRadius: 8,
+          ...s.tarjeta,
           padding: "10px 12px",
           fontSize: 13,
-          color: "var(--sfr-gris)",
+          color: c.gris,
           marginBottom: 12,
         }}
       >
@@ -444,18 +443,7 @@ export function Ventas(): JSX.Element {
       </div>
 
       {error !== null && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--sfr-peligro-fondo)",
-            color: "var(--sfr-peligro)",
-            border: "1px solid var(--sfr-peligro)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
+        <div role="alert" style={s.errorBox}>
           {error}
         </div>
       )}
@@ -463,9 +451,9 @@ export function Ventas(): JSX.Element {
         <div
           role="status"
           style={{
-            background: "#e8f5e9",
-            color: "#2e7d32",
-            border: "1px solid #2e7d32",
+            background: c.verdeFondo,
+            color: c.verde,
+            border: `1px solid ${c.verde}`,
             borderRadius: 8,
             padding: "10px 12px",
             fontSize: 13,
@@ -477,48 +465,34 @@ export function Ventas(): JSX.Element {
       )}
 
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-        <section
-          style={{
-            flex: "1 1 380px",
-            background: "var(--sfr-superficie)",
-            border: "1px solid var(--sfr-borde)",
-            borderRadius: 12,
-            padding: 16,
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Buscar producto</h3>
+        <section style={{ ...s.tarjeta, flex: "1 1 380px" }}>
+          <h3 style={{ marginTop: 0, fontSize: 18, fontWeight: 600 }}>Buscar producto</h3>
           <input
             type="text"
             value={busquedaProducto}
             onChange={(evento) => setBusquedaProducto(evento.target.value)}
             placeholder="Nombre o código de barra…"
-            style={{
-              width: "100%",
-              padding: "8px 10px",
-              borderRadius: 8,
-              border: "1px solid var(--sfr-borde)",
-              marginBottom: 12,
-              boxSizing: "border-box",
-            }}
+            style={{ ...s.input, marginBottom: 12 }}
           />
           <div style={{ maxHeight: 320, overflowY: "auto" }}>
             {productosFiltrados.map((producto) => (
               <div
                 key={producto.id}
+                className="sfr-fila-clickeable"
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
                   padding: "8px 6px",
-                  borderBottom: "1px solid var(--sfr-borde)",
+                  borderBottom: `1px solid ${c.borde}`,
                 }}
               >
                 <div>
                   <div style={{ fontSize: 14 }}>{producto.descripcion}</div>
-                  <div style={{ fontSize: 12, color: "var(--sfr-gris)" }}>
-                    RD$ {producto.precio_venta.toFixed(2)}
+                  <div style={{ fontSize: 12, color: c.gris }}>
+                    RD$ {money(producto.precio_venta)}
                     {producto.precio_mayoreo
-                      ? ` · Mayoreo RD$ ${producto.precio_mayoreo.toFixed(2)}`
+                      ? ` · Mayoreo RD$ ${money(producto.precio_mayoreo)}`
                       : ""}
                     {negocio.inventario_activo ? ` · Existencia: ${producto.existencia ?? 0}` : ""}
                   </div>
@@ -527,7 +501,7 @@ export function Ventas(): JSX.Element {
                   <button
                     type="button"
                     onClick={() => agregarProducto(producto, false)}
-                    style={botonSecundario}
+                    style={botonChip}
                   >
                     + Agregar
                   </button>
@@ -535,7 +509,7 @@ export function Ventas(): JSX.Element {
                     <button
                       type="button"
                       onClick={() => agregarProducto(producto, true)}
-                      style={botonSecundario}
+                      style={botonChip}
                     >
                       + Mayoreo
                     </button>
@@ -544,41 +518,33 @@ export function Ventas(): JSX.Element {
               </div>
             ))}
             {productosFiltrados.length === 0 && (
-              <p style={{ color: "var(--sfr-gris)", fontSize: 13 }}>Sin resultados.</p>
+              <p style={{ color: c.gris, fontSize: 13 }}>Sin resultados.</p>
             )}
           </div>
         </section>
 
-        <section
-          style={{
-            flex: "2 1 480px",
-            background: "var(--sfr-superficie)",
-            border: "1px solid var(--sfr-borde)",
-            borderRadius: 12,
-            padding: 16,
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Carrito</h3>
-          <table style={{ width: "100%", marginBottom: 12 }}>
+        <section style={{ ...s.tarjeta, flex: "2 1 480px" }}>
+          <h3 style={{ marginTop: 0, fontSize: 18, fontWeight: 600 }}>Carrito</h3>
+          <table style={{ ...s.tabla, marginBottom: 12 }}>
             <thead>
               <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Precio</th>
-                <th>Subtotal</th>
-                <th></th>
+                <th style={s.th}>Producto</th>
+                <th style={s.th}>Cantidad</th>
+                <th style={s.th}>Precio</th>
+                <th style={s.th}>Subtotal</th>
+                <th style={s.th}></th>
               </tr>
             </thead>
             <tbody>
               {carrito.map((linea) => (
                 <tr key={linea.clave}>
-                  <td>
+                  <td style={s.td}>
                     {linea.descripcion}
                     {linea.esMayoreo && (
-                      <span style={{ fontSize: 11, color: "var(--sfr-gris)" }}> (mayoreo)</span>
+                      <span style={{ fontSize: 11, color: c.gris }}> (mayoreo)</span>
                     )}
                   </td>
-                  <td>
+                  <td style={s.td}>
                     <input
                       type="number"
                       step="0.01"
@@ -586,26 +552,17 @@ export function Ventas(): JSX.Element {
                       onChange={(evento) =>
                         actualizarCantidad(linea.clave, Number(evento.target.value))
                       }
-                      style={{
-                        width: 70,
-                        padding: "4px 6px",
-                        borderRadius: 6,
-                        border: "1px solid var(--sfr-borde)",
-                      }}
+                      style={{ ...s.input, width: 70, padding: "4px 6px" }}
                     />
                   </td>
-                  <td>{linea.precioUnitario.toFixed(2)}</td>
-                  <td>{(linea.precioUnitario * linea.cantidad).toFixed(2)}</td>
-                  <td>
+                  <td style={s.td}>{money(linea.precioUnitario)}</td>
+                  <td style={s.tdDerecha}>{money(linea.precioUnitario * linea.cantidad)}</td>
+                  <td style={s.td}>
                     <button
                       type="button"
+                      className="sfr-peligro"
                       onClick={() => quitarLinea(linea.clave)}
-                      style={{
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        color: "var(--sfr-gris)",
-                      }}
+                      style={{ ...s.botonPeligro, border: "none", padding: "4px 8px" }}
                     >
                       Quitar
                     </button>
@@ -614,7 +571,7 @@ export function Ventas(): JSX.Element {
               ))}
               {carrito.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", color: "var(--sfr-gris)" }}>
+                  <td colSpan={5} style={s.filaVacia}>
                     Carrito vacío.
                   </td>
                 </tr>
@@ -623,42 +580,34 @@ export function Ventas(): JSX.Element {
           </table>
 
           <p style={{ fontSize: 14, marginBottom: 16 }}>
-            Gravado: {totales.subtotalGravado.toFixed(2)} · Exento:{" "}
-            {totales.subtotalExento.toFixed(2)} · ITBIS: {totales.totalItbis.toFixed(2)} ·{" "}
-            <strong>Total: {totales.total.toFixed(2)}</strong>
+            Gravado: {money(totales.subtotalGravado)} · Exento: {money(totales.subtotalExento)} ·
+            ITBIS: {money(totales.totalItbis)} · <strong>Total: {money(totales.total)}</strong>
           </p>
 
-          <h3>Cliente (opcional)</h3>
+          <h3 style={{ fontSize: 18, fontWeight: 600 }}>Cliente (opcional)</h3>
           <input
             type="text"
             value={busquedaCliente}
             onChange={(evento) => setBusquedaCliente(evento.target.value)}
             placeholder="Buscar cliente…"
-            style={{
-              width: "100%",
-              padding: "8px 10px",
-              borderRadius: 8,
-              border: "1px solid var(--sfr-borde)",
-              marginBottom: 8,
-              boxSizing: "border-box",
-            }}
+            style={{ ...s.input, marginBottom: 8 }}
           />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
             <button
               type="button"
               onClick={() => setClienteId("")}
-              style={clienteId === "" ? botonActivo : botonSecundario}
+              style={clienteId === "" ? botonChipActivo : botonChip}
             >
               — Sin cliente —
             </button>
-            {clientesFiltrados.map((c) => (
+            {clientesFiltrados.map((cliente) => (
               <button
-                key={c.id}
+                key={cliente.id}
                 type="button"
-                onClick={() => setClienteId(c.id)}
-                style={clienteId === c.id ? botonActivo : botonSecundario}
+                onClick={() => setClienteId(cliente.id)}
+                style={clienteId === cliente.id ? botonChipActivo : botonChip}
               >
-                {c.nombre} {c.apellidos ?? ""}
+                {cliente.nombre} {cliente.apellidos ?? ""}
               </button>
             ))}
           </div>
@@ -668,21 +617,25 @@ export function Ventas(): JSX.Element {
               value={nombreClienteNuevo}
               onChange={(evento) => setNombreClienteNuevo(evento.target.value)}
               placeholder="Nombre (nuevo cliente)"
-              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--sfr-borde)" }}
+              style={s.input}
             />
             <input
               type="text"
               value={telefonoClienteNuevo}
               onChange={(evento) => setTelefonoClienteNuevo(evento.target.value)}
               placeholder="Teléfono"
-              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--sfr-borde)" }}
+              style={s.input}
             />
-            <button type="button" onClick={() => void crearClienteRapido()} style={botonSecundario}>
+            <button
+              type="button"
+              onClick={() => void crearClienteRapido()}
+              style={s.botonSecundario}
+            >
               + Nuevo cliente
             </button>
           </div>
 
-          <h3>Pago</h3>
+          <h3 style={{ fontSize: 18, fontWeight: 600 }}>Pago</h3>
           {pagos.map((pago, indice) => (
             <div key={indice} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <select
@@ -690,11 +643,7 @@ export function Ventas(): JSX.Element {
                 onChange={(evento) =>
                   actualizarPago(indice, { metodo: evento.target.value as MetodoPago })
                 }
-                style={{
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  border: "1px solid var(--sfr-borde)",
-                }}
+                style={s.input}
               >
                 {METODOS.map((m) => (
                   <option key={m.valor} value={m.valor}>
@@ -708,23 +657,14 @@ export function Ventas(): JSX.Element {
                 value={pago.monto}
                 onChange={(evento) => actualizarPago(indice, { monto: evento.target.value })}
                 placeholder="Monto"
-                style={{
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  border: "1px solid var(--sfr-borde)",
-                  width: 120,
-                }}
+                style={{ ...s.input, width: 120 }}
               />
               <button
                 type="button"
+                className="sfr-peligro"
                 onClick={() => quitarPago(indice)}
                 disabled={pagos.length === 1}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                  color: "var(--sfr-gris)",
-                }}
+                style={{ ...s.botonPeligro, border: "none" }}
               >
                 Quitar
               </button>
@@ -733,16 +673,16 @@ export function Ventas(): JSX.Element {
           <button
             type="button"
             onClick={agregarPago}
-            style={{ ...botonSecundario, marginBottom: 16 }}
+            style={{ ...s.botonSecundario, marginBottom: 16 }}
           >
             + Agregar pago
           </button>
 
           <p style={{ fontSize: 14, marginBottom: 16 }}>
-            Pagado: {cobro.montoPagado.toFixed(2)}
+            Pagado: {money(cobro.montoPagado)}
             {cobro.suficiente
-              ? ` · Cambio: ${cobro.cambio.toFixed(2)}`
-              : ` · Falta: ${cobro.faltante.toFixed(2)}`}
+              ? ` · Cambio: ${money(cobro.cambio)}`
+              : ` · Falta: ${money(cobro.faltante)}`}
           </p>
 
           <button
@@ -750,13 +690,8 @@ export function Ventas(): JSX.Element {
             onClick={() => void guardarVenta()}
             disabled={guardando || carrito.length === 0}
             style={{
-              background: "var(--sfr-acento)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
+              ...s.boton,
               padding: "10px 20px",
-              fontSize: 14,
-              fontWeight: 600,
               cursor: guardando || carrito.length === 0 ? "not-allowed" : "pointer",
               opacity: guardando || carrito.length === 0 ? 0.7 : 1,
             }}
@@ -766,27 +701,27 @@ export function Ventas(): JSX.Element {
         </section>
       </div>
 
-      <h3 style={{ marginTop: 24 }}>Últimas ventas remotas</h3>
-      <div style={{ overflowX: "auto" }}>
-        <table>
+      <h3 style={{ marginTop: 24, fontSize: 18, fontWeight: 600 }}>Últimas ventas remotas</h3>
+      <div className="sfr-tabla-scroll">
+        <table style={s.tabla}>
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Total</th>
-              <th>Estado</th>
+              <th style={s.th}>Fecha</th>
+              <th style={s.th}>Total</th>
+              <th style={s.th}>Estado</th>
             </tr>
           </thead>
           <tbody>
             {ventas.map((v) => (
               <tr key={v.id}>
-                <td>{v.fecha_hora.slice(0, 16).replace("T", " ")}</td>
-                <td>{v.total.toFixed(2)}</td>
-                <td>{v.estado}</td>
+                <td style={s.td}>{v.fecha_hora.slice(0, 16).replace("T", " ")}</td>
+                <td style={s.tdDerecha}>{money(v.total)}</td>
+                <td style={s.td}>{v.estado}</td>
               </tr>
             ))}
             {ventas.length === 0 && (
               <tr>
-                <td colSpan={3} style={{ textAlign: "center", color: "var(--sfr-gris)" }}>
+                <td colSpan={3} style={s.filaVacia}>
                   Sin ventas remotas registradas.
                 </td>
               </tr>
@@ -798,18 +733,14 @@ export function Ventas(): JSX.Element {
   );
 }
 
-const botonSecundario: CSSProperties = {
-  background: "transparent",
-  border: "1px solid var(--sfr-borde)",
-  borderRadius: 8,
+const botonChip: CSSProperties = {
+  ...s.botonSecundario,
   padding: "6px 12px",
   fontSize: 13,
-  cursor: "pointer",
 };
 
-const botonActivo: CSSProperties = {
-  ...botonSecundario,
-  background: "var(--sfr-acento)",
-  color: "#fff",
-  border: "none",
+const botonChipActivo: CSSProperties = {
+  ...s.boton,
+  padding: "6px 12px",
+  fontSize: 13,
 };

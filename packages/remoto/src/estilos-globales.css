@@ -4,9 +4,12 @@
    mantener este paquete lo más chico y aislado posible (es un dashboard
    secundario, no otra pantalla dentro del árbol de @sfr/ui) — si los tokens
    cambian en el diseño real, hay que replicarlos acá a mano; queda anotado
-   como deuda intencional. Solo se trae el bloque de variables de color y las
-   reglas base de tipografía/foco; el resto de estilos.css (grid de tabla,
-   atajos de teclado, etc.) es específico del punto de venta y no aplica. */
+   como deuda intencional. No se trae la fuente Inter Variable de
+   @fontsource (agregaría una dependencia solo por una tipografía); se usa
+   la pila de fuentes del sistema, igual que antes. El resto de las reglas
+   (scrollbar, tabla, botón peligro, táctil) sí se trajeron completas para
+   que `s.tarjeta`/`s.errorBox`/`s.botonPeligro`/etc. de estilos.ts se vean
+   idénticos a como se ven en la app local. */
 
 :root {
   --sfr-acento: #991b1b;
@@ -31,6 +34,9 @@
   --sfr-tabla-hover: #f1f5f9;
   --sfr-foco: #64748b;
   --sfr-sombra-focus: rgba(100, 116, 139, 0.28);
+  --sfr-scroll-fondo: #d1d5db;
+  --sfr-scroll-fondo-hover: #9ca3af;
+  --sfr-overlay: rgba(15, 23, 42, 0.45);
   color-scheme: light;
 }
 
@@ -58,7 +64,31 @@
     --sfr-tabla-hover: #222225;
     --sfr-foco: #94a3b8;
     --sfr-sombra-focus: rgba(148, 163, 184, 0.32);
+    --sfr-scroll-fondo: #3f3f46;
+    --sfr-scroll-fondo-hover: #52525b;
+    --sfr-overlay: rgba(0, 0, 0, 0.6);
     color-scheme: dark;
+  }
+}
+
+/* Modal de confirmación/aviso centrado, y entrada de s.errorBox: una
+   entrada breve con "pop" para que sea imposible no notarlo. */
+@keyframes sfr-alerta-fondo {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sfr-alerta-entrada {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -66,19 +96,71 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+html {
   background: var(--sfr-fondo);
 }
 
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background: var(--sfr-fondo);
   color: var(--sfr-texto);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+::selection {
+  background: var(--sfr-acento);
+  color: white;
+}
+
+/* Scrollbar delgado (Chromium: WebView2 y navegadores basados en Chrome/Edge). */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--sfr-scroll-fondo);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sfr-scroll-fondo-hover);
+  background-clip: padding-box;
 }
 
 button {
   font-family: inherit;
+  transition:
+    filter 120ms ease,
+    transform 80ms ease,
+    box-shadow 120ms ease;
+}
+button:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+@media (prefers-color-scheme: dark) {
+  button:hover:not(:disabled) {
+    filter: brightness(1.15);
+  }
+}
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+button:focus-visible {
+  outline: 2px solid var(--sfr-acento);
+  outline-offset: 2px;
 }
 
 input,
@@ -86,14 +168,19 @@ select,
 textarea {
   font-family: inherit;
   color: var(--sfr-texto);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
-
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
-button:focus-visible {
-  outline: 2px solid var(--sfr-acento);
-  outline-offset: 2px;
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--sfr-foco) !important;
+  box-shadow: 0 0 0 3px var(--sfr-sombra-focus);
 }
 
 table {
@@ -115,6 +202,96 @@ th {
 td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--sfr-borde);
+}
+
+/* Encabezado de tabla con banda propia, y cebrado sutil en el cuerpo. */
+thead tr {
+  background: var(--sfr-tabla-encabezado);
+}
+tbody tr:nth-child(even) {
+  background-color: var(--sfr-tabla-par);
+}
+tbody tr {
+  transition: background-color 100ms ease;
+}
+tbody tr:hover {
+  background-color: var(--sfr-tabla-hover);
+}
+
+/* Filas clicables fuera de tablas (resultados de búsqueda de producto/cliente). */
+.sfr-fila-clickeable {
+  transition: background-color 100ms ease;
+}
+.sfr-fila-clickeable:hover {
+  background-color: var(--sfr-tabla-hover);
+}
+
+/* ---------------------------------------------------------------------------
+   Reglas responsive/táctiles que los `style={{}}` en línea no pueden expresar.
+   --------------------------------------------------------------------------- */
+
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  button {
+    min-height: 44px;
+  }
+}
+
+@media (hover: none) {
+  tbody tr:hover,
+  .sfr-fila-clickeable:hover {
+    background-color: transparent;
+  }
+}
+
+.sfr-tabla-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 699px) {
+  main table:not(.sfr-tabla-scroll table) {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Accesibilidad
+   --------------------------------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--sfr-acento);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Jerarquía visual
+   --------------------------------------------------------------------------- */
+
+/* Acción destructiva: neutra en reposo, roja recién al apuntarla o enfocarla. */
+button.sfr-peligro:hover:not(:disabled),
+button.sfr-peligro:focus-visible {
+  color: var(--sfr-peligro);
+  border-color: var(--sfr-peligro);
+  background: var(--sfr-peligro-fondo);
+  filter: none;
 }
 
 .sfr-badge-alerta {

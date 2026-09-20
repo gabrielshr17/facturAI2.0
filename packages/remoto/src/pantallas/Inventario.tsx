@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { s, money } from "../estilos";
 
 /**
  * Fila de `producto` tal como la necesita esta pantalla. Se listan las
@@ -76,32 +77,23 @@ export function Inventario(): JSX.Element {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Inventario</h2>
+      <h2 style={{ marginTop: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3 }}>
+        Inventario
+      </h2>
       {error !== null && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--sfr-peligro-fondo)",
-            color: "var(--sfr-peligro)",
-            border: "1px solid var(--sfr-peligro)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
+        <div role="alert" style={s.errorBox}>
           {error}
         </div>
       )}
-      <div style={{ overflowX: "auto" }}>
-        <table>
+      <div className="sfr-tabla-scroll">
+        <table style={s.tabla}>
           <thead>
             <tr>
-              <th>Producto</th>
-              <th>Costo</th>
-              <th>Precio de venta</th>
-              <th>Existencia</th>
-              <th>Mínimo</th>
+              <th style={s.th}>Producto</th>
+              <th style={s.th}>Costo</th>
+              <th style={s.th}>Precio de venta</th>
+              <th style={s.th}>Existencia</th>
+              <th style={s.th}>Mínimo</th>
             </tr>
           </thead>
           <tbody>
@@ -111,7 +103,7 @@ export function Inventario(): JSX.Element {
                 (producto.existencia ?? 0) <= producto.existencia_minima;
               return (
                 <tr key={producto.id}>
-                  <td>
+                  <td style={s.td}>
                     {producto.descripcion}
                     {bajoMinimo && (
                       <span className="sfr-badge-alerta" style={{ marginLeft: 8 }}>
@@ -119,28 +111,28 @@ export function Inventario(): JSX.Element {
                       </span>
                     )}
                   </td>
-                  <td>{producto.costo.toFixed(2)}</td>
-                  <td>
+                  <td style={s.tdDerecha}>{money(producto.costo)}</td>
+                  <td style={s.td}>
                     <CampoNumerico
                       valor={producto.precio_venta}
                       deshabilitado={guardandoId === producto.id}
                       onGuardar={(valor) => guardarCampo(producto.id, "precio_venta", valor)}
                     />
                   </td>
-                  <td>
+                  <td style={s.td}>
                     <CampoNumerico
                       valor={producto.existencia ?? 0}
                       deshabilitado={guardandoId === producto.id}
                       onGuardar={(valor) => guardarCampo(producto.id, "existencia", valor)}
                     />
                   </td>
-                  <td>{producto.existencia_minima ?? "—"}</td>
+                  <td style={s.td}>{producto.existencia_minima ?? "—"}</td>
                 </tr>
               );
             })}
             {productos.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ textAlign: "center", color: "var(--sfr-gris)" }}>
+                <td colSpan={5} style={s.filaVacia}>
                   Sin productos activos.
                 </td>
               </tr>
@@ -185,15 +177,7 @@ function CampoNumerico(props: {
           evento.currentTarget.blur();
         }
       }}
-      style={{
-        width: 100,
-        padding: "6px 8px",
-        fontSize: 14,
-        border: "1px solid var(--sfr-borde)",
-        borderRadius: 6,
-        background: "var(--sfr-superficie)",
-        color: "var(--sfr-texto)",
-      }}
+      style={{ ...s.input, width: 100, padding: "6px 8px" }}
     />
   );
 }

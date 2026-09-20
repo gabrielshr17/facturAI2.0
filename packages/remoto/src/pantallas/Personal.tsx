@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { s, c } from "../estilos";
 
 /**
  * Gestión de personal MUY acotada a propósito: solo nombre/rol/activo.
@@ -143,16 +144,14 @@ export function Personal(): JSX.Element {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Personal</h2>
+      <h2 style={{ marginTop: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3 }}>Personal</h2>
       <div
         role="note"
         style={{
-          background: "var(--sfr-superficie)",
-          border: "1px solid var(--sfr-borde)",
-          borderRadius: 8,
+          ...s.tarjeta,
           padding: "10px 12px",
           fontSize: 13,
-          color: "var(--sfr-gris)",
+          color: c.gris,
           marginBottom: 12,
         }}
       >
@@ -160,59 +159,31 @@ export function Personal(): JSX.Element {
         física, nunca desde aquí.
       </div>
       {error !== null && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--sfr-peligro-fondo)",
-            color: "var(--sfr-peligro)",
-            border: "1px solid var(--sfr-peligro)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
+        <div role="alert" style={s.errorBox}>
           {error}
         </div>
       )}
 
-      <section
-        style={{
-          background: "var(--sfr-superficie)",
-          border: "1px solid var(--sfr-borde)",
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 24,
-          maxWidth: 480,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>
+      <section style={{ ...s.tarjeta, marginBottom: 24, maxWidth: 480 }}>
+        <h3 style={{ marginTop: 0, fontSize: 18, fontWeight: 600 }}>
           {formulario.id ? "Editar personal" : "Nuevo miembro del personal"}
         </h3>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
           <div>
-            <label
-              style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
-            >
-              Nombre
-            </label>
+            <label style={s.label}>Nombre</label>
             <input
               type="text"
               value={formulario.nombre}
               onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             />
           </div>
           <div>
-            <label
-              style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
-            >
-              Rol
-            </label>
+            <label style={s.label}>Rol</label>
             <select
               value={formulario.rol}
               onChange={(e) => setFormulario({ ...formulario, rol: e.target.value as RolUsuario })}
-              style={estiloInput}
+              style={s.input}
             >
               <option value="cajero">Cajero</option>
               <option value="supervisor">Supervisor</option>
@@ -229,19 +200,13 @@ export function Personal(): JSX.Element {
             Activo
           </label>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={s.formFooter}>
           <button
             type="button"
             onClick={() => void guardar()}
             disabled={guardando}
             style={{
-              background: "var(--sfr-acento)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "9px 18px",
-              fontSize: 14,
-              fontWeight: 600,
+              ...s.boton,
               cursor: guardando ? "not-allowed" : "pointer",
               opacity: guardando ? 0.7 : 1,
             }}
@@ -249,41 +214,30 @@ export function Personal(): JSX.Element {
             {guardando ? "Guardando…" : formulario.id ? "Guardar cambios" : "Crear"}
           </button>
           {formulario.id && (
-            <button
-              type="button"
-              onClick={cancelarEdicion}
-              style={{
-                background: "transparent",
-                border: "1px solid var(--sfr-borde)",
-                borderRadius: 8,
-                padding: "9px 18px",
-                fontSize: 14,
-                cursor: "pointer",
-              }}
-            >
+            <button type="button" onClick={cancelarEdicion} style={s.botonSecundario}>
               Cancelar
             </button>
           )}
         </div>
       </section>
 
-      <div style={{ overflowX: "auto" }}>
-        <table>
+      <div className="sfr-tabla-scroll">
+        <table style={s.tabla}>
           <thead>
             <tr>
-              <th>Nombre</th>
-              <th>Rol</th>
-              <th>Activo</th>
-              <th></th>
+              <th style={s.th}>Nombre</th>
+              <th style={s.th}>Rol</th>
+              <th style={s.th}>Activo</th>
+              <th style={s.th}></th>
             </tr>
           </thead>
           <tbody>
             {usuarios.map((u) => (
               <tr key={u.id}>
-                <td>{u.nombre}</td>
-                <td>{u.rol}</td>
-                <td>{u.activo ? "Sí" : "No"}</td>
-                <td>
+                <td style={s.td}>{u.nombre}</td>
+                <td style={s.td}>{u.rol}</td>
+                <td style={s.td}>{u.activo ? "Sí" : "No"}</td>
+                <td style={s.td}>
                   <button type="button" onClick={() => editar(u)} style={botonFila}>
                     Editar
                   </button>
@@ -292,7 +246,7 @@ export function Personal(): JSX.Element {
             ))}
             {usuarios.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ textAlign: "center", color: "var(--sfr-gris)" }}>
+                <td colSpan={4} style={s.filaVacia}>
                   Sin personal registrado.
                 </td>
               </tr>
@@ -304,19 +258,4 @@ export function Personal(): JSX.Element {
   );
 }
 
-const estiloInput: CSSProperties = {
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: "1px solid var(--sfr-borde)",
-  background: "var(--sfr-superficie)",
-  color: "var(--sfr-texto)",
-};
-
-const botonFila: CSSProperties = {
-  border: "1px solid var(--sfr-borde)",
-  background: "transparent",
-  borderRadius: 6,
-  padding: "4px 10px",
-  fontSize: 12,
-  cursor: "pointer",
-};
+const botonFila = { ...s.botonSecundario, padding: "4px 10px", fontSize: 12 };

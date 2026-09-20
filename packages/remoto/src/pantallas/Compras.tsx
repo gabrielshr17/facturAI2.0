@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { s, money } from "../estilos";
 
 /**
  * IMPORTANTE — por qué esta pantalla NO es atómica: PostgREST (la API que
@@ -217,46 +218,23 @@ export function Compras(): JSX.Element {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Compras</h2>
+      <h2 style={{ marginTop: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3 }}>Compras</h2>
       {error !== null && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--sfr-peligro-fondo)",
-            color: "var(--sfr-peligro)",
-            border: "1px solid var(--sfr-peligro)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
+        <div role="alert" style={s.errorBox}>
           {error}
         </div>
       )}
 
-      <section
-        style={{
-          background: "var(--sfr-superficie)",
-          border: "1px solid var(--sfr-borde)",
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 24,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Nueva compra</h3>
+      <section style={{ ...s.tarjeta, marginBottom: 24 }}>
+        <h3 style={{ marginTop: 0, fontSize: 18, fontWeight: 600 }}>Nueva compra</h3>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
           <div>
-            <label
-              style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
-            >
-              Proveedor existente
-            </label>
+            <label style={s.label}>Proveedor existente</label>
             <select
               value={proveedorId}
               onChange={(evento) => setProveedorId(evento.target.value)}
-              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--sfr-borde)" }}
+              style={s.input}
             >
               <option value="">— Ninguno —</option>
               {proveedores.map((proveedor) => (
@@ -267,49 +245,41 @@ export function Compras(): JSX.Element {
             </select>
           </div>
           <div>
-            <label
-              style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
-            >
-              O proveedor nuevo
-            </label>
+            <label style={s.label}>O proveedor nuevo</label>
             <input
               type="text"
               value={proveedorNuevo}
               disabled={proveedorId !== ""}
               onChange={(evento) => setProveedorNuevo(evento.target.value)}
               placeholder="Nombre del proveedor"
-              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--sfr-borde)" }}
+              style={s.input}
             />
           </div>
           <div>
-            <label
-              style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
-            >
-              Fecha
-            </label>
+            <label style={s.label}>Fecha</label>
             <input
               type="date"
               value={fecha}
               onChange={(evento) => setFecha(evento.target.value)}
-              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--sfr-borde)" }}
+              style={s.input}
             />
           </div>
         </div>
 
-        <table style={{ marginBottom: 12 }}>
+        <table style={{ ...s.tabla, marginBottom: 12 }}>
           <thead>
             <tr>
-              <th>Producto (catálogo)</th>
-              <th>Descripción</th>
-              <th>Cantidad</th>
-              <th>Costo unitario</th>
-              <th></th>
+              <th style={s.th}>Producto (catálogo)</th>
+              <th style={s.th}>Descripción</th>
+              <th style={s.th}>Cantidad</th>
+              <th style={s.th}>Costo unitario</th>
+              <th style={s.th}></th>
             </tr>
           </thead>
           <tbody>
             {lineas.map((linea, indice) => (
               <tr key={indice}>
-                <td>
+                <td style={s.td}>
                   <select
                     value={linea.producto_id}
                     onChange={(evento) => {
@@ -320,11 +290,7 @@ export function Compras(): JSX.Element {
                         descripcion: producto ? producto.descripcion : linea.descripcion,
                       });
                     }}
-                    style={{
-                      padding: "6px 8px",
-                      borderRadius: 6,
-                      border: "1px solid var(--sfr-borde)",
-                    }}
+                    style={s.input}
                   >
                     <option value="">— Libre —</option>
                     {productos.map((producto) => (
@@ -334,22 +300,17 @@ export function Compras(): JSX.Element {
                     ))}
                   </select>
                 </td>
-                <td>
+                <td style={s.td}>
                   <input
                     type="text"
                     value={linea.descripcion}
                     onChange={(evento) =>
                       actualizarLinea(indice, { descripcion: evento.target.value })
                     }
-                    style={{
-                      padding: "6px 8px",
-                      borderRadius: 6,
-                      border: "1px solid var(--sfr-borde)",
-                      width: 180,
-                    }}
+                    style={{ ...s.input, width: 180 }}
                   />
                 </td>
-                <td>
+                <td style={s.td}>
                   <input
                     type="number"
                     step="0.01"
@@ -357,15 +318,10 @@ export function Compras(): JSX.Element {
                     onChange={(evento) =>
                       actualizarLinea(indice, { cantidad: evento.target.value })
                     }
-                    style={{
-                      padding: "6px 8px",
-                      borderRadius: 6,
-                      border: "1px solid var(--sfr-borde)",
-                      width: 90,
-                    }}
+                    style={{ ...s.input, width: 90 }}
                   />
                 </td>
-                <td>
+                <td style={s.td}>
                   <input
                     type="number"
                     step="0.01"
@@ -373,25 +329,16 @@ export function Compras(): JSX.Element {
                     onChange={(evento) =>
                       actualizarLinea(indice, { costo_unitario: evento.target.value })
                     }
-                    style={{
-                      padding: "6px 8px",
-                      borderRadius: 6,
-                      border: "1px solid var(--sfr-borde)",
-                      width: 100,
-                    }}
+                    style={{ ...s.input, width: 100 }}
                   />
                 </td>
-                <td>
+                <td style={s.td}>
                   <button
                     type="button"
+                    className="sfr-peligro"
                     onClick={() => quitarLinea(indice)}
                     disabled={lineas.length === 1}
-                    style={{
-                      border: "none",
-                      background: "transparent",
-                      cursor: "pointer",
-                      color: "var(--sfr-gris)",
-                    }}
+                    style={{ ...s.botonPeligro, border: "none" }}
                   >
                     Quitar
                   </button>
@@ -404,22 +351,14 @@ export function Compras(): JSX.Element {
         <button
           type="button"
           onClick={agregarLinea}
-          style={{
-            background: "transparent",
-            border: "1px solid var(--sfr-borde)",
-            borderRadius: 8,
-            padding: "6px 12px",
-            fontSize: 13,
-            cursor: "pointer",
-            marginBottom: 16,
-          }}
+          style={{ ...s.botonSecundario, marginBottom: 16 }}
         >
           + Agregar línea
         </button>
 
         <p style={{ fontSize: 14, marginBottom: 16 }}>
-          Subtotal: {totales.subtotal.toFixed(2)} · ITBIS: {totales.itbis.toFixed(2)} ·{" "}
-          <strong>Total: {totales.total.toFixed(2)}</strong>
+          Subtotal: {money(totales.subtotal)} · ITBIS: {money(totales.itbis)} ·{" "}
+          <strong>Total: {money(totales.total)}</strong>
         </p>
 
         <button
@@ -427,13 +366,7 @@ export function Compras(): JSX.Element {
           onClick={() => void guardarCompra()}
           disabled={guardando}
           style={{
-            background: "var(--sfr-acento)",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "9px 18px",
-            fontSize: 14,
-            fontWeight: 600,
+            ...s.boton,
             cursor: guardando ? "not-allowed" : "pointer",
             opacity: guardando ? 0.7 : 1,
           }}
@@ -442,31 +375,31 @@ export function Compras(): JSX.Element {
         </button>
       </section>
 
-      <h3>Historial (últimas 50)</h3>
-      <div style={{ overflowX: "auto" }}>
-        <table>
+      <h3 style={{ fontSize: 18, fontWeight: 600 }}>Historial (últimas 50)</h3>
+      <div className="sfr-tabla-scroll">
+        <table style={s.tabla}>
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Proveedor</th>
-              <th>Subtotal</th>
-              <th>ITBIS</th>
-              <th>Total</th>
+              <th style={s.th}>Fecha</th>
+              <th style={s.th}>Proveedor</th>
+              <th style={s.th}>Subtotal</th>
+              <th style={s.th}>ITBIS</th>
+              <th style={s.th}>Total</th>
             </tr>
           </thead>
           <tbody>
             {compras.map((compra) => (
               <tr key={compra.id}>
-                <td>{compra.fecha.slice(0, 10)}</td>
-                <td>{nombreProveedor(compra.proveedor)}</td>
-                <td>{compra.subtotal.toFixed(2)}</td>
-                <td>{compra.itbis.toFixed(2)}</td>
-                <td>{compra.total.toFixed(2)}</td>
+                <td style={s.td}>{compra.fecha.slice(0, 10)}</td>
+                <td style={s.td}>{nombreProveedor(compra.proveedor)}</td>
+                <td style={s.tdDerecha}>{money(compra.subtotal)}</td>
+                <td style={s.tdDerecha}>{money(compra.itbis)}</td>
+                <td style={s.tdDerecha}>{money(compra.total)}</td>
               </tr>
             ))}
             {compras.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ textAlign: "center", color: "var(--sfr-gris)" }}>
+                <td colSpan={5} style={s.filaVacia}>
                   Sin compras registradas.
                 </td>
               </tr>

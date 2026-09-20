@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "../supabaseClient";
+import { s, c } from "../estilos";
 
 interface NegocioFila {
   id: string;
@@ -101,20 +102,11 @@ export function Configuracion(): JSX.Element {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Configuración</h2>
+      <h2 style={{ marginTop: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3 }}>
+        Configuración
+      </h2>
       {error !== null && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--sfr-peligro-fondo)",
-            color: "var(--sfr-peligro)",
-            border: "1px solid var(--sfr-peligro)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
+        <div role="alert" style={s.errorBox}>
           {error}
         </div>
       )}
@@ -122,9 +114,9 @@ export function Configuracion(): JSX.Element {
         <div
           role="status"
           style={{
-            background: "#e8f5e9",
-            color: "#2e7d32",
-            border: "1px solid #2e7d32",
+            background: c.verdeFondo,
+            color: c.verde,
+            border: `1px solid ${c.verde}`,
             borderRadius: 8,
             padding: "10px 12px",
             fontSize: 13,
@@ -135,22 +127,14 @@ export function Configuracion(): JSX.Element {
         </div>
       )}
 
-      <section
-        style={{
-          background: "var(--sfr-superficie)",
-          border: "1px solid var(--sfr-borde)",
-          borderRadius: 12,
-          padding: 16,
-          maxWidth: 560,
-        }}
-      >
+      <section style={{ ...s.tarjeta, maxWidth: 560 }}>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
           <Campo etiqueta="Nombre comercial">
             <input
               type="text"
               value={negocio.nombre_comercial}
               onChange={(e) => setNegocio({ ...negocio, nombre_comercial: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             />
           </Campo>
           <Campo etiqueta="Razón social">
@@ -158,7 +142,7 @@ export function Configuracion(): JSX.Element {
               type="text"
               value={negocio.razon_social ?? ""}
               onChange={(e) => setNegocio({ ...negocio, razon_social: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             />
           </Campo>
           <Campo etiqueta="RNC">
@@ -166,7 +150,7 @@ export function Configuracion(): JSX.Element {
               type="text"
               value={negocio.rnc ?? ""}
               onChange={(e) => setNegocio({ ...negocio, rnc: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             />
           </Campo>
         </div>
@@ -176,7 +160,7 @@ export function Configuracion(): JSX.Element {
               type="text"
               value={negocio.direccion ?? ""}
               onChange={(e) => setNegocio({ ...negocio, direccion: e.target.value })}
-              style={{ ...estiloInput, width: 220 }}
+              style={{ ...s.input, width: 220 }}
             />
           </Campo>
           <Campo etiqueta="Teléfono">
@@ -184,7 +168,7 @@ export function Configuracion(): JSX.Element {
               type="text"
               value={negocio.telefono ?? ""}
               onChange={(e) => setNegocio({ ...negocio, telefono: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             />
           </Campo>
           <Campo etiqueta="Correo">
@@ -192,7 +176,7 @@ export function Configuracion(): JSX.Element {
               type="email"
               value={negocio.correo ?? ""}
               onChange={(e) => setNegocio({ ...negocio, correo: e.target.value })}
-              style={estiloInput}
+              style={s.input}
             />
           </Campo>
         </div>
@@ -203,7 +187,7 @@ export function Configuracion(): JSX.Element {
               onChange={(e) =>
                 setNegocio({ ...negocio, ancho_impresora_default: Number(e.target.value) })
               }
-              style={estiloInput}
+              style={s.input}
             >
               <option value={58}>58 mm</option>
               <option value={80}>80 mm</option>
@@ -232,13 +216,7 @@ export function Configuracion(): JSX.Element {
           onClick={() => void guardar()}
           disabled={guardando}
           style={{
-            background: "var(--sfr-acento)",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "9px 18px",
-            fontSize: 14,
-            fontWeight: 600,
+            ...s.boton,
             cursor: guardando ? "not-allowed" : "pointer",
             opacity: guardando ? 0.7 : 1,
           }}
@@ -253,18 +231,8 @@ export function Configuracion(): JSX.Element {
 function Campo(props: { etiqueta: string; children: ReactNode }): JSX.Element {
   return (
     <div>
-      <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>
-        {props.etiqueta}
-      </label>
+      <label style={s.label}>{props.etiqueta}</label>
       {props.children}
     </div>
   );
 }
-
-const estiloInput: CSSProperties = {
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: "1px solid var(--sfr-borde)",
-  background: "var(--sfr-superficie)",
-  color: "var(--sfr-texto)",
-};
