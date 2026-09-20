@@ -15,19 +15,27 @@
 --
 -- Deliberadamente SIN política (osea: bloqueadas para cualquier key que no
 -- sea la secret key) las tablas que no le corresponden al dueño remoto:
---   - usuario, usuario_seguridad: contienen pin_hash real e intentos
---     fallidos/bloqueo del personal. El acceso remoto de RBAC-07 (Personal)
---     sigue siendo LOCAL únicamente; no se expone por este canal.
+--   - usuario_seguridad: pin_actualizado_at/intentos_fallidos/bloqueado_hasta
+--     del personal. El reset de PIN sigue siendo LOCAL únicamente.
 --   - bitacora_accion: auditoría interna, no es dato operativo del dueño.
 --   - secuencia_ncf, comprobante_fiscal: fiscal/DGII, fuera de alcance de
 --     esta tanda (compras/inventario/reportes).
 --   - instalacion, caja: identidad de la instalación física, no aplica a un
 --     acceso remoto que no está "en ninguna caja".
---   - cotizacion, cotizacion_linea, devolucion, devolucion_linea, promocion:
---     no pedidos por el dueño en esta tanda; se agregan cuando haga falta.
+--   - devolucion, devolucion_linea: no pedidas por el dueño en esta tanda;
+--     se agregan cuando haga falta.
 --
 -- Patrón de cada bloque: SELECT para cualquier autenticado; INSERT/UPDATE
 -- donde además haga falta escribir.
+--
+-- `usuario` es la EXCEPCIÓN al patrón: tiene política de fila permisiva
+-- (USING true) igual que las demás, pero además GRANTs por columna que
+-- excluyen `pin_hash` y `permisos_json` — el dueño remoto puede ver/crear/
+-- editar nombre/rol/activo del personal (pantalla Personal), pero la
+-- fila de RLS por sí sola no basta para esconder esas dos columnas: sin el
+-- REVOKE+GRANT de más abajo, `USING (true)` las expondría igual que el
+-- resto. El reset de PIN y el ajuste fino de permisos siguen siendo LOCAL
+-- únicamente (usuario_seguridad sigue sin política, ver arriba).
 --
 -- Reportes (negocio, factura, factura_linea, pago, corte_caja, cliente,
 -- movimiento_inventario) ganaron INSERT/UPDATE (no solo SELECT) cuando se
@@ -134,3 +142,39 @@ CREATE POLICY dueno_lee_comprobante_archivo ON comprobante_archivo
   FOR SELECT TO authenticated USING (true);
 CREATE POLICY dueno_escribe_comprobante_archivo ON comprobante_archivo
   FOR INSERT TO authenticated WITH CHECK (true);
+
+-- Promociones (lectura + escritura completa) --------------------------------
+CREATE POLICY dueno_lee_promocion ON promocion
+  FOR SELECT TO authenticated USING (true);
+CREATE POLICY dueno_escribe_promocion ON promocion
+  FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY dueno_actualiza_promocion ON promocion
+  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+-- Cotizaciones (lectura + anular; nunca se crean desde el canal remoto) -----
+CREATE POLICY dueno_lee_cotizacion ON cotizacion
+  FOR SELECT TO authenticated USING (true);
+CREATE POLICY dueno_actualiza_cotizacion ON cotizacion
+  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY dueno_lee_cotizacion_linea ON cotizacion_linea
+  FOR SELECT TO authenticated USING (true);
+
+-- Personal (pantalla Personal remota: nombre/rol/activo, NUNCA pin_hash) ----
+-- La política de fila es permisiva igual que el resto, pero los GRANT por
+-- columna de abajo son los que de verdad esconden pin_hash/permisos_json:
+-- sin ellos, esta misma política expondría la tabla completa.
+CREATE POLICY dueno_lee_usuario ON usuario
+  FOR SELECT TO authenticated USING (true);
+CREATE POLICY dueno_escribe_usuario ON usuario
+  FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY dueno_actualiza_usuario ON usuario
+  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+REVOKE ALL ON usuario FROM authenticated;
+GRANT SELECT (id, nombre, rol, activo, created_at, updated_at, deleted_at)
+  ON usuario TO authenticated;
+GRANT INSERT (id, nombre, rol, activo)
+  ON usuario TO authenticated;
+GRANT UPDATE (nombre, rol, activo, updated_at)
+  ON usuario TO authenticated;

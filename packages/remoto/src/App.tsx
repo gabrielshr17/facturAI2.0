@@ -7,14 +7,39 @@ import { Inventario } from "./pantallas/Inventario";
 import { Compras } from "./pantallas/Compras";
 import { Reportes } from "./pantallas/Reportes";
 import { Ventas } from "./pantallas/Ventas";
+import { Clientes } from "./pantallas/Clientes";
+import { Productos } from "./pantallas/Productos";
+import { Promociones } from "./pantallas/Promociones";
+import { ConsultaCotizaciones } from "./pantallas/ConsultaCotizaciones";
+import { ConsultaFacturas } from "./pantallas/ConsultaFacturas";
+import { Personal } from "./pantallas/Personal";
+import { Configuracion } from "./pantallas/Configuracion";
 
-type Pestana = "ventas" | "compras" | "inventario" | "reportes";
+type Pestana =
+  | "ventas"
+  | "clientes"
+  | "productos"
+  | "compras"
+  | "inventario"
+  | "promociones"
+  | "cotizaciones"
+  | "facturas"
+  | "reportes"
+  | "personal"
+  | "configuracion";
 
 const PESTANAS: { id: Pestana; etiqueta: string }[] = [
   { id: "ventas", etiqueta: "Ventas" },
+  { id: "clientes", etiqueta: "Clientes" },
+  { id: "productos", etiqueta: "Productos" },
   { id: "compras", etiqueta: "Compras" },
   { id: "inventario", etiqueta: "Inventario" },
+  { id: "promociones", etiqueta: "Promociones" },
+  { id: "cotizaciones", etiqueta: "Cotizaciones" },
+  { id: "facturas", etiqueta: "Facturas" },
   { id: "reportes", etiqueta: "Reportes" },
+  { id: "personal", etiqueta: "Personal" },
+  { id: "configuracion", etiqueta: "Configuración" },
 ];
 
 /**
@@ -122,9 +147,16 @@ export function App(): JSX.Element {
 
       <main style={{ flex: 1, padding: 20 }}>
         {pestana === "ventas" && <Ventas />}
+        {pestana === "clientes" && <Clientes />}
+        {pestana === "productos" && <Productos />}
         {pestana === "compras" && <Compras />}
         {pestana === "inventario" && <Inventario />}
+        {pestana === "promociones" && <Promociones />}
+        {pestana === "cotizaciones" && <ConsultaCotizaciones />}
+        {pestana === "facturas" && <ConsultaFacturas />}
         {pestana === "reportes" && <Reportes />}
+        {pestana === "personal" && <Personal />}
+        {pestana === "configuracion" && <Configuracion />}
       </main>
 
       {cambiandoClave && <CambiarClave onCerrar={() => setCambiandoClave(false)} />}
