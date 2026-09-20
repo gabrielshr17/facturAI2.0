@@ -67,7 +67,9 @@ async function obtenerToken(entorno: EntornoSincronizacion): Promise<string> {
   });
 
   if (!respuesta.ok) {
-    throw new Error(`Supabase Auth respondió con estado ${respuesta.status} al pedir credenciales de sincronización`);
+    throw new Error(
+      `Supabase Auth respondió con estado ${respuesta.status} al pedir credenciales de sincronización`,
+    );
   }
 
   const cuerpo = (await respuesta.json()) as RespuestaTokenSupabase;
@@ -77,7 +79,11 @@ async function obtenerToken(entorno: EntornoSincronizacion): Promise<string> {
   return cuerpo.access_token;
 }
 
-async function subirEntrada(entorno: EntornoSincronizacion, token: string, entrada: CrudEntry): Promise<void> {
+async function subirEntrada(
+  entorno: EntornoSincronizacion,
+  token: string,
+  entrada: CrudEntry,
+): Promise<void> {
   const base = entorno.supabaseUrl.replace(/\/+$/, "");
   const encabezadosComunes = {
     apikey: entorno.supabaseAnonKey,
