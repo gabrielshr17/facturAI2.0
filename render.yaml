@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: facturai-remoto
+    runtime: static
+    rootDir: packages/remoto
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @sfr/remoto build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
