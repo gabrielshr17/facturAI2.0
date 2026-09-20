@@ -208,6 +208,12 @@ importers:
 
   packages/web:
     dependencies:
+      '@powersync/common':
+        specifier: 2.0.0
+        version: 2.0.0
+      '@powersync/web':
+        specifier: 2.0.0
+        version: 2.0.0(@journeyapps/wa-sqlite@1.7.2)(@powersync/common@2.0.0)(@powersync/shared-internals@1.1.0)
       '@sfr/core':
         specifier: workspace:*
         version: link:../core
@@ -1203,6 +1209,9 @@ packages:
     resolution: {integrity: sha512-AokJm4tuBHillT+FpMtxQ60n8ObyXBatq7jD2/JA9dxbDDokKQm8KMht5ibGzLVU9IJDIKK4TPKgMHEYMn3lMg==}
     engines: {node: '>=18'}
 
+  '@journeyapps/wa-sqlite@1.7.2':
+    resolution: {integrity: sha512-EVRMzqHtHgJBFcTGOgQ5/YlxrYFSXLFFztC5yo6+jQx2mqFR+a1kkLV4IirquiBzIonjmYXfBtvZ26fmI8r9Nw==}
+
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
 
@@ -1247,6 +1256,14 @@ packages:
 
   '@powersync/tauri-plugin@0.0.6':
     resolution: {integrity: sha512-jFtSJY3vZ0YeYu5s7N2neGNcjphOi/wwRQHp6nFHvl4ZWWlGLc4NtvseCrRh5WafK2S5wqahH25yIpYA9rLHig==}
+
+  '@powersync/web@2.0.0':
+    resolution: {integrity: sha512-tVtvr052kTv2dBm49YI1jMYZ/eHPLNmy9PyioRANq1DB4+EvRkodgSRu5gGt3GOerPWSCJsvoAmtdR/SUdKUTA==}
+    hasBin: true
+    peerDependencies:
+      '@journeyapps/wa-sqlite': ^1.5.0
+      '@powersync/common': ^2.0.0
+      '@powersync/shared-internals': ^1.0.1
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -1947,6 +1964,13 @@ packages:
   combined-stream@1.0.8:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
     engines: {node: '>= 0.8'}
+
+  comlink@4.4.2:
+    resolution: {integrity: sha512-OxGdvBmJuNKSCMO4NTl1L47VRp6xn2wG4F/2hYzB6tiCb709otOxtEYCSvK80PtjODfXXZu8ds+Nw5kVCjqd2g==}
+
+  commander@12.1.0:
+    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
+    engines: {node: '>=18'}
 
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
@@ -4646,6 +4670,8 @@ snapshots:
 
   '@isaacs/cliui@9.0.0': {}
 
+  '@journeyapps/wa-sqlite@1.7.2': {}
+
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -4693,6 +4719,14 @@ snapshots:
       '@powersync/common': 2.0.0
       '@powersync/shared-internals': 1.1.0
       '@tauri-apps/api': 2.11.1
+
+  '@powersync/web@2.0.0(@journeyapps/wa-sqlite@1.7.2)(@powersync/common@2.0.0)(@powersync/shared-internals@1.1.0)':
+    dependencies:
+      '@journeyapps/wa-sqlite': 1.7.2
+      '@powersync/common': 2.0.0
+      '@powersync/shared-internals': 1.1.0
+      comlink: 4.4.2
+      commander: 12.1.0
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
@@ -5389,6 +5423,10 @@ snapshots:
   combined-stream@1.0.8:
     dependencies:
       delayed-stream: 1.0.0
+
+  comlink@4.4.2: {}
+
+  commander@12.1.0: {}
 
   commander@2.20.3: {}
 
