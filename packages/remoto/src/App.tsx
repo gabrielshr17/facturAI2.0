@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import { Acceso } from "./pantallas/Acceso";
+import { CambiarClave } from "./pantallas/CambiarClave";
 import { Inventario } from "./pantallas/Inventario";
 import { Compras } from "./pantallas/Compras";
 import { Reportes } from "./pantallas/Reportes";
@@ -25,6 +26,7 @@ export function App(): JSX.Element {
   const [sesion, setSesion] = useState<Session | null>(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
   const [pestana, setPestana] = useState<Pestana>("compras");
+  const [cambiandoClave, setCambiandoClave] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -87,6 +89,20 @@ export function App(): JSX.Element {
           <span style={{ fontSize: 13, color: "var(--sfr-gris)" }}>{sesion.user.email}</span>
           <button
             type="button"
+            onClick={() => setCambiandoClave(true)}
+            style={{
+              background: "transparent",
+              border: "1px solid var(--sfr-borde)",
+              borderRadius: 8,
+              padding: "8px 14px",
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            Cambiar contraseña
+          </button>
+          <button
+            type="button"
             onClick={() => void supabase.auth.signOut()}
             style={{
               background: "transparent",
@@ -107,6 +123,8 @@ export function App(): JSX.Element {
         {pestana === "inventario" && <Inventario />}
         {pestana === "reportes" && <Reportes />}
       </main>
+
+      {cambiandoClave && <CambiarClave onCerrar={() => setCambiandoClave(false)} />}
     </div>
   );
 }
