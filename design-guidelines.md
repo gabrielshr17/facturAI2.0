@@ -140,6 +140,7 @@ Prefijo de moneda `RD$` con espacio: `RD$ 1,600.00`.
 | Fondo del cajón / cajón de navegación | 290 / 300 |
 | Enlace "saltar al contenido" | 400 |
 | `confirmar()` / `avisar()` / `elegir()` | 500 |
+| Modal de bloqueo por inactividad (`Ctrl+L` o 5 min sin actividad, § RBAC-07 parte B) | 550 |
 | Pantalla de Acceso (selección de usuario + teclado de PIN) | 600 |
 | Modal de "definir PIN" del primer arranque, siempre por encima de Acceso | 650 |
 
@@ -151,6 +152,14 @@ modal sobre la app, es la app — pero se le asigna 600, por encima de
 aviso no debe quedar tapado por la pantalla de acceso que aparece encima. El modal
 de "definir tu PIN" del primer arranque vive DENTRO de Acceso pero se declara un
 peldaño más arriba (650) por la misma razón, un nivel más.
+
+El bloqueo por inactividad (§ RBAC-07 parte B) se declara en 550, por encima de
+`useAlertas()` (500) y por debajo de Acceso (600), a propósito: si el bloqueo se
+dispara con un `avisar()` en vuelo (p. ej. un guardado que falló justo antes de que
+pasara el límite), el bloqueo tiene que ganar y taparlo — proteger la pantalla no
+puede depender de que no haya ningún otro aviso pendiente — pero sigue por debajo de
+Acceso porque, a diferencia de Acceso, este modal nunca reemplaza `<AppShell>`: la
+sesión sigue activa y el ticket abierto en Ventas sigue ahí detrás, solo tapado.
 
 ---
 
@@ -284,6 +293,7 @@ Es la característica más importante del producto, no un extra de accesibilidad
 | `Ctrl+P` | Imprimir / reimprimir lo seleccionado |
 | `Ctrl+E` | Exportar (Reportes) |
 | `Ctrl+U` | Cambiar de usuario (desde cualquier lugar, § RBAC-07 parte C) |
+| `Ctrl+L` | Bloquear la pantalla ahora, sin esperar el límite de inactividad (§ RBAC-07 parte B) |
 | `Esc` | Cerrar modal, cancelar formulario, cerrar cajón |
 | `Enter` | Acción primaria del contexto |
 | `Supr` | Eliminar la fila resaltada |
@@ -312,6 +322,16 @@ En Ventas, además: `F5` cotizar, `F7` producto suelto, `F8` mayoreo, `F9` consu
 de precio, `F12` cobrar, `Insert` cantidad específica, `+`/`-` cantidad de la línea
 resaltada, `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` deshacer y rehacer (se registran las
 dos convenciones de rehacer porque ambas son comunes en Windows).
+
+### Bloqueo por inactividad (§ RBAC-07 parte B)
+
+Pasados 5 minutos sin actividad de mouse/teclado en cualquier módulo, la pantalla se
+bloquea sola (no cierra sesión, no toca el ticket abierto en Ventas) y pide el PIN
+del MISMO usuario para reanudar exactamente donde estaba. `Ctrl+L` bloquea de
+inmediato sin esperar el límite. Mientras está bloqueada, `useAtajosTeclado` apaga
+TODOS los atajos de pantalla (Alt+1…9 incluido) — el teclado numérico del propio
+modal de desbloqueo es la única entrada que sigue respondiendo, y a propósito no
+tiene atajo para `Esc`: un bloqueo que se descarta con una tecla no protege nada.
 
 ### Reglas al agregar atajos
 

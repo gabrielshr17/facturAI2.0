@@ -54,7 +54,7 @@ export {
   SESION_LOCAL,
 } from "./permisos.js";
 export { hashearPin, verificarPin, CriptoNoDisponibleError } from "./pin.js";
-export { marcarSesion, restaurarSesion } from "./sesion-vigencia.js";
+export { marcarSesion, restaurarSesion, debeBloquear } from "./sesion-vigencia.js";
 export {
   type ResultadoCambioUsuario,
   evaluarCambioUsuario,

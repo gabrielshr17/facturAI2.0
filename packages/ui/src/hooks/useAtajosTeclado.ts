@@ -27,6 +27,30 @@ function normalizarTecla(e: KeyboardEvent): string {
 }
 
 /**
+ * Interruptor global de TODOS los mapas de atajos registrados con este hook (§ RBAC-07
+ * parte B, bloqueo de sesión por inactividad). Vive como variable de módulo, NO como
+ * estado de React ni como contexto: si fuera estado/contexto, prenderlo/apagarlo
+ * volvería a renderizar cada pantalla que llama a `useAtajosTeclado` (decenas, ver
+ * `AppShell.tsx`, `Ventas.tsx`, `Compras.tsx`, etc.), justo el bucle de re-render que
+ * PLATAFORMA-07/RBAC-07 vienen documentando para `ProveedorDatos`. Al ser una variable
+ * de módulo, el chequeo ocurre DENTRO del handler de `keydown` en el momento en que se
+ * presiona una tecla — nunca dispara un render por sí solo.
+ *
+ * Es el MISMO mecanismo `activo` que ya recibía este hook por parámetro, no uno nuevo:
+ * la condición final para ejecutar un atajo es `activo (por llamador) Y NO bloqueado
+ * (global)`. `BloqueoInactividad.tsx` es el único componente que debe llamar a
+ * `establecerBloqueoGlobalAtajos`, justo en las dos transiciones (bloquear/desbloquear).
+ * La entrada de PIN del propio modal de bloqueo NO pasa por este hook (usa su propio
+ * `window.addEventListener("keydown", ...)`, igual que `CambioRapidoUsuario.tsx` y
+ * `Acceso.tsx`), así que sigue funcionando mientras el resto de la app está bloqueada.
+ */
+let bloqueadoGlobal = false;
+
+export function establecerBloqueoGlobalAtajos(bloqueado: boolean): void {
+  bloqueadoGlobal = bloqueado;
+}
+
+/**
  * Registra atajos de teclado globales (teclas de función, Esc, Ctrl+letra,
  * etc.) mientras el componente esté montado. `activo` permite desactivar el
  * mapa sin desmontar (ej. una pantalla detrás de un modal que usa las mismas
@@ -39,6 +63,7 @@ export function useAtajosTeclado(mapa: MapaAtajos, activo = true) {
   useEffect(() => {
     if (!activo) return;
     function onKeyDown(e: KeyboardEvent) {
+      if (bloqueadoGlobal) return;
       const manejador = mapaRef.current[normalizarTecla(e)];
       if (!manejador) return;
       e.preventDefault();
