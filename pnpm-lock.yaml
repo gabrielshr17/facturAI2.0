@@ -44,6 +44,10 @@ importers:
         version: 2.1.9(@types/node@22.20.0)(jsdom@25.0.1)(terser@5.48.0)
 
   packages/core:
+    dependencies:
+      '@powersync/common':
+        specifier: 2.0.0
+        version: 2.0.0
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -60,6 +64,12 @@ importers:
 
   packages/desktop:
     dependencies:
+      '@powersync/common':
+        specifier: 2.0.0
+        version: 2.0.0
+      '@powersync/tauri-plugin':
+        specifier: 0.0.6
+        version: 0.0.6
       '@sfr/core':
         specifier: workspace:*
         version: link:../core
@@ -1131,6 +1141,15 @@ packages:
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
+
+  '@powersync/common@2.0.0':
+    resolution: {integrity: sha512-GuWmk0w0Y6I1HDwX4uGFzzw1e4E4bkvDSSCpVikdTEIk1xcW5NNnqTX8xfDheZdoQZunm/XushrR/LsIp1Yc/g==}
+
+  '@powersync/shared-internals@1.1.0':
+    resolution: {integrity: sha512-wvMzKlyCTEZ87dujK7eID5d5O8EaY/637c4dOj4KmqOA8nosbIqewVxWmGKzySYLh8TnyoIpsz87iniFTA9S0g==}
+
+  '@powersync/tauri-plugin@0.0.6':
+    resolution: {integrity: sha512-jFtSJY3vZ0YeYu5s7N2neGNcjphOi/wwRQHp6nFHvl4ZWWlGLc4NtvseCrRh5WafK2S5wqahH25yIpYA9rLHig==}
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -4229,6 +4248,16 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
 
   '@pinojs/redact@0.4.0': {}
+
+  '@powersync/common@2.0.0': {}
+
+  '@powersync/shared-internals@1.1.0': {}
+
+  '@powersync/tauri-plugin@0.0.6':
+    dependencies:
+      '@powersync/common': 2.0.0
+      '@powersync/shared-internals': 1.1.0
+      '@tauri-apps/api': 2.11.1
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
