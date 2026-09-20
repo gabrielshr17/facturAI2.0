@@ -114,6 +114,7 @@ function construirPdf(datos: DocumentoPdfDatos): jsPDF {
     y += 8;
   }
 
+  let finalY = y;
   autoTable(doc, {
     startY: y,
     margin: { left: margen, right: margen },
@@ -131,10 +132,12 @@ function construirPdf(datos: DocumentoPdfDatos): jsPDF {
       2: { halign: "right" },
       3: { halign: "right" },
     },
+    didDrawPage: (data) => {
+      if (data.cursor) finalY = data.cursor.y;
+    },
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = finalY + 8;
 
   const filaTotal = (etiqueta: string, valor: string, negrita = false) => {
     doc.setFont("helvetica", negrita ? "bold" : "normal");
