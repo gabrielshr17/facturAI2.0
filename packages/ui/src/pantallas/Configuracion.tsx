@@ -5,6 +5,7 @@ import { useRepos } from "../data/contexto.js";
 import { useSesion } from "../sesion/contexto.js";
 import { useAlertas } from "../contexto/Alertas.js";
 import { s, c } from "../estilos.js";
+import { FUNCIONES_EN_DESARROLLO } from "../banderas.js";
 import { SeccionSecuenciasNcf } from "../componentes/SeccionSecuenciasNcf.js";
 import { SeccionBitacora } from "../componentes/SeccionBitacora.js";
 import { SeccionImpresoraTermica } from "../componentes/SeccionImpresoraTermica.js";
@@ -236,7 +237,7 @@ export function Configuracion() {
 
       <SeccionImpresoraTermica />
 
-      <SeccionSecuenciasNcf />
+      {FUNCIONES_EN_DESARROLLO.fiscal && <SeccionSecuenciasNcf />}
 
       <div style={{ ...s.tarjeta, marginTop: 16 }}>
         <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>

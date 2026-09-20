@@ -7,6 +7,7 @@ import {
   procesarCobro,
 } from "@sfr/core";
 import { CreditCard } from "lucide-react";
+import { FUNCIONES_EN_DESARROLLO } from "../banderas.js";
 import { s, c, sombra, money } from "../estilos.js";
 import { useAtajosTeclado } from "../hooks/useAtajosTeclado.js";
 import { useModalAccesible } from "../hooks/useModalAccesible.js";
@@ -236,44 +237,48 @@ export function ModalCobro({
           <span>RD$ {money(resultado.suficiente ? resultado.cambio : resultado.faltante)}</span>
         </div>
 
-        <label style={{ ...s.label, display: "flex", alignItems: "center", gap: 8 }}>
-          <input
-            type="checkbox"
-            checked={emitirFiscal}
-            onChange={(e) => setEmitirFiscal(e.target.checked)}
-          />
-          Factura con comprobante fiscal (NCF)
-        </label>
-        {emitirFiscal && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-            <select
-              style={{ ...s.input, flex: 1 }}
-              value={tipoEcf}
-              onChange={(e) => setTipoEcf(e.target.value as TipoEcf)}
-            >
-              {TIPOS_ECF_DISPONIBLES.map((t) => (
-                <option key={t} value={t}>
-                  {ETIQUETA_TIPO_ECF[t]}
-                </option>
-              ))}
-            </select>
-            <select
-              style={{ ...s.input, width: 90 }}
-              value={receptorTipo}
-              onChange={(e) => setReceptorTipo(e.target.value as "rnc" | "cedula")}
-            >
-              <option value="rnc">RNC</option>
-              <option value="cedula">Cédula</option>
-            </select>
-            <input
-              style={{ ...s.input, flex: 1 }}
-              placeholder={
-                tipoEcf === "31" ? "RNC del comprador (obligatorio)" : "RNC/cédula (opcional)"
-              }
-              value={receptorNumero}
-              onChange={(e) => setReceptorNumero(e.target.value)}
-            />
-          </div>
+        {FUNCIONES_EN_DESARROLLO.fiscal && (
+          <>
+            <label style={{ ...s.label, display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={emitirFiscal}
+                onChange={(e) => setEmitirFiscal(e.target.checked)}
+              />
+              Factura con comprobante fiscal (NCF)
+            </label>
+            {emitirFiscal && (
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <select
+                  style={{ ...s.input, flex: 1 }}
+                  value={tipoEcf}
+                  onChange={(e) => setTipoEcf(e.target.value as TipoEcf)}
+                >
+                  {TIPOS_ECF_DISPONIBLES.map((t) => (
+                    <option key={t} value={t}>
+                      {ETIQUETA_TIPO_ECF[t]}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  style={{ ...s.input, width: 90 }}
+                  value={receptorTipo}
+                  onChange={(e) => setReceptorTipo(e.target.value as "rnc" | "cedula")}
+                >
+                  <option value="rnc">RNC</option>
+                  <option value="cedula">Cédula</option>
+                </select>
+                <input
+                  style={{ ...s.input, flex: 1 }}
+                  placeholder={
+                    tipoEcf === "31" ? "RNC del comprador (obligatorio)" : "RNC/cédula (opcional)"
+                  }
+                  value={receptorNumero}
+                  onChange={(e) => setReceptorNumero(e.target.value)}
+                />
+              </div>
+            )}
+          </>
         )}
 
         <label style={s.label}>Notas</label>

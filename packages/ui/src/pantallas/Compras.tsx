@@ -12,6 +12,7 @@ import { Truck, Star, Sparkles } from "lucide-react";
 import { useRepos } from "../data/contexto.js";
 import { s, c, money } from "../estilos.js";
 import { analizarComprobante, type DatosExtraidosComprobante } from "../data/chatbotCliente.js";
+import { FUNCIONES_EN_DESARROLLO } from "../banderas.js";
 import { useAtajosTeclado } from "../hooks/useAtajosTeclado.js";
 import { filtrarNumero } from "../utilidades/numero.js";
 
@@ -628,7 +629,7 @@ export function Compras() {
                 setErrorIA(null);
               }}
             />
-            {archivo && archivo.type.startsWith("image/") && (
+            {FUNCIONES_EN_DESARROLLO.chatbot && archivo && archivo.type.startsWith("image/") && (
               <button
                 type="button"
                 style={{

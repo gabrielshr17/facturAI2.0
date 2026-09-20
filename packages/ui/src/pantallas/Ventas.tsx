@@ -43,6 +43,7 @@ import {
   Printer,
 } from "lucide-react";
 import { ChatBot } from "../componentes/ChatBot.js";
+import { FUNCIONES_EN_DESARROLLO } from "../banderas.js";
 import { EtiquetaAtajo } from "../componentes/EtiquetaAtajo.js";
 import { useAlertas } from "../contexto/Alertas.js";
 import { useAtajosTeclado } from "../hooks/useAtajosTeclado.js";
@@ -2788,7 +2789,7 @@ export function Ventas() {
         />
       )}
 
-      <ChatBot />
+      {FUNCIONES_EN_DESARROLLO.chatbot && <ChatBot />}
     </div>
   );
 }
