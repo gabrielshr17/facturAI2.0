@@ -16,11 +16,17 @@ export interface ConfigApi {
   powersyncUrl: string | null;
   /** true si todas las credenciales de Supabase están presentes. */
   supabaseConfigurado: boolean;
+  /** orígenes CORS permitidos (vacío = modo scaffold/desarrollo: refleja cualquier origen). */
+  allowedOrigins: string[];
 }
 
 export function cargarConfig(env: NodeJS.ProcessEnv = process.env): ConfigApi {
   const supabaseUrl = env.SUPABASE_URL || null;
   const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY || null;
+  const allowedOrigins = (env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
 
   return {
     puerto: Number(env.PORT) || 3001,
@@ -28,5 +34,6 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): ConfigApi {
     supabaseServiceRoleKey,
     powersyncUrl: env.POWERSYNC_URL || null,
     supabaseConfigurado: Boolean(supabaseUrl && supabaseServiceRoleKey),
+    allowedOrigins,
   };
 }
