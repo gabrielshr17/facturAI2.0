@@ -9,6 +9,7 @@ import {
   type PagoInput,
 } from "../dominio/factura.js";
 import { evaluarDisponibilidad } from "../dominio/inventario.js";
+import { redondear2, sumar } from "../dominio/dinero.js";
 import { exigirPermiso, usuarioDe } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
@@ -500,6 +501,41 @@ export function crearFacturaRepo(db: SqlDriver) {
       const erroresPago = validarPagos(input.pagos);
       if (erroresPago.length) throw new ValidacionError(erroresPago);
 
+      const montoCredito = redondear2(
+        sumar(input.pagos.filter((p) => p.metodo === "credito").map((p) => p.monto)),
+      );
+      if (montoCredito > 0) {
+        if (!factura.cliente_id) {
+          throw new ValidacionError([
+            {
+              campo: "cliente",
+              mensaje: "El pago a crédito requiere asignar un cliente al ticket.",
+            },
+          ]);
+        }
+        const cliente = await db.get<{
+          aplica_credito: number;
+          limite_credito: number;
+          saldo_credito: number;
+        }>("SELECT aplica_credito, limite_credito, saldo_credito FROM cliente WHERE id=?", [
+          factura.cliente_id,
+        ]);
+        if (!cliente || cliente.aplica_credito !== 1) {
+          throw new ValidacionError([
+            { campo: "cliente", mensaje: "Este cliente no tiene crédito habilitado." },
+          ]);
+        }
+        const disponible = redondear2(cliente.limite_credito - cliente.saldo_credito);
+        if (montoCredito > disponible) {
+          throw new ValidacionError([
+            {
+              campo: "pagos",
+              mensaje: `El cliente solo tiene RD$ ${Math.max(0, disponible).toFixed(2)} de crédito disponible.`,
+            },
+          ]);
+        }
+      }
+
       const resultado = procesarCobro(factura.total, input.pagos);
       if (!resultado.suficiente) {
         throw new ValidacionError([
@@ -528,6 +564,12 @@ export function crearFacturaRepo(db: SqlDriver) {
       );
 
       await descontarExistenciaPorVenta(facturaId, lineas);
+      if (montoCredito > 0) {
+        await db.run(
+          "UPDATE cliente SET saldo_credito = saldo_credito + ?, updated_at=? WHERE id=?",
+          [montoCredito, ts, factura.cliente_id],
+        );
+      }
       await registrarAccion(db, {
         accion: "cobrar",
         entidad: "factura",
