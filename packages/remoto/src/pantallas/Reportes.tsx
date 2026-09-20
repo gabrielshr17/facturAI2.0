@@ -161,7 +161,9 @@ export function Reportes(): JSX.Element {
     const lineas = (resLineas.data ?? []) as LineaFila[];
     const pagos = (resPagos.data ?? []) as PagoFila[];
 
-    const idsProducto = [...new Set(lineas.map((l) => l.producto_id).filter((id): id is string => !!id))];
+    const idsProducto = [
+      ...new Set(lineas.map((l) => l.producto_id).filter((id): id is string => !!id)),
+    ];
     let costoPorProducto: Record<string, number> = {};
     if (idsProducto.length > 0) {
       const { data: productosData } = await supabase
@@ -288,7 +290,11 @@ export function Reportes(): JSX.Element {
             type="button"
             onClick={() => void buscar()}
             disabled={cargando}
-            style={{ ...s.boton, cursor: cargando ? "not-allowed" : "pointer", opacity: cargando ? 0.7 : 1 }}
+            style={{
+              ...s.boton,
+              cursor: cargando ? "not-allowed" : "pointer",
+              opacity: cargando ? 0.7 : 1,
+            }}
           >
             {cargando ? "Consultando…" : "Consultar"}
           </button>
@@ -336,7 +342,12 @@ export function Reportes(): JSX.Element {
                 Ganancia estimada
               </h4>
               <div
-                style={{ fontSize: 26, fontWeight: 700, color: c.verde, fontVariantNumeric: "tabular-nums" }}
+                style={{
+                  fontSize: 26,
+                  fontWeight: 700,
+                  color: c.verde,
+                  fontVariantNumeric: "tabular-nums",
+                }}
               >
                 RD$ {money(ganancia?.gananciaEstimada ?? 0)}
               </div>
@@ -345,9 +356,9 @@ export function Reportes(): JSX.Element {
               </div>
               {(ganancia?.ingresosSinCosto ?? 0) > 0 && (
                 <div style={{ fontSize: 12, color: c.amarillo, marginTop: 6, fontWeight: 600 }}>
-                  RD$ {money(ganancia!.ingresosSinCosto)} en ventas sin producto vinculado — su costo
-                  real se desconoce y NO está restado arriba, así que la ganancia real es MENOR a la
-                  mostrada.
+                  RD$ {money(ganancia!.ingresosSinCosto)} en ventas sin producto vinculado — su
+                  costo real se desconoce y NO está restado arriba, así que la ganancia real es
+                  MENOR a la mostrada.
                 </div>
               )}
             </div>
@@ -368,17 +379,33 @@ export function Reportes(): JSX.Element {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div style={s.tarjeta}>
               <h4 style={{ marginTop: 0 }}>Ventas por día</h4>
-              {ventasPorDia.length === 0 && <p style={{ color: c.gris }}>Sin ventas en este período.</p>}
+              {ventasPorDia.length === 0 && (
+                <p style={{ color: c.gris }}>Sin ventas en este período.</p>
+              )}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {ventasPorDia.map((v) => (
                   <div key={v.fecha}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 3 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: 13,
+                        marginBottom: 3,
+                      }}
+                    >
                       <span>{v.fecha}</span>
                       <span style={{ fontVariantNumeric: "tabular-nums" }}>
                         RD$ {money(v.totalVentas)} ({v.cantidadFacturas})
                       </span>
                     </div>
-                    <div style={{ background: c.grisClaro, borderRadius: 999, height: 7, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        background: c.grisClaro,
+                        borderRadius: 999,
+                        height: 7,
+                        overflow: "hidden",
+                      }}
+                    >
                       <div
                         style={{
                           background: c.azul,
@@ -396,12 +423,22 @@ export function Reportes(): JSX.Element {
                 Ventas por método de pago
               </h4>
               {porMetodo.map((m) => (
-                <div key={m.metodo} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "4px 0" }}>
+                <div
+                  key={m.metodo}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 13,
+                    padding: "4px 0",
+                  }}
+                >
                   <span>{ETIQUETA_METODO[m.metodo] ?? m.metodo}</span>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>RD$ {money(m.total)}</span>
                 </div>
               ))}
-              {porMetodo.length === 0 && <p style={{ color: c.gris, fontSize: 13 }}>Sin pagos registrados.</p>}
+              {porMetodo.length === 0 && (
+                <p style={{ color: c.gris, fontSize: 13 }}>Sin pagos registrados.</p>
+              )}
             </div>
 
             <div style={s.tarjeta}>
