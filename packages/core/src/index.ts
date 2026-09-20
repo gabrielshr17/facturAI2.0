@@ -48,4 +48,7 @@ export {
   crearSincronizadorSaliente,
   type ConfigSincronizacionSaliente,
   type SincronizadorSaliente,
+  crearRestauradorNube,
+  type RestauradorNube,
+  type ResultadoRestauracion,
 } from "./sync/index.js";

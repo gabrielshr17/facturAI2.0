@@ -30,7 +30,7 @@ export interface SincronizadorSaliente {
  * compra_linea.compra_id, etc.). Mismas 13 tablas que antes cubría
  * packages/core/src/sync/esquema-sincronizacion.ts (ya retirado).
  */
-const ORDEN_TABLAS = [
+export const ORDEN_TABLAS = [
   "negocio",
   "departamento",
   "proveedor",
@@ -53,11 +53,11 @@ interface RespuestaTokenSupabase {
   access_token?: string;
 }
 
-function normalizarBase(url: string): string {
+export function normalizarBase(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-async function obtenerToken(config: ConfigSincronizacionSaliente): Promise<string> {
+export async function obtenerToken(config: ConfigSincronizacionSaliente): Promise<string> {
   const url = `${normalizarBase(config.supabaseUrl)}/auth/v1/token?grant_type=password`;
   const respuesta = await fetch(url, {
     method: "POST",
