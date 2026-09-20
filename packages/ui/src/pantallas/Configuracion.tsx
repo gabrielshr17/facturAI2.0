@@ -106,7 +106,9 @@ export function Configuracion() {
       });
     } catch (e) {
       const mensaje =
-        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String((e as Error)?.message ?? e);
+        e instanceof ValidacionError
+          ? e.errores.map((x) => x.mensaje).join(" ")
+          : String((e as Error)?.message ?? e);
       await avisar(mensaje, { titulo: "No se pudo restaurar", variante: "error" });
     } finally {
       setRestaurando(false);
@@ -251,7 +253,8 @@ export function Configuracion() {
         <hr style={{ border: "none", borderTop: `1px solid ${c.borde}`, margin: "16px 0" }} />
 
         <p style={{ color: c.gris, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-          <Upload size={14} /> Restaura toda la información desde un archivo de respaldo. Reemplaza los datos actuales.
+          <Upload size={14} /> Restaura toda la información desde un archivo de respaldo. Reemplaza
+          los datos actuales.
         </p>
         {!restaurarDisponible && (
           <div style={{ ...s.errorBox, marginBottom: 12 }}>
