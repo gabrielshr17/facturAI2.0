@@ -159,10 +159,14 @@ export function Ventas(): JSX.Element {
   const clienteSeleccionado = clientes.find((c) => c.id === clienteId) ?? null;
 
   function agregarProducto(producto: ProductoOpcion, mayoreo: boolean): void {
-    const precioUnitario = mayoreo && producto.precio_mayoreo ? producto.precio_mayoreo : producto.precio_venta;
+    const precioUnitario =
+      mayoreo && producto.precio_mayoreo ? producto.precio_mayoreo : producto.precio_venta;
     setCarrito((actual) => {
       const existente = actual.find(
-        (l) => l.producto_id === producto.id && l.precioUnitario === precioUnitario && l.esMayoreo === mayoreo,
+        (l) =>
+          l.producto_id === producto.id &&
+          l.precioUnitario === precioUnitario &&
+          l.esMayoreo === mayoreo,
       );
       if (existente) {
         return actual.map((l) =>
@@ -285,7 +289,9 @@ export function Ventas(): JSX.Element {
       }
       const disponible = clienteSeleccionado.limite_credito - clienteSeleccionado.saldo_credito;
       if (montoCredito > disponible) {
-        setError(`El cliente solo tiene RD$ ${Math.max(0, disponible).toFixed(2)} de crédito disponible.`);
+        setError(
+          `El cliente solo tiene RD$ ${Math.max(0, disponible).toFixed(2)} de crédito disponible.`,
+        );
         return;
       }
     }
@@ -433,8 +439,8 @@ export function Ventas(): JSX.Element {
           marginBottom: 12,
         }}
       >
-        La existencia mostrada puede no reflejar ventas recientes hechas en la caja física
-        (se actualiza cuando esa caja sincroniza).
+        La existencia mostrada puede no reflejar ventas recientes hechas en la caja física (se
+        actualiza cuando esa caja sincroniza).
       </div>
 
       {error !== null && (
@@ -511,16 +517,26 @@ export function Ventas(): JSX.Element {
                   <div style={{ fontSize: 14 }}>{producto.descripcion}</div>
                   <div style={{ fontSize: 12, color: "var(--sfr-gris)" }}>
                     RD$ {producto.precio_venta.toFixed(2)}
-                    {producto.precio_mayoreo ? ` · Mayoreo RD$ ${producto.precio_mayoreo.toFixed(2)}` : ""}
+                    {producto.precio_mayoreo
+                      ? ` · Mayoreo RD$ ${producto.precio_mayoreo.toFixed(2)}`
+                      : ""}
                     {negocio.inventario_activo ? ` · Existencia: ${producto.existencia ?? 0}` : ""}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button type="button" onClick={() => agregarProducto(producto, false)} style={botonSecundario}>
+                  <button
+                    type="button"
+                    onClick={() => agregarProducto(producto, false)}
+                    style={botonSecundario}
+                  >
                     + Agregar
                   </button>
                   {producto.precio_mayoreo !== null && (
-                    <button type="button" onClick={() => agregarProducto(producto, true)} style={botonSecundario}>
+                    <button
+                      type="button"
+                      onClick={() => agregarProducto(producto, true)}
+                      style={botonSecundario}
+                    >
                       + Mayoreo
                     </button>
                   )}
@@ -567,8 +583,15 @@ export function Ventas(): JSX.Element {
                       type="number"
                       step="0.01"
                       value={linea.cantidad}
-                      onChange={(evento) => actualizarCantidad(linea.clave, Number(evento.target.value))}
-                      style={{ width: 70, padding: "4px 6px", borderRadius: 6, border: "1px solid var(--sfr-borde)" }}
+                      onChange={(evento) =>
+                        actualizarCantidad(linea.clave, Number(evento.target.value))
+                      }
+                      style={{
+                        width: 70,
+                        padding: "4px 6px",
+                        borderRadius: 6,
+                        border: "1px solid var(--sfr-borde)",
+                      }}
                     />
                   </td>
                   <td>{linea.precioUnitario.toFixed(2)}</td>
@@ -577,7 +600,12 @@ export function Ventas(): JSX.Element {
                     <button
                       type="button"
                       onClick={() => quitarLinea(linea.clave)}
-                      style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--sfr-gris)" }}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        color: "var(--sfr-gris)",
+                      }}
                     >
                       Quitar
                     </button>
@@ -595,8 +623,9 @@ export function Ventas(): JSX.Element {
           </table>
 
           <p style={{ fontSize: 14, marginBottom: 16 }}>
-            Gravado: {totales.subtotalGravado.toFixed(2)} · Exento: {totales.subtotalExento.toFixed(2)} · ITBIS:{" "}
-            {totales.totalItbis.toFixed(2)} · <strong>Total: {totales.total.toFixed(2)}</strong>
+            Gravado: {totales.subtotalGravado.toFixed(2)} · Exento:{" "}
+            {totales.subtotalExento.toFixed(2)} · ITBIS: {totales.totalItbis.toFixed(2)} ·{" "}
+            <strong>Total: {totales.total.toFixed(2)}</strong>
           </p>
 
           <h3>Cliente (opcional)</h3>
@@ -658,8 +687,14 @@ export function Ventas(): JSX.Element {
             <div key={indice} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <select
                 value={pago.metodo}
-                onChange={(evento) => actualizarPago(indice, { metodo: evento.target.value as MetodoPago })}
-                style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--sfr-borde)" }}
+                onChange={(evento) =>
+                  actualizarPago(indice, { metodo: evento.target.value as MetodoPago })
+                }
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: "1px solid var(--sfr-borde)",
+                }}
               >
                 {METODOS.map((m) => (
                   <option key={m.valor} value={m.valor}>
@@ -673,25 +708,41 @@ export function Ventas(): JSX.Element {
                 value={pago.monto}
                 onChange={(evento) => actualizarPago(indice, { monto: evento.target.value })}
                 placeholder="Monto"
-                style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--sfr-borde)", width: 120 }}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: "1px solid var(--sfr-borde)",
+                  width: 120,
+                }}
               />
               <button
                 type="button"
                 onClick={() => quitarPago(indice)}
                 disabled={pagos.length === 1}
-                style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--sfr-gris)" }}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  color: "var(--sfr-gris)",
+                }}
               >
                 Quitar
               </button>
             </div>
           ))}
-          <button type="button" onClick={agregarPago} style={{ ...botonSecundario, marginBottom: 16 }}>
+          <button
+            type="button"
+            onClick={agregarPago}
+            style={{ ...botonSecundario, marginBottom: 16 }}
+          >
             + Agregar pago
           </button>
 
           <p style={{ fontSize: 14, marginBottom: 16 }}>
             Pagado: {cobro.montoPagado.toFixed(2)}
-            {cobro.suficiente ? ` · Cambio: ${cobro.cambio.toFixed(2)}` : ` · Falta: ${cobro.faltante.toFixed(2)}`}
+            {cobro.suficiente
+              ? ` · Cambio: ${cobro.cambio.toFixed(2)}`
+              : ` · Falta: ${cobro.faltante.toFixed(2)}`}
           </p>
 
           <button
