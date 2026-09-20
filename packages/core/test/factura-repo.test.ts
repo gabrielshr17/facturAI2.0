@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { SqlDriver } from "../src/db/driver.js";
 import { nuevaDb } from "./_ayuda.js";
-import { crearFacturaRepo, crearProductoRepo, crearClienteRepo, ValidacionError } from "../src/index.js";
+import {
+  crearFacturaRepo,
+  crearProductoRepo,
+  crearClienteRepo,
+  ValidacionError,
+} from "../src/index.js";
 
 describe("facturaRepo — armar ticket (§7.1)", () => {
   let db: SqlDriver;
@@ -253,6 +258,91 @@ describe("facturaRepo — cobrar (§7.2)", () => {
 
     const ultima = await repo.obtenerUltimaCobrada();
     expect(ultima?.id).toBe(t2.id);
+  });
+});
+
+describe("facturaRepo — cobrar a crédito (validación de cliente y límite)", () => {
+  let db: SqlDriver;
+  beforeEach(async () => {
+    db = await nuevaDb();
+  });
+
+  async function ticketCon100(repo: ReturnType<typeof crearFacturaRepo>, clienteId?: string) {
+    const t = await repo.abrirTicket(clienteId ? { cliente_id: clienteId } : {});
+    await repo.agregarLinea(t.id, {
+      descripcion: "Arroz", cantidad: 2, precioUnitario: 50, impuestoTipo: "itbis18", tasaImpuesto: 0.18,
+    });
+    return t;
+  }
+
+  it("rechaza pago a crédito sin cliente asignado al ticket", async () => {
+    const repo = crearFacturaRepo(db);
+    const t = await ticketCon100(repo);
+
+    await expect(
+      repo.cobrar(t.id, { pagos: [{ metodo: "credito", monto: 100 }] }),
+    ).rejects.toThrow(/requiere asignar un cliente/);
+  });
+
+  it("rechaza pago a crédito si el cliente no tiene crédito habilitado", async () => {
+    const repo = crearFacturaRepo(db);
+    const clientes = crearClienteRepo(db);
+    const cliente = await clientes.crear({ nombre: "Sin Crédito", aplica_credito: false });
+    const t = await ticketCon100(repo, cliente.id);
+
+    await expect(
+      repo.cobrar(t.id, { pagos: [{ metodo: "credito", monto: 100 }] }),
+    ).rejects.toThrow(/no tiene crédito habilitado/);
+  });
+
+  it("rechaza pago a crédito que excede el límite disponible del cliente", async () => {
+    const repo = crearFacturaRepo(db);
+    const clientes = crearClienteRepo(db);
+    const cliente = await clientes.crear({
+      nombre: "Límite Bajo",
+      aplica_credito: true,
+      limite_credito: 50,
+    });
+    const t = await ticketCon100(repo, cliente.id);
+
+    await expect(
+      repo.cobrar(t.id, { pagos: [{ metodo: "credito", monto: 100 }] }),
+    ).rejects.toThrow(/crédito disponible/);
+  });
+
+  it("acepta pago a crédito dentro del límite y actualiza el saldo del cliente", async () => {
+    const repo = crearFacturaRepo(db);
+    const clientes = crearClienteRepo(db);
+    const cliente = await clientes.crear({
+      nombre: "Buen Cliente",
+      aplica_credito: true,
+      limite_credito: 200,
+    });
+    const t = await ticketCon100(repo, cliente.id);
+
+    const { factura } = await repo.cobrar(t.id, { pagos: [{ metodo: "credito", monto: 100 }] });
+    expect(factura.estado).toBe("cobrada");
+
+    const actualizado = await clientes.obtener(cliente.id);
+    expect(actualizado?.saldo_credito).toBe(100);
+  });
+
+  it("acumula el saldo de crédito entre varias ventas hasta topar el límite", async () => {
+    const repo = crearFacturaRepo(db);
+    const clientes = crearClienteRepo(db);
+    const cliente = await clientes.crear({
+      nombre: "Cliente Recurrente",
+      aplica_credito: true,
+      limite_credito: 150,
+    });
+
+    const t1 = await ticketCon100(repo, cliente.id);
+    await repo.cobrar(t1.id, { pagos: [{ metodo: "credito", monto: 100 }] });
+
+    const t2 = await ticketCon100(repo, cliente.id);
+    await expect(
+      repo.cobrar(t2.id, { pagos: [{ metodo: "credito", monto: 100 }] }),
+    ).rejects.toThrow(/crédito disponible/);
   });
 });
 
