@@ -6,10 +6,12 @@ import { CambiarClave } from "./pantallas/CambiarClave";
 import { Inventario } from "./pantallas/Inventario";
 import { Compras } from "./pantallas/Compras";
 import { Reportes } from "./pantallas/Reportes";
+import { Ventas } from "./pantallas/Ventas";
 
-type Pestana = "compras" | "inventario" | "reportes";
+type Pestana = "ventas" | "compras" | "inventario" | "reportes";
 
 const PESTANAS: { id: Pestana; etiqueta: string }[] = [
+  { id: "ventas", etiqueta: "Ventas" },
   { id: "compras", etiqueta: "Compras" },
   { id: "inventario", etiqueta: "Inventario" },
   { id: "reportes", etiqueta: "Reportes" },
@@ -25,7 +27,7 @@ const PESTANAS: { id: Pestana; etiqueta: string }[] = [
 export function App(): JSX.Element {
   const [sesion, setSesion] = useState<Session | null>(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
-  const [pestana, setPestana] = useState<Pestana>("compras");
+  const [pestana, setPestana] = useState<Pestana>("ventas");
   const [cambiandoClave, setCambiandoClave] = useState(false);
 
   useEffect(() => {
@@ -119,6 +121,7 @@ export function App(): JSX.Element {
       </header>
 
       <main style={{ flex: 1, padding: 20 }}>
+        {pestana === "ventas" && <Ventas />}
         {pestana === "compras" && <Compras />}
         {pestana === "inventario" && <Inventario />}
         {pestana === "reportes" && <Reportes />}
