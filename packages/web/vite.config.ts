@@ -9,6 +9,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      workbox: {
+        // El wasm de wa-sqlite que trae @powersync/web (variantes async/
+        // multi-tab) supera el límite por defecto de Workbox (2 MiB); no se
+        // precachean solo para no romper el build, siguen sirviéndose por
+        // red/caché normal del navegador la primera vez que la sincronización
+        // los necesita.
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+      },
       manifest: {
         name: "facturAI",
         short_name: "facturAI",
@@ -34,6 +42,12 @@ export default defineConfig({
       },
     }),
   ],
+  // @powersync/web arranca su motor SQLite en un (shared) worker que usa
+  // imports dinámicos internamente (code-splitting) — Vite empaqueta workers
+  // en IIFE por defecto, y Rollup no soporta code-splitting en ese formato.
+  // Sin este `format: "es"`, el build de producción falla (ver
+  // https://docs.powersync.com/client-sdk-references/javascript-web#vite).
+  worker: { format: "es" },
   server: { port: 5173 },
   css: {
     // Objeto explícito (aunque vacío) evita que Vite busque un

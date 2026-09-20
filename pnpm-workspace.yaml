@@ -2,5 +2,6 @@ packages:
   - "packages/*"
 
 allowBuilds:
+  '@journeyapps/wa-sqlite': true
   core-js: true
   esbuild: true

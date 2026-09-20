@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@powersync/common": "2.0.0",
+    "@powersync/web": "2.0.0",
     "@sfr/core": "workspace:*",
     "@sfr/ui": "workspace:*",
     "react": "^18.3.1",
