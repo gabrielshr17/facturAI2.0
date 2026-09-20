@@ -50,11 +50,23 @@ export interface RespaldoCompleto {
  * `importarTodo` también la rechace si un respaldo viejo (de antes de esta
  * tarea) la incluyera: `tablasBase` (calculada con esta misma función) ya no
  * la reconocería como tabla válida del destino.
+ *
+ * `sync_pendiente` (§ migración 95, cola de sincronización saliente) se
+ * excluye por el mismo motivo que `usuario_seguridad`: es estado operativo
+ * derivado, no dato de negocio. Además, restaurarla explícitamente chocaría
+ * con los triggers `trg_*_sync_*`: al reinsertar filas de `producto`,
+ * `factura`, etc. durante la restauración, esos triggers YA vuelven a
+ * marcar todo como pendiente (lo cual es justo el comportamiento correcto:
+ * un respaldo restaurado no sabe si Supabase tiene ese estado exacto, así
+ * que debe re-subir todo) — restaurar además las filas originales de
+ * `sync_pendiente` desde el respaldo produce un choque de UNIQUE (tabla,id)
+ * contra lo que los triggers ya insertaron en la misma transacción.
  */
 async function listarTablas(db: SqlDriver): Promise<string[]> {
   const filas = await db.all<{ name: string }>(
     `SELECT name FROM sqlite_master
-     WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('_migracion', 'usuario_seguridad')
+     WHERE type='table' AND name NOT LIKE 'sqlite_%'
+       AND name NOT IN ('_migracion', 'usuario_seguridad', 'sync_pendiente')
      ORDER BY name`,
   );
   return filas.map((f) => f.name);
@@ -121,6 +133,12 @@ export function crearBackupRepo(db: SqlDriver) {
 
       await db.enTransaccion(async () => {
         await db.exec("PRAGMA defer_foreign_keys = ON;");
+
+        // Limpia la cola de sincronización saliente antes de restaurar: los
+        // triggers trg_*_sync_* la repueblan solos al reinsertar cada fila
+        // más abajo, así que arrancar en limpio evita entradas huérfanas
+        // apuntando a ids que ya no existen tras la restauración.
+        await db.run("DELETE FROM sync_pendiente");
 
         for (const [tabla] of entrandoTablas) {
           await db.run(`DELETE FROM ${tabla}`);

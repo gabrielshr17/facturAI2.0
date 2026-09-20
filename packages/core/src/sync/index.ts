@@ -1,5 +1,5 @@
 export {
-  esquemaSincronizacion,
-  TABLAS_SINCRONIZADAS,
-  type TablaSincronizada,
-} from "./esquema-sincronizacion.js";
+  crearSincronizadorSaliente,
+  type ConfigSincronizacionSaliente,
+  type SincronizadorSaliente,
+} from "./subida-saliente.js";

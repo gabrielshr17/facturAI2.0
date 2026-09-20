@@ -9,7 +9,6 @@ export const rutaSalud: FastifyPluginAsync = async (app) => {
       estado: "ok",
       timestamp: new Date().toISOString(),
       supabaseConfigurado: config.supabaseConfigurado,
-      powersyncConfigurado: Boolean(config.powersyncUrl),
     };
   });
 };
