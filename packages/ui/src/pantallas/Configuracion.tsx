@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { type NegocioInput, type RespaldoCompleto, ValidacionError } from "@sfr/core";
+import {
+  type NegocioInput,
+  type RespaldoCompleto,
+  ValidacionError,
+  crearRestauradorNube,
+} from "@sfr/core";
 import { Store, Printer, Save, Upload } from "lucide-react";
 import { useRepos } from "../data/contexto.js";
 import { useSesion } from "../sesion/contexto.js";
@@ -32,7 +37,21 @@ export function Configuracion() {
   const [guardado, setGuardado] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [restaurando, setRestaurando] = useState(false);
+  const [restaurandoNube, setRestaurandoNube] = useState(false);
   const inputArchivoRef = useRef<HTMLInputElement>(null);
+  const envVite = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+  const configNube = {
+    supabaseUrl: envVite?.VITE_SUPABASE_URL,
+    supabaseAnonKey: envVite?.VITE_SUPABASE_ANON_KEY,
+    syncEmail: envVite?.VITE_SYNC_EMAIL,
+    syncPassword: envVite?.VITE_SYNC_PASSWORD,
+  };
+  const restaurarNubeDisponible = Boolean(
+    configNube.supabaseUrl &&
+    configNube.supabaseAnonKey &&
+    configNube.syncEmail &&
+    configNube.syncPassword,
+  );
   const restaurarDisponible = db.enTransaccion !== undefined;
 
   useAtajosTeclado({ "Ctrl+S": () => void guardar() });
@@ -113,6 +132,50 @@ export function Configuracion() {
       await avisar(mensaje, { titulo: "No se pudo restaurar", variante: "error" });
     } finally {
       setRestaurando(false);
+    }
+  }
+
+  async function restaurarDesdeNube() {
+    const { n } = (await db.get<{ n: number }>("SELECT COUNT(*) as n FROM factura")) ?? { n: 0 };
+    const mensaje =
+      n > 0
+        ? "Ya hay ventas registradas en esta instalación. Restaurar desde la nube sobrescribirá filas existentes con lo que haya en Supabase. Pensado para una instalación nueva o vacía. ¿Continuar de todas formas?"
+        : "Esto descarga desde Supabase todo lo que el negocio ya haya sincronizado (ventas, clientes, productos, compras, etc.) y lo escribe en esta instalación. ¿Continuar?";
+    const confirmado = await confirmar(mensaje, {
+      titulo: "Restaurar desde la nube",
+      textoConfirmar: "Restaurar",
+    });
+    if (!confirmado) return;
+
+    setRestaurandoNube(true);
+    try {
+      const restaurador = crearRestauradorNube(db, {
+        supabaseUrl: configNube.supabaseUrl!,
+        supabaseAnonKey: configNube.supabaseAnonKey!,
+        syncEmail: configNube.syncEmail!,
+        syncPassword: configNube.syncPassword!,
+      });
+      const resultado = await restaurador.restaurar();
+      const totalFilas = Object.values(resultado.filasPorTabla).reduce((a, b) => a + b, 0);
+      const tablasFallidas = Object.keys(resultado.tablasConError);
+      if (tablasFallidas.length > 0) {
+        await avisar(
+          `Se restauraron ${totalFilas} filas, pero fallaron: ${tablasFallidas.join(", ")}. Puedes intentar de nuevo, es seguro repetir la restauración.`,
+          { titulo: "Restauración parcial", variante: "error" },
+        );
+      } else {
+        await avisar(
+          `Se restauraron ${totalFilas} filas desde la nube. Recarga la aplicación para ver los datos actualizados.`,
+          { titulo: "Restauración completa", variante: "info" },
+        );
+      }
+    } catch (e) {
+      await avisar(String((e as Error)?.message ?? e), {
+        titulo: "No se pudo restaurar desde la nube",
+        variante: "error",
+      });
+    } finally {
+      setRestaurandoNube(false);
     }
   }
 
@@ -276,6 +339,25 @@ export function Configuracion() {
           onClick={() => inputArchivoRef.current?.click()}
         >
           {restaurando ? "Restaurando…" : "Restaurar desde archivo"}
+        </button>
+
+        <hr style={{ border: "none", borderTop: `1px solid ${c.borde}`, margin: "16px 0" }} />
+
+        <p style={{ color: c.gris, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+          <Upload size={14} /> Descarga desde Supabase lo que este negocio ya haya sincronizado.
+          Pensado para una instalación nueva (ej. se dañó la PC anterior).
+        </p>
+        {!restaurarNubeDisponible && (
+          <div style={{ ...s.errorBox, marginBottom: 12 }}>
+            Sincronización no configurada en esta instalación.
+          </div>
+        )}
+        <button
+          style={s.botonSecundario}
+          disabled={!restaurarNubeDisponible || restaurandoNube}
+          onClick={() => void restaurarDesdeNube()}
+        >
+          {restaurandoNube ? "Restaurando…" : "Restaurar desde la nube"}
         </button>
       </div>
 
