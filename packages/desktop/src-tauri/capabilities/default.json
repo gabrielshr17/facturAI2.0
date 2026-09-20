@@ -6,7 +6,6 @@
   "permissions": [
     "core:default",
     "sql:default",
-    "sql:allow-execute",
-    "powersync:default"
+    "sql:allow-execute"
   ]
 }
