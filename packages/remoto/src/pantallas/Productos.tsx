@@ -244,10 +244,7 @@ export function Productos(): JSX.Element {
     if (texto === undefined) return;
     const nuevaExistencia = Number(texto);
     if (Number.isNaN(nuevaExistencia) || nuevaExistencia === (producto.existencia ?? 0)) {
-      setExistenciaEdicion((actual) => {
-        const { [producto.id]: _quitado, ...resto } = actual;
-        return resto;
-      });
+      setExistenciaEdicion((actual) => quitarClave(actual, producto.id));
       return;
     }
     setError(null);
@@ -276,11 +273,14 @@ export function Productos(): JSX.Element {
         `La existencia se ajustó pero no se pudo registrar el movimiento (${errorMovimiento.message}).`,
       );
     }
-    setExistenciaEdicion((actual) => {
-      const { [producto.id]: _quitado, ...resto } = actual;
-      return resto;
-    });
+    setExistenciaEdicion((actual) => quitarClave(actual, producto.id));
     await cargar();
+  }
+
+  function quitarClave(mapa: Record<string, string>, clave: string): Record<string, string> {
+    const copia = { ...mapa };
+    delete copia[clave];
+    return copia;
   }
 
   if (cargando) {
