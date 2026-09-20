@@ -1,9 +1,11 @@
 /**
- * Configuración del backend (§ Multi-caja/multiusuario). Ninguna de estas
- * variables está conectada todavía a un proyecto real: este paquete es un
- * *scaffold* — arranca y sirve rutas sin Supabase/PowerSync configurados,
- * para que la estructura (rutas, tipos, plugin de auth) quede lista y solo
- * haga falta pegar credenciales reales cuando existan.
+ * Configuración del backend (§ Multi-caja/multiusuario). Cuando
+ * `packages/api/.env` trae `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` reales
+ * (ya es el caso del proyecto en producción), `supabaseConfigurado` queda en
+ * `true` y el proceso corre completamente conectado — auth vía Supabase Auth
+ * (`plugins/auth.ts`), RLS aplicado en la base. Sin esas variables (dev sin
+ * `.env`), arranca en modo scaffold: sirve rutas pero autentica todo como
+ * usuario de desarrollo (ver el warning en `server.ts`).
  *
  * Nada de esto se usa en el modo 100% local (SQLite en el cliente); el
  * backend solo entra en juego para el modo multi-caja/multiusuario y para

@@ -3,9 +3,9 @@ import { supabase } from "../supabaseClient";
 
 /**
  * Consume la vista `vista_ventas_por_dia` (packages/api/db/reportes-vistas.sql,
- * pendiente de pegar en el SQL Editor de Supabase por el dueño — este agente
- * no tiene acceso directo al Postgres real). PostgREST no permite GROUP BY en
- * una consulta simple sobre `factura`, de ahí la vista.
+ * YA APLICADA contra el proyecto real de Supabase — verificado con PostgREST
+ * respondiendo 200). PostgREST no permite GROUP BY en una consulta simple
+ * sobre `factura`, de ahí la vista.
  *
  * Limitación de zona horaria (documentada también en el .sql): la vista
  * agrupa con `date(fecha_hora)` sin convertir de UTC a la zona de RD
@@ -50,7 +50,7 @@ export function Reportes(): JSX.Element {
     setCargando(false);
     if (errorSupabase) {
       setError(
-        `${errorSupabase.message}. Si el error menciona que la vista no existe, falta pegar packages/api/db/reportes-vistas.sql en el SQL Editor de Supabase.`,
+        `${errorSupabase.message}. Si el error menciona que la vista no existe (p. ej. tras un reset de la base), re-aplicar packages/api/db/reportes-vistas.sql en el SQL Editor de Supabase.`,
       );
       return;
     }
