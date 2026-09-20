@@ -50,7 +50,10 @@ function validarLineas(lineas: LineaCotizacionInput[]): ErrorValidacion[] {
   }
   for (const l of lineas) {
     if (!tieneValor(l.descripcion)) {
-      errores.push({ campo: "descripcion", mensaje: "La descripción del artículo es obligatoria." });
+      errores.push({
+        campo: "descripcion",
+        mensaje: "La descripción del artículo es obligatoria.",
+      });
     }
     if (!(l.cantidad > 0)) {
       errores.push({ campo: "cantidad", mensaje: "La cantidad debe ser mayor que cero." });
@@ -115,9 +118,22 @@ export function crearCotizacionRepo(db: SqlDriver) {
       await db.run(
         `INSERT INTO cotizacion (${COLS_COTIZACION}) VALUES (${Array(16).fill("?").join(",")})`,
         [
-          c.id, c.numero_interno, c.fecha_hora, c.fecha_vencimiento, c.cliente_id, c.usuario_id,
-          c.subtotal_gravado, c.subtotal_exento, c.total_itbis, c.total, c.notas, c.estado,
-          c.factura_id, c.created_at, c.updated_at, c.deleted_at,
+          c.id,
+          c.numero_interno,
+          c.fecha_hora,
+          c.fecha_vencimiento,
+          c.cliente_id,
+          c.usuario_id,
+          c.subtotal_gravado,
+          c.subtotal_exento,
+          c.total_itbis,
+          c.total,
+          c.notas,
+          c.estado,
+          c.factura_id,
+          c.created_at,
+          c.updated_at,
+          c.deleted_at,
         ],
       );
 
@@ -146,9 +162,20 @@ export function crearCotizacionRepo(db: SqlDriver) {
         await db.run(
           `INSERT INTO cotizacion_linea (${COLS_LINEA}) VALUES (${Array(14).fill("?").join(",")})`,
           [
-            linea.id, linea.cotizacion_id, linea.producto_id, linea.descripcion, linea.cantidad,
-            linea.precio_unitario, linea.impuesto_tipo, linea.tasa_impuesto, linea.monto_itbis,
-            linea.subtotal, linea.nivel_precio, linea.created_at, linea.updated_at, linea.deleted_at,
+            linea.id,
+            linea.cotizacion_id,
+            linea.producto_id,
+            linea.descripcion,
+            linea.cantidad,
+            linea.precio_unitario,
+            linea.impuesto_tipo,
+            linea.tasa_impuesto,
+            linea.monto_itbis,
+            linea.subtotal,
+            linea.nivel_precio,
+            linea.created_at,
+            linea.updated_at,
+            linea.deleted_at,
           ],
         );
       }

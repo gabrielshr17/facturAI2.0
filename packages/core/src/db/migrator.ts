@@ -16,10 +16,7 @@ export async function migrate(db: SqlDriver): Promise<Migration[]> {
   return aplicarMigraciones(db, migrations);
 }
 
-export async function aplicarMigraciones(
-  db: SqlDriver,
-  lista: Migration[],
-): Promise<Migration[]> {
+export async function aplicarMigraciones(db: SqlDriver, lista: Migration[]): Promise<Migration[]> {
   // Se detecta el id duplicado ANTES de tocar la base: hoy migrator.ts
   // dedupe solo por id al filtrar pendientes, así que dos áreas eligiendo el
   // mismo id ejecutarían las dos y el segundo INSERT en _migracion violaría
@@ -47,17 +44,16 @@ export async function aplicarMigraciones(
   const aplicadas = await db.all<{ id: number }>("SELECT id FROM _migracion");
   const yaAplicadas = new Set(aplicadas.map((r) => r.id));
 
-  const pendientes = lista
-    .filter((m) => !yaAplicadas.has(m.id))
-    .sort((a, b) => a.id - b.id);
+  const pendientes = lista.filter((m) => !yaAplicadas.has(m.id)).sort((a, b) => a.id - b.id);
 
   for (const m of pendientes) {
     const aplicarUna = async () => {
       await db.exec(m.sql);
-      await db.run(
-        "INSERT INTO _migracion (id, nombre, aplicada_at) VALUES (?, ?, ?)",
-        [m.id, m.nombre, new Date().toISOString()],
-      );
+      await db.run("INSERT INTO _migracion (id, nombre, aplicada_at) VALUES (?, ?, ?)", [
+        m.id,
+        m.nombre,
+        new Date().toISOString(),
+      ]);
     };
 
     // El exec del SQL y el INSERT en _migracion van juntos en la misma

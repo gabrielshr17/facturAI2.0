@@ -39,7 +39,11 @@ export function precioBaseDesdeCosto(costo: number, pctGanancia: number): number
  * Con costo 0 el % no está definido (cualquier precio es "infinito" margen),
  * así que se devuelve 0 en vez de Infinity/NaN.
  */
-export function pctGananciaDesdePrecio(costo: number, precioVenta: number, tasaImpuesto: number): number {
+export function pctGananciaDesdePrecio(
+  costo: number,
+  precioVenta: number,
+  tasaImpuesto: number,
+): number {
   if (!(costo > 0)) return 0;
   const base = precioVenta / (1 + tasaImpuesto);
   return redondear2((base / costo - 1) * 100);

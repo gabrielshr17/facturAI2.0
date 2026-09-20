@@ -43,9 +43,19 @@ export function crearComprobanteArchivoRepo(db: SqlDriver) {
       await db.run(
         `INSERT INTO comprobante_archivo (${COLS}) VALUES (${Array(13).fill("?").join(",")})`,
         [
-          a.id, a.compra_id, a.nombre_archivo, a.tipo_mime, a.contenido_base64, a.mes_ano,
-          a.tiene_fiscal, a.estado_revision, a.identificado_por, a.datos_extraidos_json,
-          a.created_at, a.updated_at, a.deleted_at,
+          a.id,
+          a.compra_id,
+          a.nombre_archivo,
+          a.tipo_mime,
+          a.contenido_base64,
+          a.mes_ano,
+          a.tiene_fiscal,
+          a.estado_revision,
+          a.identificado_por,
+          a.datos_extraidos_json,
+          a.created_at,
+          a.updated_at,
+          a.deleted_at,
         ],
       );
       return a;
@@ -59,7 +69,11 @@ export function crearComprobanteArchivoRepo(db: SqlDriver) {
     },
 
     async eliminar(id: string): Promise<void> {
-      await db.run("UPDATE comprobante_archivo SET deleted_at=?, updated_at=? WHERE id=?", [now(), now(), id]);
+      await db.run("UPDATE comprobante_archivo SET deleted_at=?, updated_at=? WHERE id=?", [
+        now(),
+        now(),
+        id,
+      ]);
     },
   };
 }

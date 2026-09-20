@@ -52,16 +52,18 @@ const ETIQUETA_ROL: Record<string, string> = {
   superadmin: "Superadmin",
 };
 
-const MENSAJE_POR_MOTIVO: Record<"pin_incorrecto" | "inactivo" | "bloqueado" | "sin_pin", string> = {
-  pin_incorrecto: "El PIN no es correcto.",
-  inactivo: "Este usuario está desactivado. Pide a un dueño o superadmin que lo reactive.",
-  bloqueado: "Demasiados intentos fallidos. Este usuario queda bloqueado temporalmente.",
-  // `sin_pin` no debería poder pasar aquí (solo ocurre en el primer login de un
-  // usuario, que ya tuvo que pasar por `Acceso.tsx` para existir con sesión activa),
-  // pero se cubre el motivo igual: el tipo de `autenticar` lo permite y un `Record`
-  // parcial dejaría pasar un mensaje `undefined` a `avisar()`.
-  sin_pin: "Este usuario todavía no tiene PIN definido. Pide a un dueño que lo restablezca desde Personal.",
-};
+const MENSAJE_POR_MOTIVO: Record<"pin_incorrecto" | "inactivo" | "bloqueado" | "sin_pin", string> =
+  {
+    pin_incorrecto: "El PIN no es correcto.",
+    inactivo: "Este usuario está desactivado. Pide a un dueño o superadmin que lo reactive.",
+    bloqueado: "Demasiados intentos fallidos. Este usuario queda bloqueado temporalmente.",
+    // `sin_pin` no debería poder pasar aquí (solo ocurre en el primer login de un
+    // usuario, que ya tuvo que pasar por `Acceso.tsx` para existir con sesión activa),
+    // pero se cubre el motivo igual: el tipo de `autenticar` lo permite y un `Record`
+    // parcial dejaría pasar un mensaje `undefined` a `avisar()`.
+    sin_pin:
+      "Este usuario todavía no tiene PIN definido. Pide a un dueño que lo restablezca desde Personal.",
+  };
 
 function mensajeDeError(error: unknown): string {
   if (error instanceof CriptoNoDisponibleError) return error.message;
@@ -117,7 +119,11 @@ export function CambioRapidoUsuario(): ReactElement | null {
     try {
       const resultado = await usuarioRepo.autenticar({ usuarioId, pin: pinIngresado });
       if (resultado.ok) {
-        iniciarSesion({ usuarioId: resultado.usuario.id, rol: resultado.usuario.rol, permisos: resultado.permisos });
+        iniciarSesion({
+          usuarioId: resultado.usuario.id,
+          rol: resultado.usuario.rol,
+          permisos: resultado.permisos,
+        });
         cerrar();
         return;
       }
@@ -180,12 +186,20 @@ function SeleccionUsuario({
 }) {
   const tarjetaRef = useModalAccesible<HTMLDivElement>();
   return (
-    <div ref={tarjetaRef} style={tarjeta} role="dialog" aria-modal="true" aria-labelledby="sfr-cambio-usuario-titulo">
+    <div
+      ref={tarjetaRef}
+      style={tarjeta}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sfr-cambio-usuario-titulo"
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
         <span aria-hidden="true" style={iconoCirculo}>
           <UserCog size={20} />
         </span>
-        <h1 id="sfr-cambio-usuario-titulo" style={{ ...estiloTitulo, margin: 0 }}>Cambiar de usuario</h1>
+        <h1 id="sfr-cambio-usuario-titulo" style={{ ...estiloTitulo, margin: 0 }}>
+          Cambiar de usuario
+        </h1>
       </div>
       <p style={subtituloTexto}>¿Quién va a usar la caja ahora?</p>
       {usuarios.length === 0 && (
@@ -229,7 +243,15 @@ interface TecladoPinProps {
 }
 
 /** Mismo teclado táctil (≥44px) que `Acceso.tsx`, duplicado a propósito — ver cabecera del archivo. */
-function TecladoPin({ titulo, subtitulo, pin, deshabilitado, onCambiarPin, onCancelar, onConfirmar }: TecladoPinProps) {
+function TecladoPin({
+  titulo,
+  subtitulo,
+  pin,
+  deshabilitado,
+  onCambiarPin,
+  onCancelar,
+  onConfirmar,
+}: TecladoPinProps) {
   const tarjetaRef = useModalAccesible<HTMLDivElement>();
   const primerBotonRef = useRef<HTMLButtonElement>(null);
 
@@ -319,7 +341,12 @@ function TecladoPin({ titulo, subtitulo, pin, deshabilitado, onCambiarPin, onCan
         <button type="button" style={s.botonSecundario} onClick={onCancelar}>
           Cambiar de usuario (Esc)
         </button>
-        <button type="button" style={s.boton} disabled={deshabilitado || pin.length < 4} onClick={onConfirmar}>
+        <button
+          type="button"
+          style={s.boton}
+          disabled={deshabilitado || pin.length < 4}
+          onClick={onConfirmar}
+        >
           Entrar (Enter)
         </button>
       </div>

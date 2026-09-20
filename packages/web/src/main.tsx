@@ -48,10 +48,18 @@ function App() {
   }, []);
 
   if (error) {
-    return <div style={{ padding: 24, fontFamily: "system-ui", color: "#dc2626" }}>Error al iniciar la base de datos: {error}</div>;
+    return (
+      <div style={{ padding: 24, fontFamily: "system-ui", color: "#dc2626" }}>
+        Error al iniciar la base de datos: {error}
+      </div>
+    );
   }
   if (!db) {
-    return <div style={{ padding: 24, fontFamily: "system-ui", color: "#6b7280" }}>Cargando base de datos…</div>;
+    return (
+      <div style={{ padding: 24, fontFamily: "system-ui", color: "#6b7280" }}>
+        Cargando base de datos…
+      </div>
+    );
   }
   // Re-validación contra la base (criterio de aceptación de RBAC-05): una marca de
   // `sessionStorage` de un usuario que se desactivó o eliminó mientras la pestaña

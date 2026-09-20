@@ -4,7 +4,13 @@ export { CambioRapidoUsuario } from "./componentes/CambioRapidoUsuario.js";
 export { BloqueoInactividad } from "./componentes/BloqueoInactividad.js";
 export { ProveedorDatos, useRepos, type Repos } from "./data/contexto.js";
 export { MODULOS, MODULO_POR_DEFECTO_ID, type ModuloDef } from "./navegacion/modulos.js";
-export { ProveedorSesion, useSesion, useSesionOpcional, type SesionApi, type ProveedorSesionProps } from "./sesion/contexto.js";
+export {
+  ProveedorSesion,
+  useSesion,
+  useSesionOpcional,
+  type SesionApi,
+  type ProveedorSesionProps,
+} from "./sesion/contexto.js";
 export { Acceso } from "./pantallas/Acceso.js";
 export { Ventas } from "./pantallas/Ventas.js";
 export { Productos } from "./pantallas/Productos.js";
@@ -12,4 +18,7 @@ export { Clientes } from "./pantallas/Clientes.js";
 export { Configuracion } from "./pantallas/Configuracion.js";
 export { Personal } from "./pantallas/Personal.js";
 export { configurarAdaptadorImpresora, type AdaptadorImpresora } from "./impresion/termica.js";
-export { configurarAdaptadorImpresoraTexto, type AdaptadorImpresoraTexto } from "./impresion/termica.js";
+export {
+  configurarAdaptadorImpresoraTexto,
+  type AdaptadorImpresoraTexto,
+} from "./impresion/termica.js";

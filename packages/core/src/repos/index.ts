@@ -44,10 +44,7 @@ export {
   type ClienteInput,
   type ClienteRepo,
 } from "./cliente-repo.js";
-export {
-  crearDepartamentoRepo,
-  type DepartamentoRepo,
-} from "./departamento-repo.js";
+export { crearDepartamentoRepo, type DepartamentoRepo } from "./departamento-repo.js";
 export {
   crearNegocioRepo,
   validarNegocio,
@@ -123,16 +120,8 @@ export {
   type ResumenPorMetodo,
   type ReportesRepo,
 } from "./reportes-repo.js";
-export {
-  crearPromocionRepo,
-  type PromocionInput,
-  type PromocionRepo,
-} from "./promocion-repo.js";
-export {
-  crearBackupRepo,
-  type RespaldoCompleto,
-  type BackupRepo,
-} from "./backup-repo.js";
+export { crearPromocionRepo, type PromocionInput, type PromocionRepo } from "./promocion-repo.js";
+export { crearBackupRepo, type RespaldoCompleto, type BackupRepo } from "./backup-repo.js";
 export {
   crearCotizacionRepo,
   type LineaCotizacionInput,
@@ -140,16 +129,8 @@ export {
   type FiltroCotizaciones,
   type CotizacionRepo,
 } from "./cotizacion-repo.js";
-export {
-  crearCajaRepo,
-  validarCaja,
-  type CajaInput,
-  type CajaRepo,
-} from "./caja-repo.js";
-export {
-  crearInstalacionRepo,
-  type InstalacionRepo,
-} from "./instalacion-repo.js";
+export { crearCajaRepo, validarCaja, type CajaInput, type CajaRepo } from "./caja-repo.js";
+export { crearInstalacionRepo, type InstalacionRepo } from "./instalacion-repo.js";
 export {
   crearUsuarioRepo,
   validarUsuario,

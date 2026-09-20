@@ -54,7 +54,10 @@ export function adivinarMapeo(columnas: string[]): Record<string, CampoDestino> 
     let encontrado: CampoDestino = "ignorar";
     for (const [campo, pistas] of Object.entries(PISTAS) as [CampoDestino, string[]][]) {
       if (usados.has(campo)) continue;
-      if (pistas.some((p) => n.includes(p))) { encontrado = campo; break; }
+      if (pistas.some((p) => n.includes(p))) {
+        encontrado = campo;
+        break;
+      }
     }
     mapeo[col] = encontrado;
     if (encontrado !== "ignorar") usados.add(encontrado);
@@ -76,13 +79,17 @@ export function normalizarImpuesto(valor: string | number | null): ImpuestoTipo 
 export function normalizarTipoVenta(valor: string | number | null): TipoVenta {
   const t = normalizar(String(valor ?? "").trim());
   if (!t) return "unidad";
-  if (t.includes("granel") || t.includes("peso") || t.includes("libra") || t.includes("weight")) return "granel";
+  if (t.includes("granel") || t.includes("peso") || t.includes("libra") || t.includes("weight"))
+    return "granel";
   if (t.includes("paquete") || t.includes("pack")) return "paquete";
   if (t.includes("kit")) return "kit";
   return "unidad";
 }
 
 /** Busca en `mapeo` la columna asignada a `campo` (o undefined si ninguna). */
-export function columnaDe(mapeo: Record<string, CampoDestino>, campo: CampoDestino): string | undefined {
+export function columnaDe(
+  mapeo: Record<string, CampoDestino>,
+  campo: CampoDestino,
+): string | undefined {
   return Object.entries(mapeo).find(([, v]) => v === campo)?.[0];
 }

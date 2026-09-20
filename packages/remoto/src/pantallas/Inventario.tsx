@@ -51,7 +51,11 @@ export function Inventario(): JSX.Element {
     void cargar();
   }, [cargar]);
 
-  async function guardarCampo(id: string, campo: "existencia" | "precio_venta", valor: number): Promise<void> {
+  async function guardarCampo(
+    id: string,
+    campo: "existencia" | "precio_venta",
+    valor: number,
+  ): Promise<void> {
     setGuardandoId(id);
     setError(null);
     const { error: errorSupabase } = await supabase
@@ -103,7 +107,8 @@ export function Inventario(): JSX.Element {
           <tbody>
             {productos.map((producto) => {
               const bajoMinimo =
-                producto.existencia_minima !== null && (producto.existencia ?? 0) <= producto.existencia_minima;
+                producto.existencia_minima !== null &&
+                (producto.existencia ?? 0) <= producto.existencia_minima;
               return (
                 <tr key={producto.id}>
                   <td>

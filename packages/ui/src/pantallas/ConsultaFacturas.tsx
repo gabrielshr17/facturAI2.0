@@ -66,8 +66,13 @@ function FacturasCobradas() {
   const enfocarBusqueda = useCallback(() => busquedaRef.current?.focus(), []);
   useAtajosTeclado({
     F10: enfocarBusqueda,
-    "Ctrl+P": () => { if (seleccionada) void reimprimir(seleccionada); },
-    Escape: () => { if (mostrarDevolucion) setMostrarDevolucion(false); else setSeleccionadaId(null); },
+    "Ctrl+P": () => {
+      if (seleccionada) void reimprimir(seleccionada);
+    },
+    Escape: () => {
+      if (mostrarDevolucion) setMostrarDevolucion(false);
+      else setSeleccionadaId(null);
+    },
   });
 
   useEffect(() => {
@@ -86,9 +91,11 @@ function FacturasCobradas() {
       const enriquecidas = await Promise.all(
         facturas.map(async (factura) => ({
           factura,
-          cliente: factura.cliente_id ? (await clientes.obtener(factura.cliente_id)) ?? null : null,
+          cliente: factura.cliente_id
+            ? ((await clientes.obtener(factura.cliente_id)) ?? null)
+            : null,
           comprobante: factura.comprobante_id
-            ? (await comprobanteFiscal.obtener(factura.comprobante_id)) ?? null
+            ? ((await comprobanteFiscal.obtener(factura.comprobante_id)) ?? null)
             : null,
         })),
       );
@@ -138,10 +145,14 @@ function FacturasCobradas() {
   };
 
   async function reimprimir(fila: FilaFactura) {
-    const salida = await elegir("¿Cómo quieres reimprimir esta factura?", [
-      { valor: "imprimir", etiqueta: "Imprimir" },
-      { valor: "pdf", etiqueta: "Guardar PDF" },
-    ], { titulo: "Reimprimir factura" });
+    const salida = await elegir(
+      "¿Cómo quieres reimprimir esta factura?",
+      [
+        { valor: "imprimir", etiqueta: "Imprimir" },
+        { valor: "pdf", etiqueta: "Guardar PDF" },
+      ],
+      { titulo: "Reimprimir factura" },
+    );
     if (!salida) return;
 
     const datosRecibo = {
@@ -171,89 +182,157 @@ function FacturasCobradas() {
         <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
           <div>
             <label style={s.label}>Desde</label>
-            <input style={s.input} type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+            <input
+              style={s.input}
+              type="date"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+            />
           </div>
           <div>
             <label style={s.label}>Hasta</label>
-            <input style={s.input} type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+            <input
+              style={s.input}
+              type="date"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+            />
           </div>
           <div>
             <label style={s.label}>Tipo</label>
-            <select style={s.input} value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)}>
-              {TIPOS.map((t) => <option key={t.valor} value={t.valor}>{t.etiqueta}</option>)}
+            <select
+              style={s.input}
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value as typeof tipo)}
+            >
+              {TIPOS.map((t) => (
+                <option key={t.valor} value={t.valor}>
+                  {t.etiqueta}
+                </option>
+              ))}
             </select>
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
             <label style={s.label}>Buscar (número, cliente, NCF) (F10)</label>
-            <input ref={busquedaRef} style={s.input} value={busqueda} autoFocus onChange={(e) => setBusqueda(e.target.value)} />
+            <input
+              ref={busquedaRef}
+              style={s.input}
+              value={busqueda}
+              autoFocus
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
           </div>
         </div>
-        {error && <div role="alert" style={s.errorBox}>{error}</div>}
+        {error && (
+          <div role="alert" style={s.errorBox}>
+            {error}
+          </div>
+        )}
       </div>
 
       {/* Al angostar, el detalle deja de ser una columna al lado y pasa a apilarse debajo del listado. */}
-      <div style={{ display: "grid", gridTemplateColumns: seleccionada && !esAngosto ? "minmax(0, 1fr) 340px" : "minmax(0, 1fr)", gap: 16 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            seleccionada && !esAngosto ? "minmax(0, 1fr) 340px" : "minmax(0, 1fr)",
+          gap: 16,
+        }}
+      >
         <div style={s.tarjeta}>
           <div className="sfr-tabla-scroll">
-          <table style={s.tabla}>
-            <thead>
-              <tr>
-                <th scope="col" style={s.th}>#</th>
-                <th scope="col" style={s.th}>Fecha</th>
-                <th scope="col" style={s.th}>Cliente</th>
-                <th scope="col" style={s.th}>Tipo</th>
-                <th scope="col" style={s.th}>Total</th>
-                <th scope="col" style={s.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {!cargando && filasFiltradas.length === 0 && (
-                <tr><td style={s.filaVacia} colSpan={6}>No hay facturas que coincidan con el filtro.</td></tr>
-              )}
-              {filasFiltradas.map((f) => (
-                <tr
-                  key={f.factura.id}
-                  onClick={() => setSeleccionadaId(f.factura.id)}
-                  style={{ cursor: "pointer", background: f.factura.id === seleccionadaId ? c.azulClaro : undefined }}
-                >
-                  <td style={s.td}>{f.factura.numero_interno}</td>
-                  <td style={s.td}>{new Date(f.factura.fecha_hora).toLocaleString("es-DO", { dateStyle: "short", timeStyle: "short" })}</td>
-                  <td style={s.td}>{f.cliente ? `${f.cliente.nombre} ${f.cliente.apellidos ?? ""}` : "—"}</td>
-                  <td style={s.td}>
-                    <span style={s.badge}>
-                      {f.factura.tipo === "fiscal" && f.comprobante
-                        ? `${ETIQUETA_TIPO_ECF[f.comprobante.tipo_ecf]} · ${f.comprobante.ncf}`
-                        : "Normal"}
-                    </span>
-                  </td>
-                  <td style={s.tdDerecha}>RD$ {money(f.factura.total)}</td>
-                  <td style={s.td}>
-                    <button
-                      style={s.botonSecundario}
-                      onClick={(e) => { e.stopPropagation(); setSeleccionadaId(f.factura.id); }}
-                    >
-                      Ver
-                    </button>
-                  </td>
+            <table style={s.tabla}>
+              <thead>
+                <tr>
+                  <th scope="col" style={s.th}>
+                    #
+                  </th>
+                  <th scope="col" style={s.th}>
+                    Fecha
+                  </th>
+                  <th scope="col" style={s.th}>
+                    Cliente
+                  </th>
+                  <th scope="col" style={s.th}>
+                    Tipo
+                  </th>
+                  <th scope="col" style={s.th}>
+                    Total
+                  </th>
+                  <th scope="col" style={s.th}></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {!cargando && filasFiltradas.length === 0 && (
+                  <tr>
+                    <td style={s.filaVacia} colSpan={6}>
+                      No hay facturas que coincidan con el filtro.
+                    </td>
+                  </tr>
+                )}
+                {filasFiltradas.map((f) => (
+                  <tr
+                    key={f.factura.id}
+                    onClick={() => setSeleccionadaId(f.factura.id)}
+                    style={{
+                      cursor: "pointer",
+                      background: f.factura.id === seleccionadaId ? c.azulClaro : undefined,
+                    }}
+                  >
+                    <td style={s.td}>{f.factura.numero_interno}</td>
+                    <td style={s.td}>
+                      {new Date(f.factura.fecha_hora).toLocaleString("es-DO", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                    </td>
+                    <td style={s.td}>
+                      {f.cliente ? `${f.cliente.nombre} ${f.cliente.apellidos ?? ""}` : "—"}
+                    </td>
+                    <td style={s.td}>
+                      <span style={s.badge}>
+                        {f.factura.tipo === "fiscal" && f.comprobante
+                          ? `${ETIQUETA_TIPO_ECF[f.comprobante.tipo_ecf]} · ${f.comprobante.ncf}`
+                          : "Normal"}
+                      </span>
+                    </td>
+                    <td style={s.tdDerecha}>RD$ {money(f.factura.total)}</td>
+                    <td style={s.td}>
+                      <button
+                        style={s.botonSecundario}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSeleccionadaId(f.factura.id);
+                        }}
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
         {seleccionada && (
           <div style={s.tarjeta}>
-            <h4 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 6 }}><Receipt size={16} /> Ticket #{seleccionada.factura.numero_interno}</h4>
+            <h4 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 6 }}>
+              <Receipt size={16} /> Ticket #{seleccionada.factura.numero_interno}
+            </h4>
             <p style={{ color: c.gris, fontSize: 13, margin: "4px 0" }}>
               {new Date(seleccionada.factura.fecha_hora).toLocaleString("es-DO")}
             </p>
             {seleccionada.cliente && (
-              <p style={{ margin: "4px 0" }}>{seleccionada.cliente.nombre} {seleccionada.cliente.apellidos ?? ""}</p>
+              <p style={{ margin: "4px 0" }}>
+                {seleccionada.cliente.nombre} {seleccionada.cliente.apellidos ?? ""}
+              </p>
             )}
             {seleccionada.comprobante && (
               <p style={{ margin: "4px 0", fontWeight: 600 }}>
-                {ETIQUETA_TIPO_ECF[seleccionada.comprobante.tipo_ecf]}<br />NCF: {seleccionada.comprobante.ncf}
+                {ETIQUETA_TIPO_ECF[seleccionada.comprobante.tipo_ecf]}
+                <br />
+                NCF: {seleccionada.comprobante.ncf}
               </p>
             )}
 
@@ -261,21 +340,43 @@ function FacturasCobradas() {
               <tbody>
                 {lineasSel.map((l) => (
                   <tr key={l.id}>
-                    <td style={s.td}>{l.descripcion} × {cantidad(l.cantidad)}</td>
+                    <td style={s.td}>
+                      {l.descripcion} × {cantidad(l.cantidad)}
+                    </td>
                     <td style={s.tdDerecha}>RD$ {money(l.subtotal)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 16, borderTop: `1px solid ${c.borde}`, paddingTop: 8, marginTop: 8 }}>
-              <span>Total</span><span>RD$ {money(seleccionada.factura.total)}</span>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontWeight: 700,
+                fontSize: 16,
+                borderTop: `1px solid ${c.borde}`,
+                paddingTop: 8,
+                marginTop: 8,
+              }}
+            >
+              <span>Total</span>
+              <span>RD$ {money(seleccionada.factura.total)}</span>
             </div>
 
             <div style={{ marginTop: 8 }}>
               {pagosSel.map((p) => (
-                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: c.gris }}>
-                  <span>{p.metodo}</span><span>RD$ {money(p.monto)}</span>
+                <div
+                  key={p.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 13,
+                    color: c.gris,
+                  }}
+                >
+                  <span>{p.metodo}</span>
+                  <span>RD$ {money(p.monto)}</span>
                 </div>
               ))}
             </div>
@@ -284,7 +385,10 @@ function FacturasCobradas() {
               <button style={{ ...s.boton, flex: 1 }} onClick={() => void reimprimir(seleccionada)}>
                 Reimprimir (Ctrl+P)
               </button>
-              <button style={{ ...s.botonSecundario, flex: 1 }} onClick={() => setMostrarDevolucion(true)}>
+              <button
+                style={{ ...s.botonSecundario, flex: 1 }}
+                onClick={() => setMostrarDevolucion(true)}
+              >
                 Devolver
               </button>
             </div>
@@ -318,8 +422,18 @@ export function ConsultaFacturas() {
           onClick={() => setTab("facturas")}
           style={{
             ...s.botonSecundario,
-            borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
-            ...(tab === "facturas" ? { background: c.azulClaro, color: c.azulOscuro, border: `1px solid ${c.azul}`, fontWeight: 600 } : {}),
+            borderRadius: 999,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            ...(tab === "facturas"
+              ? {
+                  background: c.azulClaro,
+                  color: c.azulOscuro,
+                  border: `1px solid ${c.azul}`,
+                  fontWeight: 600,
+                }
+              : {}),
           }}
         >
           <Receipt size={15} /> Facturas
@@ -328,8 +442,18 @@ export function ConsultaFacturas() {
           onClick={() => setTab("cotizaciones")}
           style={{
             ...s.botonSecundario,
-            borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
-            ...(tab === "cotizaciones" ? { background: c.azulClaro, color: c.azulOscuro, border: `1px solid ${c.azul}`, fontWeight: 600 } : {}),
+            borderRadius: 999,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            ...(tab === "cotizaciones"
+              ? {
+                  background: c.azulClaro,
+                  color: c.azulOscuro,
+                  border: `1px solid ${c.azul}`,
+                  fontWeight: 600,
+                }
+              : {}),
           }}
         >
           <ClipboardList size={15} /> Cotizaciones

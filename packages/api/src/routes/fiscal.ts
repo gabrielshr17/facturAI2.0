@@ -16,7 +16,8 @@ import type { ComprobanteATransmitir } from "@sfr/core";
 export const rutaFiscal: FastifyPluginAsync = async (app) => {
   app.post<{ Body: ComprobanteATransmitir }>("/fiscal/transmitir", async (_request, reply) => {
     await reply.code(501).send({
-      error: "Transmisión e-CF aún no implementada: falta decidir PAC vs. integración directa a la DGII.",
+      error:
+        "Transmisión e-CF aún no implementada: falta decidir PAC vs. integración directa a la DGII.",
     });
   });
 };

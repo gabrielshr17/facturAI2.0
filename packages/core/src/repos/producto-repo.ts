@@ -100,16 +100,30 @@ export function crearProductoRepo(db: SqlDriver) {
         deleted_at: null,
       };
 
-      await db.run(
-        `INSERT INTO producto (${COLS}) VALUES (${Array(22).fill("?").join(",")})`,
-        [
-          p.id, p.codigo_barra, p.descripcion, p.tipo_venta, p.unidad_medida, p.costo,
-          p.pct_ganancia, p.precio_venta, p.precio_mayoreo, p.departamento_id, p.impuesto_tipo,
-          p.tasa_impuesto, p.existencia, p.politica_sin_existencia, p.activo, p.favorito,
-          p.precio_2, p.cantidad_minima_mayoreo, p.existencia_minima,
-          p.created_at, p.updated_at, p.deleted_at,
-        ],
-      );
+      await db.run(`INSERT INTO producto (${COLS}) VALUES (${Array(22).fill("?").join(",")})`, [
+        p.id,
+        p.codigo_barra,
+        p.descripcion,
+        p.tipo_venta,
+        p.unidad_medida,
+        p.costo,
+        p.pct_ganancia,
+        p.precio_venta,
+        p.precio_mayoreo,
+        p.departamento_id,
+        p.impuesto_tipo,
+        p.tasa_impuesto,
+        p.existencia,
+        p.politica_sin_existencia,
+        p.activo,
+        p.favorito,
+        p.precio_2,
+        p.cantidad_minima_mayoreo,
+        p.existencia_minima,
+        p.created_at,
+        p.updated_at,
+        p.deleted_at,
+      ]);
       return p;
     },
 
@@ -150,16 +164,20 @@ export function crearProductoRepo(db: SqlDriver) {
           (input.descripcion ?? actual.descripcion).trim(),
           input.tipo_venta ?? actual.tipo_venta,
           input.unidad_medida ?? actual.unidad_medida,
-          costo, pct, precio,
+          costo,
+          pct,
+          precio,
           input.precio_mayoreo ?? actual.precio_mayoreo,
           input.departamento_id ?? actual.departamento_id,
-          impuesto_tipo, tasa,
+          impuesto_tipo,
+          tasa,
           input.politica_sin_existencia ?? actual.politica_sin_existencia,
           input.activo === false ? 0 : 1,
           input.precio_2 ?? actual.precio_2,
           input.cantidad_minima_mayoreo ?? actual.cantidad_minima_mayoreo,
           input.existencia_minima ?? actual.existencia_minima,
-          now(), id,
+          now(),
+          id,
         ],
       );
     },
@@ -170,7 +188,9 @@ export function crearProductoRepo(db: SqlDriver) {
       const actual = await this.obtener(id);
       await db.run("UPDATE producto SET deleted_at=?, updated_at=? WHERE id=?", [now(), now(), id]);
       await registrarAccion(db, {
-        accion: "eliminar", entidad: "producto", entidadId: id,
+        accion: "eliminar",
+        entidad: "producto",
+        entidadId: id,
         resumen: actual ? `Producto eliminado: ${actual.descripcion}` : null,
       });
     },
@@ -182,7 +202,9 @@ export function crearProductoRepo(db: SqlDriver) {
     async ajustarExistencia(id: string, nuevaExistencia: number): Promise<void> {
       exigirPermiso(db, "producto.ajustar_existencia");
       if (!(nuevaExistencia >= 0)) {
-        throw new ValidacionError([{ campo: "existencia", mensaje: "La existencia no puede ser negativa." }]);
+        throw new ValidacionError([
+          { campo: "existencia", mensaje: "La existencia no puede ser negativa." },
+        ]);
       }
       const actual = await this.obtener(id);
       if (!actual) throw new Error(`Producto ${id} no existe`);
@@ -191,7 +213,11 @@ export function crearProductoRepo(db: SqlDriver) {
       const delta = nuevaExistencia - anterior;
       const ts = now();
 
-      await db.run("UPDATE producto SET existencia=?, updated_at=? WHERE id=?", [nuevaExistencia, ts, id]);
+      await db.run("UPDATE producto SET existencia=?, updated_at=? WHERE id=?", [
+        nuevaExistencia,
+        ts,
+        id,
+      ]);
 
       if (delta !== 0) {
         await db.run(
@@ -201,17 +227,18 @@ export function crearProductoRepo(db: SqlDriver) {
           [newId(), id, "ajuste", delta, null, null, null, ts, null, ts, ts, null],
         );
         await registrarAccion(db, {
-          accion: "ajustar_existencia", entidad: "producto", entidadId: id,
+          accion: "ajustar_existencia",
+          entidad: "producto",
+          entidadId: id,
           resumen: `${actual.descripcion}: ${anterior} → ${nuevaExistencia} (${delta > 0 ? "+" : ""}${delta})`,
         });
       }
     },
 
     async obtener(id: string): Promise<Producto | undefined> {
-      return db.get<Producto>(
-        `SELECT ${COLS} FROM producto WHERE id=? AND deleted_at IS NULL`,
-        [id],
-      );
+      return db.get<Producto>(`SELECT ${COLS} FROM producto WHERE id=? AND deleted_at IS NULL`, [
+        id,
+      ]);
     },
 
     /** Busca por código de barra exacto (para el escaneo en Ventas). */
@@ -224,7 +251,11 @@ export function crearProductoRepo(db: SqlDriver) {
 
     /** Marca/desmarca un producto como favorito (§ Ventas: sube al tope de la búsqueda). */
     async alternarFavorito(id: string, favorito: boolean): Promise<void> {
-      await db.run("UPDATE producto SET favorito=?, updated_at=? WHERE id=?", [favorito ? 1 : 0, now(), id]);
+      await db.run("UPDATE producto SET favorito=?, updated_at=? WHERE id=?", [
+        favorito ? 1 : 0,
+        now(),
+        id,
+      ]);
     },
 
     /**

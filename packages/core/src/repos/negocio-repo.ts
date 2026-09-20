@@ -1,6 +1,11 @@
 import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
-import { tieneValor, esCorreoValido, esRncValido, type ErrorValidacion } from "../dominio/validacion.js";
+import {
+  tieneValor,
+  esCorreoValido,
+  esRncValido,
+  type ErrorValidacion,
+} from "../dominio/validacion.js";
 import { ValidacionError } from "./producto-repo.js";
 import type { Negocio } from "./tipos.js";
 
@@ -85,23 +90,35 @@ export function crearNegocioRepo(db: SqlDriver) {
           politica_costo: input.politica_costo ?? null,
           umbral_aviso_costo_pct: input.umbral_aviso_costo_pct ?? null,
           exige_caja_abierta: input.exige_caja_abierta ? 1 : 0,
-          arqueo_ciego: input.arqueo_ciego == null ? null : (input.arqueo_ciego ? 1 : 0),
+          arqueo_ciego: input.arqueo_ciego == null ? null : input.arqueo_ciego ? 1 : 0,
           umbral_diferencia_caja: input.umbral_diferencia_caja ?? null,
           created_at: ts,
           updated_at: ts,
           deleted_at: null,
         };
-        await db.run(
-          `INSERT INTO negocio (${COLS}) VALUES (${Array(21).fill("?").join(",")})`,
-          [
-            n.id, n.nombre_comercial, n.razon_social, n.rnc, n.direccion, n.telefono, n.correo,
-            n.logo_ruta, n.regimen, n.ancho_impresora_default, n.redondeo_centavo,
-            n.inventario_activo,
-            n.desfase_horario_min, n.politica_costo, n.umbral_aviso_costo_pct,
-            n.exige_caja_abierta, n.arqueo_ciego, n.umbral_diferencia_caja,
-            n.created_at, n.updated_at, n.deleted_at,
-          ],
-        );
+        await db.run(`INSERT INTO negocio (${COLS}) VALUES (${Array(21).fill("?").join(",")})`, [
+          n.id,
+          n.nombre_comercial,
+          n.razon_social,
+          n.rnc,
+          n.direccion,
+          n.telefono,
+          n.correo,
+          n.logo_ruta,
+          n.regimen,
+          n.ancho_impresora_default,
+          n.redondeo_centavo,
+          n.inventario_activo,
+          n.desfase_horario_min,
+          n.politica_costo,
+          n.umbral_aviso_costo_pct,
+          n.exige_caja_abierta,
+          n.arqueo_ciego,
+          n.umbral_diferencia_caja,
+          n.created_at,
+          n.updated_at,
+          n.deleted_at,
+        ]);
         return n;
       }
 
@@ -126,12 +143,21 @@ export function crearNegocioRepo(db: SqlDriver) {
           input.desfase_horario_min ?? actual.desfase_horario_min,
           input.politica_costo ?? actual.politica_costo,
           input.umbral_aviso_costo_pct ?? actual.umbral_aviso_costo_pct,
-          input.exige_caja_abierta !== undefined ? (input.exige_caja_abierta ? 1 : 0) : actual.exige_caja_abierta,
+          input.exige_caja_abierta !== undefined
+            ? input.exige_caja_abierta
+              ? 1
+              : 0
+            : actual.exige_caja_abierta,
           input.arqueo_ciego !== undefined
-            ? (input.arqueo_ciego == null ? null : (input.arqueo_ciego ? 1 : 0))
+            ? input.arqueo_ciego == null
+              ? null
+              : input.arqueo_ciego
+                ? 1
+                : 0
             : actual.arqueo_ciego,
           input.umbral_diferencia_caja ?? actual.umbral_diferencia_caja,
-          ts, actual.id,
+          ts,
+          actual.id,
         ],
       );
       return (await this.obtener())!;

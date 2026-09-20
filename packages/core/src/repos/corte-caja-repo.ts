@@ -39,7 +39,10 @@ function validarPeriodo(desde: string, hasta: string): ErrorValidacion[] {
   if (!tieneValor(desde) || !tieneValor(hasta)) {
     errores.push({ campo: "periodo", mensaje: "Debe indicar la fecha desde y hasta." });
   } else if (desde > hasta) {
-    errores.push({ campo: "periodo", mensaje: "La fecha 'desde' no puede ser posterior a 'hasta'." });
+    errores.push({
+      campo: "periodo",
+      mensaje: "La fecha 'desde' no puede ser posterior a 'hasta'.",
+    });
   }
   return errores;
 }
@@ -51,7 +54,11 @@ export function crearCorteCajaRepo(db: SqlDriver) {
       const errores = validarPeriodo(desde, hasta);
       if (errores.length) throw new ValidacionError(errores);
 
-      const agregada = await db.get<{ cantidad: number; totalVentas: number | null; totalItbis: number | null }>(
+      const agregada = await db.get<{
+        cantidad: number;
+        totalVentas: number | null;
+        totalItbis: number | null;
+      }>(
         `SELECT COUNT(*) as cantidad, SUM(total) as totalVentas, SUM(total_itbis) as totalItbis
          FROM factura
          WHERE estado='cobrada' AND deleted_at IS NULL
@@ -94,7 +101,10 @@ export function crearCorteCajaRepo(db: SqlDriver) {
         errores.push({ campo: "montoInicial", mensaje: "El monto inicial no puede ser negativo." });
       }
       if (input.efectivoContado < 0) {
-        errores.push({ campo: "efectivoContado", mensaje: "El efectivo contado no puede ser negativo." });
+        errores.push({
+          campo: "efectivoContado",
+          mensaje: "El efectivo contado no puede ser negativo.",
+        });
       }
       if (errores.length) throw new ValidacionError(errores);
 
@@ -128,17 +138,31 @@ export function crearCorteCajaRepo(db: SqlDriver) {
         deleted_at: null,
       };
 
-      await db.run(
-        `INSERT INTO corte_caja (${COLS}) VALUES (${Array(19).fill("?").join(",")})`,
-        [
-          c.id, c.caja_id, c.usuario_id, c.fecha_apertura, c.fecha_cierre, c.monto_inicial,
-          c.total_ventas, c.total_itbis, c.total_efectivo, c.total_tarjeta, c.total_transferencia,
-          c.total_credito, c.efectivo_esperado, c.efectivo_contado, c.diferencia, c.estado,
-          c.created_at, c.updated_at, c.deleted_at,
-        ],
-      );
+      await db.run(`INSERT INTO corte_caja (${COLS}) VALUES (${Array(19).fill("?").join(",")})`, [
+        c.id,
+        c.caja_id,
+        c.usuario_id,
+        c.fecha_apertura,
+        c.fecha_cierre,
+        c.monto_inicial,
+        c.total_ventas,
+        c.total_itbis,
+        c.total_efectivo,
+        c.total_tarjeta,
+        c.total_transferencia,
+        c.total_credito,
+        c.efectivo_esperado,
+        c.efectivo_contado,
+        c.diferencia,
+        c.estado,
+        c.created_at,
+        c.updated_at,
+        c.deleted_at,
+      ]);
       await registrarAccion(db, {
-        accion: "cerrar_caja", entidad: "corte_caja", entidadId: c.id,
+        accion: "cerrar_caja",
+        entidad: "corte_caja",
+        entidadId: c.id,
         resumen: `Período ${c.fecha_apertura} a ${c.fecha_cierre}, diferencia RD$ ${c.diferencia.toFixed(2)}`,
       });
       return c;

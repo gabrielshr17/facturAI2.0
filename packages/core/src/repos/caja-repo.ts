@@ -76,10 +76,19 @@ export function crearCajaRepo(db: SqlDriver) {
       };
 
       await db.run(`INSERT INTO caja (${COLS}) VALUES (${Array(8).fill("?").join(",")})`, [
-        c.id, c.nombre, c.ubicacion, c.activa, c.prefijo, c.created_at, c.updated_at, c.deleted_at,
+        c.id,
+        c.nombre,
+        c.ubicacion,
+        c.activa,
+        c.prefijo,
+        c.created_at,
+        c.updated_at,
+        c.deleted_at,
       ]);
       await registrarAccion(db, {
-        accion: "crear", entidad: "caja", entidadId: c.id,
+        accion: "crear",
+        entidad: "caja",
+        entidadId: c.id,
         resumen: `Caja creada: ${c.nombre} (${c.prefijo})`,
       });
       return c;
@@ -92,7 +101,9 @@ export function crearCajaRepo(db: SqlDriver) {
       const errores = validarCaja(input, { exigirPrefijo: false });
       if (errores.length) throw new ValidacionError(errores);
 
-      const prefijo = tieneValor(input.prefijo) ? input.prefijo!.trim().toUpperCase() : actual.prefijo;
+      const prefijo = tieneValor(input.prefijo)
+        ? input.prefijo!.trim().toUpperCase()
+        : actual.prefijo;
       if (prefijo) {
         const enUso = await db.get<{ id: string }>(
           "SELECT id FROM caja WHERE deleted_at IS NULL AND UPPER(prefijo) = ? AND id != ?",
@@ -111,7 +122,9 @@ export function crearCajaRepo(db: SqlDriver) {
         [input.nombre.trim(), input.ubicacion ?? actual.ubicacion, prefijo, activa, now(), id],
       );
       await registrarAccion(db, {
-        accion: "actualizar", entidad: "caja", entidadId: id,
+        accion: "actualizar",
+        entidad: "caja",
+        entidadId: id,
         resumen: `Caja actualizada: ${input.nombre.trim()}`,
       });
     },
@@ -138,7 +151,9 @@ export function crearCajaRepo(db: SqlDriver) {
 
       await db.run("UPDATE caja SET activa=0, updated_at=? WHERE id=?", [now(), id]);
       await registrarAccion(db, {
-        accion: "desactivar", entidad: "caja", entidadId: id,
+        accion: "desactivar",
+        entidad: "caja",
+        entidadId: id,
         resumen: `Caja desactivada: ${actual.nombre}`,
       });
     },
@@ -172,9 +187,15 @@ export function crearCajaRepo(db: SqlDriver) {
         ]);
       }
 
-      await db.run("UPDATE caja SET deleted_at=?, activa=0, updated_at=? WHERE id=?", [now(), now(), id]);
+      await db.run("UPDATE caja SET deleted_at=?, activa=0, updated_at=? WHERE id=?", [
+        now(),
+        now(),
+        id,
+      ]);
       await registrarAccion(db, {
-        accion: "eliminar", entidad: "caja", entidadId: id,
+        accion: "eliminar",
+        entidad: "caja",
+        entidadId: id,
         resumen: `Caja eliminada: ${actual.nombre}`,
       });
     },

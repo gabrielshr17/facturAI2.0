@@ -72,7 +72,10 @@ export function validarUsuario(input: UsuarioInput): ErrorValidacion[] {
     errores.push({ campo: "nombre", mensaje: "El nombre es obligatorio." });
   }
   if (!ROLES.includes(input.rol)) {
-    errores.push({ campo: "rol", mensaje: "El rol debe ser cajero, supervisor, dueno o superadmin." });
+    errores.push({
+      campo: "rol",
+      mensaje: "El rol debe ser cajero, supervisor, dueno o superadmin.",
+    });
   }
   if (input.pin != null && !PIN_VALIDO.test(input.pin)) {
     errores.push({ campo: "pin", mensaje: "El PIN debe tener entre 4 y 6 dígitos numéricos." });
@@ -82,7 +85,10 @@ export function validarUsuario(input: UsuarioInput): ErrorValidacion[] {
 
 const COLS = `id, nombre, rol, activo, permisos_json, created_at, updated_at, deleted_at`;
 
-async function contarOtrosAdministradoresActivos(db: SqlDriver, excluirId: string): Promise<number> {
+async function contarOtrosAdministradoresActivos(
+  db: SqlDriver,
+  excluirId: string,
+): Promise<number> {
   const fila = await db.get<{ n: number }>(
     `SELECT COUNT(*) as n FROM usuario
      WHERE rol IN ('dueno','superadmin') AND activo = 1 AND deleted_at IS NULL AND id <> ?`,
@@ -91,7 +97,10 @@ async function contarOtrosAdministradoresActivos(db: SqlDriver, excluirId: strin
   return fila?.n ?? 0;
 }
 
-async function obtenerSeguridad(db: SqlDriver, usuarioId: string): Promise<UsuarioSeguridad | undefined> {
+async function obtenerSeguridad(
+  db: SqlDriver,
+  usuarioId: string,
+): Promise<UsuarioSeguridad | undefined> {
   return db.get<UsuarioSeguridad>(
     `SELECT usuario_id, ultimo_acceso, intentos_fallidos, bloqueado_hasta, pin_actualizado_at
      FROM usuario_seguridad WHERE usuario_id = ?`,
@@ -116,7 +125,15 @@ async function asegurarSeguridad(db: SqlDriver, usuarioId: string): Promise<Usua
     `INSERT INTO usuario_seguridad
        (usuario_id, ultimo_acceso, intentos_fallidos, bloqueado_hasta, pin_actualizado_at, created_at, updated_at)
      VALUES (?,?,?,?,?,?,?)`,
-    [fila.usuario_id, fila.ultimo_acceso, fila.intentos_fallidos, fila.bloqueado_hasta, fila.pin_actualizado_at, ts, ts],
+    [
+      fila.usuario_id,
+      fila.ultimo_acceso,
+      fila.intentos_fallidos,
+      fila.bloqueado_hasta,
+      fila.pin_actualizado_at,
+      ts,
+      ts,
+    ],
   );
   return fila;
 }
@@ -124,7 +141,9 @@ async function asegurarSeguridad(db: SqlDriver, usuarioId: string): Promise<Usua
 export function crearUsuarioRepo(db: SqlDriver) {
   return {
     async listar(): Promise<Usuario[]> {
-      return db.all<Usuario>(`SELECT ${COLS} FROM usuario WHERE deleted_at IS NULL ORDER BY nombre`);
+      return db.all<Usuario>(
+        `SELECT ${COLS} FROM usuario WHERE deleted_at IS NULL ORDER BY nombre`,
+      );
     },
 
     async obtener(id: string): Promise<Usuario | undefined> {
@@ -151,10 +170,22 @@ export function crearUsuarioRepo(db: SqlDriver) {
       await db.run(
         `INSERT INTO usuario (id, nombre, rol, pin_hash, activo, permisos_json, created_at, updated_at, deleted_at)
          VALUES (?,?,?,?,?,?,?,?,?)`,
-        [u.id, u.nombre, u.rol, pinHash, u.activo, u.permisos_json, u.created_at, u.updated_at, u.deleted_at],
+        [
+          u.id,
+          u.nombre,
+          u.rol,
+          pinHash,
+          u.activo,
+          u.permisos_json,
+          u.created_at,
+          u.updated_at,
+          u.deleted_at,
+        ],
       );
       await registrarAccion(db, {
-        accion: "crear", entidad: "usuario", entidadId: u.id,
+        accion: "crear",
+        entidad: "usuario",
+        entidadId: u.id,
         resumen: `Usuario creado: ${u.nombre} (${u.rol})`,
       });
       return u;
@@ -173,7 +204,10 @@ export function crearUsuarioRepo(db: SqlDriver) {
         const otros = await contarOtrosAdministradoresActivos(db, id);
         if (otros === 0) {
           throw new ValidacionError([
-            { campo: "rol", mensaje: "No se puede dejar la instalación sin un dueño o superadmin activo." },
+            {
+              campo: "rol",
+              mensaje: "No se puede dejar la instalación sin un dueño o superadmin activo.",
+            },
           ]);
         }
       }
@@ -181,8 +215,12 @@ export function crearUsuarioRepo(db: SqlDriver) {
       await db.run(
         `UPDATE usuario SET nombre=?, rol=?, activo=?, permisos_json=?, updated_at=? WHERE id=?`,
         [
-          input.nombre.trim(), input.rol, nuevoActivo ? 1 : 0,
-          input.permisos_json ?? actual.permisos_json, now(), id,
+          input.nombre.trim(),
+          input.rol,
+          nuevoActivo ? 1 : 0,
+          input.permisos_json ?? actual.permisos_json,
+          now(),
+          id,
         ],
       );
     },
@@ -195,14 +233,19 @@ export function crearUsuarioRepo(db: SqlDriver) {
         const otros = await contarOtrosAdministradoresActivos(db, id);
         if (otros === 0) {
           throw new ValidacionError([
-            { campo: "activo", mensaje: "No se puede desactivar al único dueño o superadmin activo." },
+            {
+              campo: "activo",
+              mensaje: "No se puede desactivar al único dueño o superadmin activo.",
+            },
           ]);
         }
       }
 
       await db.run("UPDATE usuario SET activo=0, updated_at=? WHERE id=?", [now(), id]);
       await registrarAccion(db, {
-        accion: "desactivar", entidad: "usuario", entidadId: id,
+        accion: "desactivar",
+        entidad: "usuario",
+        entidadId: id,
         resumen: `Usuario desactivado: ${actual.nombre}`,
       });
     },
@@ -226,13 +269,19 @@ export function crearUsuarioRepo(db: SqlDriver) {
           input.pinActual != null &&
           (await verificarPin(input.pinActual, fila.pin_hash));
         if (!coincide) {
-          throw new ValidacionError([{ campo: "pinActual", mensaje: "El PIN actual no coincide." }]);
+          throw new ValidacionError([
+            { campo: "pinActual", mensaje: "El PIN actual no coincide." },
+          ]);
         }
       }
 
       const nuevoHash = await hashearPin(input.pinNuevo);
       const ts = now();
-      await db.run("UPDATE usuario SET pin_hash=?, updated_at=? WHERE id=?", [nuevoHash, ts, input.usuarioId]);
+      await db.run("UPDATE usuario SET pin_hash=?, updated_at=? WHERE id=?", [
+        nuevoHash,
+        ts,
+        input.usuarioId,
+      ]);
 
       await asegurarSeguridad(db, input.usuarioId);
       await db.run(
@@ -241,7 +290,9 @@ export function crearUsuarioRepo(db: SqlDriver) {
       );
 
       await registrarAccion(db, {
-        accion: "cambiar_pin", entidad: "usuario", entidadId: input.usuarioId,
+        accion: "cambiar_pin",
+        entidad: "usuario",
+        entidadId: input.usuarioId,
       });
     },
 

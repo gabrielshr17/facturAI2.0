@@ -62,7 +62,9 @@ export function conSesion(db: SqlDriver, portador: SesionRepo): SqlDriver {
     all: (sql, params) => db.all(sql, params),
     get: (sql, params) => db.get(sql, params),
     ...(db.close ? { close: () => db.close!() } : {}),
-    ...(db.enTransaccion ? { enTransaccion: <T>(fn: () => Promise<T>) => db.enTransaccion!(fn) } : {}),
+    ...(db.enTransaccion
+      ? { enTransaccion: <T>(fn: () => Promise<T>) => db.enTransaccion!(fn) }
+      : {}),
   };
   PORTADORES.set(envuelto, portador);
   return envuelto;

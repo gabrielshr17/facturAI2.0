@@ -6,7 +6,11 @@ import type { ResumenItbis } from "./tipos.js";
 export function crearReportesFiscal(db: SqlDriver) {
   return {
     async resumenItbis(desde: string, hasta: string): Promise<ResumenItbis> {
-      const r = await db.get<{ gravado: number | null; exento: number | null; itbis: number | null }>(
+      const r = await db.get<{
+        gravado: number | null;
+        exento: number | null;
+        itbis: number | null;
+      }>(
         `SELECT SUM(subtotal_gravado) as gravado, SUM(subtotal_exento) as exento, SUM(total_itbis) as itbis
          FROM factura
          WHERE estado='cobrada' AND deleted_at IS NULL

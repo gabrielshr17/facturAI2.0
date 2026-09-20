@@ -63,9 +63,21 @@ export function Reportes(): JSX.Element {
     <div>
       <h2 style={{ marginTop: 0 }}>Reportes</h2>
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+          marginBottom: 16,
+        }}
+      >
         <div>
-          <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>Desde</label>
+          <label
+            style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
+          >
+            Desde
+          </label>
           <input
             type="date"
             value={desde}
@@ -74,7 +86,11 @@ export function Reportes(): JSX.Element {
           />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}>Hasta</label>
+          <label
+            style={{ display: "block", fontSize: 13, color: "var(--sfr-gris)", marginBottom: 4 }}
+          >
+            Hasta
+          </label>
           <input
             type="date"
             value={hasta}

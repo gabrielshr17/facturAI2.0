@@ -44,4 +44,8 @@ export {
   type DevolucionConFiscalDeps,
   type ResultadoDevolucionFiscal,
 } from "./fiscal/devolucion-fiscal.js";
-export { esquemaSincronizacion, TABLAS_SINCRONIZADAS, type TablaSincronizada } from "./sync/index.js";
+export {
+  esquemaSincronizacion,
+  TABLAS_SINCRONIZADAS,
+  type TablaSincronizada,
+} from "./sync/index.js";

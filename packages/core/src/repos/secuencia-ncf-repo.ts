@@ -26,19 +26,28 @@ export interface SecuenciaNcfInput {
 function validar(input: SecuenciaNcfInput): ErrorValidacion[] {
   const errores: ErrorValidacion[] = [];
   if (input.rangoDesde > input.rangoHasta) {
-    errores.push({ campo: "rango", mensaje: "El rango desde no puede ser mayor que el rango hasta." });
+    errores.push({
+      campo: "rango",
+      mensaje: "El rango desde no puede ser mayor que el rango hasta.",
+    });
   }
   if (input.rangoDesde < 1) {
     errores.push({ campo: "rango", mensaje: "El rango debe iniciar en 1 o más." });
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.vencimiento)) {
-    errores.push({ campo: "vencimiento", mensaje: "La fecha de vencimiento debe tener formato AAAA-MM-DD." });
+    errores.push({
+      campo: "vencimiento",
+      mensaje: "La fecha de vencimiento debe tener formato AAAA-MM-DD.",
+    });
   }
   return errores;
 }
 
 /** Recalcula el estado real (vencida/agotada/disponible) según fecha y consumo. */
-function calcularEstado(s: Pick<SecuenciaNcf, "vencimiento" | "proximo_numero" | "rango_hasta">, hoy: string): EstadoSecuencia {
+function calcularEstado(
+  s: Pick<SecuenciaNcf, "vencimiento" | "proximo_numero" | "rango_hasta">,
+  hoy: string,
+): EstadoSecuencia {
   if (s.vencimiento < hoy) return "vencida";
   if (s.proximo_numero > s.rango_hasta) return "agotada";
   return "disponible";
@@ -64,7 +73,11 @@ export function crearSecuenciaNcfRepo(db: SqlDriver) {
         proximo_numero: input.rangoDesde,
         vencimiento: input.vencimiento,
         estado: calcularEstado(
-          { vencimiento: input.vencimiento, proximo_numero: input.rangoDesde, rango_hasta: input.rangoHasta },
+          {
+            vencimiento: input.vencimiento,
+            proximo_numero: input.rangoDesde,
+            rango_hasta: input.rangoHasta,
+          },
           now().slice(0, 10),
         ),
         created_at: ts,
@@ -75,8 +88,18 @@ export function crearSecuenciaNcfRepo(db: SqlDriver) {
       await db.run(
         `INSERT INTO secuencia_ncf (${COLS}) VALUES (${Array(12).fill("?").join(",")})`,
         [
-          s.id, s.tipo_ecf, s.prefijo, s.modo, s.rango_desde, s.rango_hasta, s.proximo_numero,
-          s.vencimiento, s.estado, s.created_at, s.updated_at, s.deleted_at,
+          s.id,
+          s.tipo_ecf,
+          s.prefijo,
+          s.modo,
+          s.rango_desde,
+          s.rango_hasta,
+          s.proximo_numero,
+          s.vencimiento,
+          s.estado,
+          s.created_at,
+          s.updated_at,
+          s.deleted_at,
         ],
       );
       return s;
@@ -92,7 +115,11 @@ export function crearSecuenciaNcfRepo(db: SqlDriver) {
       for (const s of filas) {
         const estadoReal = calcularEstado(s, hoy);
         if (estadoReal !== s.estado) {
-          await db.run("UPDATE secuencia_ncf SET estado=?, updated_at=? WHERE id=?", [estadoReal, now(), s.id]);
+          await db.run("UPDATE secuencia_ncf SET estado=?, updated_at=? WHERE id=?", [
+            estadoReal,
+            now(),
+            s.id,
+          ]);
         }
         actualizadas.push({ ...s, estado: estadoReal });
       }
@@ -109,7 +136,11 @@ export function crearSecuenciaNcfRepo(db: SqlDriver) {
       for (const s of candidatas) {
         const estadoReal = calcularEstado(s, hoy);
         if (estadoReal !== s.estado) {
-          await db.run("UPDATE secuencia_ncf SET estado=?, updated_at=? WHERE id=?", [estadoReal, now(), s.id]);
+          await db.run("UPDATE secuencia_ncf SET estado=?, updated_at=? WHERE id=?", [
+            estadoReal,
+            now(),
+            s.id,
+          ]);
         }
         if (estadoReal === "disponible") return { ...s, estado: estadoReal };
       }
@@ -118,7 +149,9 @@ export function crearSecuenciaNcfRepo(db: SqlDriver) {
 
     /** Consume el siguiente número de la secuencia (marca agotada si era el último). */
     async consumirSiguiente(secuenciaId: string): Promise<number> {
-      const s = await db.get<SecuenciaNcf>(`SELECT ${COLS} FROM secuencia_ncf WHERE id=?`, [secuenciaId]);
+      const s = await db.get<SecuenciaNcf>(`SELECT ${COLS} FROM secuencia_ncf WHERE id=?`, [
+        secuenciaId,
+      ]);
       if (!s) throw new Error(`Secuencia ${secuenciaId} no existe`);
       if (s.proximo_numero > s.rango_hasta) {
         throw new ValidacionError([{ campo: "secuencia", mensaje: "La secuencia está agotada." }]);
@@ -126,10 +159,12 @@ export function crearSecuenciaNcfRepo(db: SqlDriver) {
       const numero = s.proximo_numero;
       const siguiente = numero + 1;
       const nuevoEstado: EstadoSecuencia = siguiente > s.rango_hasta ? "agotada" : s.estado;
-      await db.run(
-        "UPDATE secuencia_ncf SET proximo_numero=?, estado=?, updated_at=? WHERE id=?",
-        [siguiente, nuevoEstado, now(), secuenciaId],
-      );
+      await db.run("UPDATE secuencia_ncf SET proximo_numero=?, estado=?, updated_at=? WHERE id=?", [
+        siguiente,
+        nuevoEstado,
+        now(),
+        secuenciaId,
+      ]);
       return numero;
     },
 

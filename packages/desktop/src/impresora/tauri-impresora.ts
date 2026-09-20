@@ -11,7 +11,10 @@ export const adaptadorImpresoraTauri: AdaptadorImpresora = {
     return await invoke<string[]>("listar_impresoras");
   },
   async imprimir(datos, nombreImpresora) {
-    await invoke("imprimir_ticket_termico", { impresora: nombreImpresora, datos: Array.from(datos) });
+    await invoke("imprimir_ticket_termico", {
+      impresora: nombreImpresora,
+      datos: Array.from(datos),
+    });
   },
 };
 

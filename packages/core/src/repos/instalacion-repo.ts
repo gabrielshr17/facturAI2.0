@@ -33,7 +33,9 @@ export function crearInstalacionRepo(db: SqlDriver) {
     async obtenerCajaActual(): Promise<Caja | undefined> {
       const fila = await this.obtener();
       if (!fila?.caja_id) return undefined;
-      return db.get<Caja>(`SELECT ${COLS_CAJA} FROM caja WHERE id=? AND deleted_at IS NULL`, [fila.caja_id]);
+      return db.get<Caja>(`SELECT ${COLS_CAJA} FROM caja WHERE id=? AND deleted_at IS NULL`, [
+        fila.caja_id,
+      ]);
     },
 
     async fijarCaja(cajaId: string, alias: string | null = null): Promise<Instalacion> {
@@ -45,28 +47,35 @@ export function crearInstalacionRepo(db: SqlDriver) {
         throw new ValidacionError([{ campo: "cajaId", mensaje: "La caja indicada no existe." }]);
       }
       if (caja.activa !== 1) {
-        throw new ValidacionError([{ campo: "cajaId", mensaje: "La caja indicada no está activa." }]);
+        throw new ValidacionError([
+          { campo: "cajaId", mensaje: "La caja indicada no está activa." },
+        ]);
       }
 
       const ts = now();
-      const existente = await db.get<{ id: string }>(
-        "SELECT id FROM instalacion WHERE id=?",
-        [ID_INSTALACION],
-      );
+      const existente = await db.get<{ id: string }>("SELECT id FROM instalacion WHERE id=?", [
+        ID_INSTALACION,
+      ]);
       if (existente) {
         await db.run(
           "UPDATE instalacion SET caja_id=?, alias=?, updated_at=?, deleted_at=NULL WHERE id=?",
           [cajaId, alias, ts, ID_INSTALACION],
         );
       } else {
-        await db.run(
-          `INSERT INTO instalacion (${COLS}) VALUES (?,?,?,?,?,?)`,
-          [ID_INSTALACION, cajaId, alias, ts, ts, null],
-        );
+        await db.run(`INSERT INTO instalacion (${COLS}) VALUES (?,?,?,?,?,?)`, [
+          ID_INSTALACION,
+          cajaId,
+          alias,
+          ts,
+          ts,
+          null,
+        ]);
       }
 
       await registrarAccion(db, {
-        accion: "fijar_caja", entidad: "instalacion", entidadId: ID_INSTALACION,
+        accion: "fijar_caja",
+        entidad: "instalacion",
+        entidadId: ID_INSTALACION,
         resumen: `Instalación asignada a la caja: ${caja.nombre}`,
       });
 

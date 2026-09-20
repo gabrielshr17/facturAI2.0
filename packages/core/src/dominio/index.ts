@@ -17,17 +17,8 @@ export {
   calcularTotales,
   procesarCobro,
 } from "./factura.js";
-export {
-  type TipoEcf,
-  formatearNcf,
-  tipoEcfSugerido,
-  ETIQUETA_TIPO_ECF,
-} from "./ecf.js";
-export {
-  type CorteCajaInput,
-  type CorteCajaResultado,
-  calcularCorteCaja,
-} from "./caja.js";
+export { type TipoEcf, formatearNcf, tipoEcfSugerido, ETIQUETA_TIPO_ECF } from "./ecf.js";
+export { type CorteCajaInput, type CorteCajaResultado, calcularCorteCaja } from "./caja.js";
 export {
   type PoliticaSinExistencia,
   type DisponibilidadInput,
@@ -55,10 +46,7 @@ export {
 } from "./permisos.js";
 export { hashearPin, verificarPin, CriptoNoDisponibleError } from "./pin.js";
 export { marcarSesion, restaurarSesion, debeBloquear } from "./sesion-vigencia.js";
-export {
-  type ResultadoCambioUsuario,
-  evaluarCambioUsuario,
-} from "./cambio-usuario.js";
+export { type ResultadoCambioUsuario, evaluarCambioUsuario } from "./cambio-usuario.js";
 export {
   DESFASE_RD_MIN,
   fechaLocalDeInstante,
