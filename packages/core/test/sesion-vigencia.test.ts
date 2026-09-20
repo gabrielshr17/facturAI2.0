@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { restaurarSesion, marcarSesion } from "../src/dominio/sesion-vigencia.js";
+import { restaurarSesion, marcarSesion, debeBloquear } from "../src/dominio/sesion-vigencia.js";
 import type { PortadorSesion } from "../src/dominio/permisos.js";
 
 const SESION_VALIDA: PortadorSesion = {
@@ -60,5 +60,47 @@ describe("marcarSesion / restaurarSesion — espejo en sessionStorage (§ RBAC-0
     expect(restaurada).not.toBeNull();
     expect(restaurada!.permisos.has("modulo.ventas")).toBe(true);
     expect([...restaurada!.permisos]).not.toContain("permiso.inventado");
+  });
+});
+
+describe("debeBloquear — vigencia del bloqueo por inactividad (§ RBAC-07 parte B)", () => {
+  const ULTIMA_ACTIVIDAD = new Date("2026-01-01T10:00:00.000Z");
+
+  it("justo por debajo del límite no bloquea", () => {
+    const ahora = new Date(ULTIMA_ACTIVIDAD.getTime() + 5 * 60_000 - 1);
+    expect(debeBloquear(ULTIMA_ACTIVIDAD, ahora, 5)).toBe(false);
+  });
+
+  it("exactamente en el límite bloquea", () => {
+    const ahora = new Date(ULTIMA_ACTIVIDAD.getTime() + 5 * 60_000);
+    expect(debeBloquear(ULTIMA_ACTIVIDAD, ahora, 5)).toBe(true);
+  });
+
+  it("justo por encima del límite bloquea", () => {
+    const ahora = new Date(ULTIMA_ACTIVIDAD.getTime() + 5 * 60_000 + 1);
+    expect(debeBloquear(ULTIMA_ACTIVIDAD, ahora, 5)).toBe(true);
+  });
+
+  it("respeta distintos límites (1 y 30 minutos)", () => {
+    const unMinutoDespues = new Date(ULTIMA_ACTIVIDAD.getTime() + 60_000);
+    expect(debeBloquear(ULTIMA_ACTIVIDAD, unMinutoDespues, 1)).toBe(true);
+    expect(debeBloquear(ULTIMA_ACTIVIDAD, unMinutoDespues, 30)).toBe(false);
+  });
+
+  it("límite 0 nunca bloquea (bloqueo desactivado) y no lanza", () => {
+    const muchoDespues = new Date(ULTIMA_ACTIVIDAD.getTime() + 999 * 60_000);
+    expect(() => debeBloquear(ULTIMA_ACTIVIDAD, muchoDespues, 0)).not.toThrow();
+    expect(debeBloquear(ULTIMA_ACTIVIDAD, muchoDespues, 0)).toBe(false);
+  });
+
+  it("límite negativo se trata igual que desactivado y no lanza", () => {
+    const muchoDespues = new Date(ULTIMA_ACTIVIDAD.getTime() + 999 * 60_000);
+    expect(() => debeBloquear(ULTIMA_ACTIVIDAD, muchoDespues, -5)).not.toThrow();
+    expect(debeBloquear(ULTIMA_ACTIVIDAD, muchoDespues, -5)).toBe(false);
+  });
+
+  it("ahora anterior a la última actividad (reloj retrocedido) no bloquea", () => {
+    const antes = new Date(ULTIMA_ACTIVIDAD.getTime() - 60_000);
+    expect(debeBloquear(ULTIMA_ACTIVIDAD, antes, 5)).toBe(false);
   });
 });

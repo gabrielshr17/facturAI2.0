@@ -3,6 +3,7 @@ import { Sun, Moon, Menu, LogOut } from "lucide-react";
 import { Marca } from "./componentes/Marca.js";
 import { ErrorBoundary } from "./componentes/ErrorBoundary.js";
 import { CambioRapidoUsuario } from "./componentes/CambioRapidoUsuario.js";
+import { BloqueoInactividad } from "./componentes/BloqueoInactividad.js";
 import { ProveedorAlertas } from "./contexto/Alertas.js";
 import { useSesion } from "./sesion/contexto.js";
 import { useRepos } from "./data/contexto.js";
@@ -299,6 +300,10 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
           mismo) porque el modal necesita `useAlertas()` para el mensaje de bloqueo
           por ticket abierto. Ver la cabecera de `CambioRapidoUsuario.tsx`. */}
       <CambioRapidoUsuario />
+      {/* Bloqueo por inactividad / Ctrl+L (§ RBAC-07 parte B). Mismo motivo que
+          `CambioRapidoUsuario` para vivir acá: necesita `useAlertas()` para el PIN
+          incorrecto, y no debe desmontar ningún módulo activo al bloquear. */}
+      <BloqueoInactividad />
     </div>
     </ProveedorAlertas>
   );

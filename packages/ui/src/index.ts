@@ -1,6 +1,7 @@
 export { AppShell } from "./AppShell.js";
 export { Marca, type MarcaProps } from "./componentes/Marca.js";
 export { CambioRapidoUsuario } from "./componentes/CambioRapidoUsuario.js";
+export { BloqueoInactividad } from "./componentes/BloqueoInactividad.js";
 export { ProveedorDatos, useRepos, type Repos } from "./data/contexto.js";
 export { MODULOS, MODULO_POR_DEFECTO_ID, type ModuloDef } from "./navegacion/modulos.js";
 export { ProveedorSesion, useSesion, useSesionOpcional, type SesionApi, type ProveedorSesionProps } from "./sesion/contexto.js";

@@ -106,3 +106,23 @@ export function restaurarSesion(
     permisos: permisosValidos,
   };
 }
+
+/**
+ * Decide si, dado el momento de la última actividad y la hora actual, ya pasó el
+ * límite de inactividad configurado (§ RBAC-07 parte B, bloqueo de sesión).
+ *
+ * Función PURA a propósito: el hook de UI (`useBloqueoInactividad`) solo la invoca
+ * contra un reloj y una marca de tiempo que él mismo mantiene en un `ref` — nunca
+ * reimplementa la cuenta acá. Recibe `Date` en vez de milisegundos crudos porque así
+ * se prueba con fechas legibles (`new Date("2026-01-01T10:00:00")`) sin aritmética de
+ * timestamps en cada test.
+ *
+ * `limiteMinutos <= 0` se trata como "bloqueo desactivado", no como error: una
+ * instalación podría querer apagar el bloqueo por completo sin que el llamador tenga
+ * que acordarse de no invocar la función en absoluto.
+ */
+export function debeBloquear(ultimaActividad: Date, ahora: Date, limiteMinutos: number): boolean {
+  if (limiteMinutos <= 0) return false;
+  const transcurridoMs = ahora.getTime() - ultimaActividad.getTime();
+  return transcurridoMs >= limiteMinutos * 60_000;
+}
