@@ -9,8 +9,11 @@ import { rutaChatbot } from "./routes/chatbot.js";
 /**
  * Backend del modo multi-caja/multiusuario (§ Flujo de datos y modos).
  * En modo 100% local (default) esto ni siquiera corre: el cliente habla
- * directo con SQLite. Ver README.md de este paquete — es un scaffold, no
- * está conectado a Supabase/PowerSync todavía.
+ * directo con SQLite. Cuando `packages/api/.env` trae credenciales reales
+ * de Supabase, este proceso SÍ queda conectado (auth vía Supabase Auth,
+ * ver `plugins/auth.ts`) — "scaffold" solo describe lo que sigue siendo
+ * placeholder: transmisión e-CF (`routes/fiscal.ts`, 501) y el chatbot con
+ * visión sin `ANTHROPIC_API_KEY` (`routes/chatbot.ts`, 501).
  */
 const config = cargarConfig();
 // 10 MB: el límite por defecto de Fastify (1 MB) rechaza las fotos de

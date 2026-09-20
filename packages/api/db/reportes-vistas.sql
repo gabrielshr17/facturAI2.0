@@ -1,6 +1,9 @@
--- Vista de reportes para @sfr/remoto (panel del dueño). NO se ejecuta sola:
--- pegar en el SQL Editor del proyecto Supabase real, igual que ya se hizo
--- con schema.sql y rls-policies.sql.
+-- Vista de reportes para @sfr/remoto (panel del dueño). YA APLICADA contra el
+-- proyecto real de Supabase (verificado: PostgREST responde 200 en
+-- /rest/v1/vista_ventas_por_dia). Este archivo no se ejecuta solo — es la
+-- fuente de verdad para re-aplicar manualmente en el SQL Editor si hiciera
+-- falta (p. ej. tras un reset de la base). Usa CREATE OR REPLACE VIEW
+-- para que re-ejecutarlo sea seguro (no falla si la vista ya existe).
 --
 -- Por qué hace falta una vista: PostgREST (la API REST que expone Supabase
 -- sobre Postgres) no soporta GROUP BY en una consulta simple contra una
@@ -25,7 +28,7 @@
 -- que el dueño ya podría estar comparando contra el corte de caja local sin
 -- avisarle primero del cambio de criterio.
 
-CREATE VIEW vista_ventas_por_dia AS
+CREATE OR REPLACE VIEW vista_ventas_por_dia AS
   SELECT
     date(fecha_hora) AS fecha,
     SUM(total) AS total_vendido,
