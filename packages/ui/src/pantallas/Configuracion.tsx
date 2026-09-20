@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
-import { type NegocioInput, ValidacionError } from "@sfr/core";
-import { Store, Printer, Save } from "lucide-react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { type NegocioInput, type RespaldoCompleto, ValidacionError } from "@sfr/core";
+import { Store, Printer, Save, Upload } from "lucide-react";
 import { useRepos } from "../data/contexto.js";
+import { useSesion } from "../sesion/contexto.js";
+import { useAlertas } from "../contexto/Alertas.js";
 import { s, c } from "../estilos.js";
 import { SeccionSecuenciasNcf } from "../componentes/SeccionSecuenciasNcf.js";
 import { SeccionBitacora } from "../componentes/SeccionBitacora.js";
@@ -22,10 +24,15 @@ const VACIO: NegocioInput = {
 
 export function Configuracion() {
   const { negocio: repo, backup } = useRepos();
+  const { db } = useSesion();
+  const { confirmar, avisar } = useAlertas();
   const [form, setForm] = useState<NegocioInput>(VACIO);
   const [errores, setErrores] = useState<string[]>([]);
   const [guardado, setGuardado] = useState(false);
   const [exportando, setExportando] = useState(false);
+  const [restaurando, setRestaurando] = useState(false);
+  const inputArchivoRef = useRef<HTMLInputElement>(null);
+  const restaurarDisponible = db.enTransaccion !== undefined;
 
   useAtajosTeclado({ "Ctrl+S": () => void guardar() });
 
@@ -74,6 +81,35 @@ export function Configuracion() {
       URL.revokeObjectURL(url);
     } finally {
       setExportando(false);
+    }
+  }
+
+  async function manejarArchivoSeleccionado(evento: ChangeEvent<HTMLInputElement>) {
+    const archivo = evento.target.files?.[0];
+    evento.target.value = "";
+    if (!archivo) return;
+
+    const confirmado = await confirmar(
+      "Esto reemplaza TODA la información actual (productos, ventas, compras, clientes, etc.) con la del archivo. No se puede deshacer. ¿Continuar?",
+      { titulo: "Restaurar respaldo", textoConfirmar: "Restaurar" },
+    );
+    if (!confirmado) return;
+
+    setRestaurando(true);
+    try {
+      const texto = await archivo.text();
+      const respaldo = JSON.parse(texto) as RespaldoCompleto;
+      await backup.importarTodo(respaldo);
+      await avisar("Respaldo restaurado. Recarga la aplicación para ver los datos actualizados.", {
+        titulo: "Restauración completa",
+        variante: "info",
+      });
+    } catch (e) {
+      const mensaje =
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String((e as Error)?.message ?? e);
+      await avisar(mensaje, { titulo: "No se pudo restaurar", variante: "error" });
+    } finally {
+      setRestaurando(false);
     }
   }
 
@@ -161,6 +197,32 @@ export function Configuracion() {
         </p>
         <button style={s.botonSecundario} disabled={exportando} onClick={exportarRespaldo}>
           {exportando ? "Exportando…" : "Exportar respaldo completo"}
+        </button>
+
+        <hr style={{ border: "none", borderTop: `1px solid ${c.borde}`, margin: "16px 0" }} />
+
+        <p style={{ color: c.gris, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+          <Upload size={14} /> Restaura toda la información desde un archivo de respaldo. Reemplaza los datos actuales.
+        </p>
+        {!restaurarDisponible && (
+          <div style={{ ...s.errorBox, marginBottom: 12 }}>
+            La restauración no está disponible en esta instalación (requiere una base con soporte de
+            transacciones reales).
+          </div>
+        )}
+        <input
+          ref={inputArchivoRef}
+          type="file"
+          accept="application/json"
+          style={{ display: "none" }}
+          onChange={(e) => void manejarArchivoSeleccionado(e)}
+        />
+        <button
+          style={s.botonSecundario}
+          disabled={!restaurarDisponible || restaurando}
+          onClick={() => inputArchivoRef.current?.click()}
+        >
+          {restaurando ? "Restaurando…" : "Restaurar desde archivo"}
         </button>
       </div>
 
