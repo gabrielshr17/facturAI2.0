@@ -20,7 +20,14 @@ const config = cargarConfig();
 // comprobantes en base64 que envía el chatbot con visión.
 const app = Fastify({ logger: true, bodyLimit: 10 * 1024 * 1024 });
 
-await app.register(cors, { origin: true });
+await app.register(cors, {
+  origin: config.allowedOrigins.length > 0 ? config.allowedOrigins : true,
+});
+if (config.allowedOrigins.length === 0) {
+  app.log.warn(
+    "ALLOWED_ORIGINS no configurado: CORS refleja cualquier origen. Definirlo en producción.",
+  );
+}
 registrarAuth(app);
 await app.register(rutaSalud);
 await app.register(rutaFiscal);
