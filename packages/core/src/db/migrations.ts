@@ -8,6 +8,7 @@ import { migracionesPrecios } from "./migraciones/50-precios.js";
 import { migracionesCompras } from "./migraciones/60-compras.js";
 import { migracionesCrm } from "./migraciones/70-crm.js";
 import { migracionesBackoffice } from "./migraciones/80-backoffice.js";
+import { migracionesSync } from "./migraciones/95-sync.js";
 
 export type { Migration } from "./migraciones/tipos.js";
 
@@ -27,4 +28,5 @@ export const migrations: Migration[] = [
   ...migracionesCompras,
   ...migracionesCrm,
   ...migracionesBackoffice,
+  ...migracionesSync,
 ].sort((a, b) => a.id - b.id);

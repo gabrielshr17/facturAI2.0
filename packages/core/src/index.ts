@@ -45,7 +45,7 @@ export {
   type ResultadoDevolucionFiscal,
 } from "./fiscal/devolucion-fiscal.js";
 export {
-  esquemaSincronizacion,
-  TABLAS_SINCRONIZADAS,
-  type TablaSincronizada,
+  crearSincronizadorSaliente,
+  type ConfigSincronizacionSaliente,
+  type SincronizadorSaliente,
 } from "./sync/index.js";

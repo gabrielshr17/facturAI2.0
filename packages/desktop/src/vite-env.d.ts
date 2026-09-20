@@ -2,10 +2,10 @@
 
 /**
  * Variables de entorno propias de esta app, leídas por
- * packages/web/src/sync/arrancar.ts en tiempo de ejecución (nunca embebidas
- * como secretos "hardcoded" — ver packages/web/.env.example). Todas son
- * opcionales a nivel de tipo porque la sincronización debe poder faltar sin
- * romper el arranque de la PWA (modo 100% offline).
+ * packages/desktop/src/sync/arrancar.ts en tiempo de ejecución (nunca
+ * embebidas como secretos "hardcoded" — ver packages/desktop/.env.example).
+ * Todas son opcionales a nivel de tipo porque la sincronización debe poder
+ * faltar sin romper el arranque de la caja (modo 100% offline).
  */
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string;

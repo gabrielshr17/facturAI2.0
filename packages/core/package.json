@@ -15,9 +15,6 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@powersync/common": "2.0.0"
-  },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",

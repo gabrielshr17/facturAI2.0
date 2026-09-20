@@ -3,13 +3,8 @@ import { createRoot } from "react-dom/client";
 import { AppShell, ProveedorDatos, ProveedorSesion, Acceso, useSesion } from "@sfr/ui";
 import { migrate, seed, crearUsuarioRepo, type SqlDriver } from "@sfr/core";
 import { crearSqlJsDriver } from "./db/sqljs-driver.js";
-import { iniciarSincronizacionEnSegundoPlano } from "./sync/iniciar-sync.js";
+import { iniciarSincronizacionEnSegundoPlano } from "./sync/arrancar.js";
 import "@sfr/ui/estilos-globales.css";
-
-// Arranca en paralelo al driver local, nunca dentro de su try/catch: un fallo
-// de sincronización remota jamás debe impedir que la PWA abra en modo
-// offline (ver packages/web/src/sync/iniciar-sync.ts).
-void iniciarSincronizacionEnSegundoPlano();
 
 /**
  * Compuerta de sesión (§ RBAC-05): mientras `autenticado` es `false` la app entera
@@ -47,6 +42,10 @@ function App() {
         await migrate(driver);
         await seed(driver);
         setDb(driver);
+        // No puede lanzar (arrancar.ts solo loguea y sigue si algo falla): un
+        // fallo de sincronización remota jamás debe impedir que la PWA
+        // arranque en modo offline.
+        iniciarSincronizacionEnSegundoPlano(driver);
       } catch (e) {
         setError(String(e));
       }

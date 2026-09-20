@@ -171,8 +171,13 @@ CREATE TABLE factura (
   numero_interno    INTEGER,
   fecha_hora        TIMESTAMPTZ NOT NULL,
   cliente_id        TEXT REFERENCES cliente(id),
-  caja_id           TEXT REFERENCES caja(id),
-  usuario_id        TEXT REFERENCES usuario(id),
+  -- caja_id/usuario_id SIN FK a propósito (ver packages/core/src/sync/
+  -- subida-saliente.ts): caja y usuario NUNCA se sincronizan hacia Supabase
+  -- (identidad de instalación física / pin_hash real), así que una FK real
+  -- aquí bloquearía para siempre la subida de cualquier factura — el
+  -- registro local SÍ mantiene la FK real en su propio SQLite.
+  caja_id           TEXT,
+  usuario_id        TEXT,
   tipo              TEXT NOT NULL DEFAULT 'normal', -- normal | fiscal
   subtotal_gravado  NUMERIC(12,2) NOT NULL DEFAULT 0,
   subtotal_exento   NUMERIC(12,2) NOT NULL DEFAULT 0,
@@ -279,8 +284,9 @@ ALTER TABLE factura ADD CONSTRAINT fk_factura_comprobante
 -- Caja y auditoría --------------------------------------------------------
 CREATE TABLE corte_caja (
   id                  TEXT PRIMARY KEY,
-  caja_id             TEXT REFERENCES caja(id),
-  usuario_id          TEXT REFERENCES usuario(id),
+  -- Sin FK a propósito, mismo motivo que factura.caja_id/usuario_id arriba.
+  caja_id             TEXT,
+  usuario_id          TEXT,
   fecha_apertura      DATE NOT NULL,
   fecha_cierre        DATE NOT NULL,
   monto_inicial       NUMERIC(12,2) NOT NULL DEFAULT 0,
@@ -310,7 +316,8 @@ CREATE TABLE movimiento_inventario (
   referencia_tipo TEXT,
   referencia_id   TEXT,
   fecha           TIMESTAMPTZ NOT NULL,
-  usuario_id      TEXT REFERENCES usuario(id),
+  -- Sin FK a propósito, mismo motivo que factura.usuario_id arriba.
+  usuario_id      TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at      TIMESTAMPTZ

@@ -15,7 +15,6 @@ export interface ConfigApi {
   puerto: number;
   supabaseUrl: string | null;
   supabaseServiceRoleKey: string | null;
-  powersyncUrl: string | null;
   /** true si todas las credenciales de Supabase están presentes. */
   supabaseConfigurado: boolean;
   /** orígenes CORS permitidos (vacío = modo scaffold/desarrollo: refleja cualquier origen). */
@@ -34,7 +33,6 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): ConfigApi {
     puerto: Number(env.PORT) || 3001,
     supabaseUrl,
     supabaseServiceRoleKey,
-    powersyncUrl: env.POWERSYNC_URL || null,
     supabaseConfigurado: Boolean(supabaseUrl && supabaseServiceRoleKey),
     allowedOrigins,
   };

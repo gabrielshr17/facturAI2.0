@@ -11,8 +11,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@powersync/common": "2.0.0",
-    "@powersync/tauri-plugin": "0.0.6",
     "@sfr/core": "workspace:*",
     "@sfr/ui": "workspace:*",
     "@tauri-apps/api": "^2.4.0",

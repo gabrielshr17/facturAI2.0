@@ -1,27 +1,22 @@
 mod impresora;
-// `sync` (conector PowerSync) DESACTIVADO TEMPORALMENTE — ver Cargo.toml:
-// `tauri-plugin-powersync` y `powersync` (via rusqlite) piden una version de
-// `libsqlite3-sys` incompatible con la que ya trae `tauri-plugin-sql` (via
-// sqlx-sqlite), y Cargo no permite dos crates enlazando la misma libreria
-// nativa `sqlite3` — `cargo check` falla en resolucion de dependencias antes
-// de compilar nada. Ademas, el conector como estaba escrito no sincronizaba
-// datos reales (PowerSyncDatabase mantiene su propia base local, separada de
-// la que usan los repos de la app vía tauri-plugin-sql, asi que su cola de
-// subida siempre estaba vacía). Reactivar solo junto con el rediseño real:
-// que el driver local de la app sea el de PowerSync, no uno aparte.
-// mod sync;
+
+/*
+ * La sincronización hacia Supabase NO vive en Rust (ver
+ * packages/core/src/sync/subida-saliente.ts): antes se intentó con
+ * PowerSync (tauri-plugin-powersync), pero esa integración mantenía su
+ * propia base local separada de la que usan los repos vía tauri-plugin-sql,
+ * así que nunca subía nada de verdad — y además tauri-plugin-powersync y
+ * tauri-plugin-sql piden versiones incompatibles de libsqlite3-sys,
+ * rompiendo `cargo check`. El reemplazo es JS/fetch puro (misma base
+ * SQLite local de siempre, una cola de pendientes marcada por triggers,
+ * subida vía PostgREST directo) y corre igual en el webview de escritorio
+ * que en la PWA — no necesita nada del lado de Rust.
+ */
 
 // Punto de entrada de la app Tauri. Registra el plugin SQL (SQLite local),
 // que expone la base de datos al frontend por la misma interfaz `SqlDriver`
 // que implementa el paquete `core`.
 pub fn run() {
-    // Carga packages/desktop/.env si existe (no falla si falta: en build de
-    // producción las variables deberían venir del entorno del sistema, no de
-    // un archivo).
-    if let Err(e) = dotenvy::dotenv() {
-        eprintln!("aviso: no se cargó packages/desktop/.env ({e})");
-    }
-
     tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
