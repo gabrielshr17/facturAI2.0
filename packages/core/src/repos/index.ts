@@ -73,7 +73,8 @@ export {
 export {
   crearCorteCajaRepo,
   type ResumenPeriodoVentas,
-  type RegistrarCorteInput,
+  type AbrirTurnoInput,
+  type CerrarTurnoInput,
   type CorteCajaRepo,
 } from "./corte-caja-repo.js";
 export {

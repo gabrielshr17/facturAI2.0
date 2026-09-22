@@ -26,6 +26,7 @@ const VACIO: NegocioInput = {
   ancho_impresora_default: 80,
   redondeo_centavo: true,
   inventario_activo: false,
+  exige_caja_abierta: false,
 };
 
 export function Configuracion() {
@@ -70,6 +71,7 @@ export function Configuracion() {
           ancho_impresora_default: n.ancho_impresora_default as 58 | 80,
           redondeo_centavo: n.redondeo_centavo === 1,
           inventario_activo: n.inventario_activo === 1,
+          exige_caja_abierta: n.exige_caja_abierta === 1,
         });
       }
     })();
@@ -272,6 +274,20 @@ export function Configuracion() {
           />
           Inventario activo (en el MVP se recomienda apagado)
         </label>
+        <label style={{ ...s.label, display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={form.exige_caja_abierta ?? false}
+            onChange={(e) => setForm({ ...form, exige_caja_abierta: e.target.checked })}
+          />
+          Exigir turno de caja abierto para vender
+        </label>
+        {form.exige_caja_abierta && (
+          <p style={{ fontSize: 13, color: c.gris, marginTop: -8 }}>
+            Con esto activo, iniciar sesión pide el fondo de caja inicial antes de dejar vender, y
+            cerrar sesión (o cambiar de usuario) pide contar el efectivo para cerrar el turno.
+          </p>
+        )}
 
         {errores.length > 0 && (
           <div role="alert" style={s.errorBox}>

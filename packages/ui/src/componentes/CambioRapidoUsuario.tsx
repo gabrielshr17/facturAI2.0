@@ -35,12 +35,18 @@
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { Delete, LogIn, User as IconoUsuario, UserCog } from "lucide-react";
-import { CriptoNoDisponibleError, evaluarCambioUsuario, type Usuario } from "@sfr/core";
+import {
+  CriptoNoDisponibleError,
+  evaluarCambioUsuario,
+  type CorteCaja,
+  type Usuario,
+} from "@sfr/core";
 import { useRepos } from "../data/contexto.js";
 import { useSesion } from "../sesion/contexto.js";
 import { useAlertas } from "../contexto/Alertas.js";
 import { useModalAccesible } from "../hooks/useModalAccesible.js";
 import { useAtajosTeclado } from "../hooks/useAtajosTeclado.js";
+import { PromptCerrarTurno } from "./TarjetasTurno.js";
 import { c, s, sombra } from "../estilos.js";
 
 const PIN_MAXIMO = 6;
@@ -71,27 +77,21 @@ function mensajeDeError(error: unknown): string {
 }
 
 export function CambioRapidoUsuario(): ReactElement | null {
-  const { usuario: usuarioRepo, factura: facturaRepo } = useRepos();
+  const { usuario: usuarioRepo, factura: facturaRepo, corteCaja: corteCajaRepo } = useRepos();
   const { sesion, iniciarSesion } = useSesion();
   const { avisar } = useAlertas();
 
   const [abierto, setAbierto] = useState(false);
+  const [turnoACerrar, setTurnoACerrar] = useState<CorteCaja | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[] | null>(null);
   const [seleccionado, setSeleccionado] = useState<Usuario | null>(null);
   const [pin, setPin] = useState("");
   const [enviando, setEnviando] = useState(false);
 
-  async function abrir() {
-    const abiertos = await facturaRepo.listarAbiertos();
-    const evaluacion = evaluarCambioUsuario(abiertos);
-    if (!evaluacion.permitido) {
-      await avisar(evaluacion.mensaje ?? "No se puede cambiar de usuario en este momento.");
-      return;
-    }
+  async function cargarUsuarios() {
     setUsuarios(null);
     setSeleccionado(null);
     setPin("");
-    setAbierto(true);
     try {
       const lista = await usuarioRepo.listar();
       setUsuarios(lista.filter((u) => u.activo === 1));
@@ -101,8 +101,31 @@ export function CambioRapidoUsuario(): ReactElement | null {
     }
   }
 
+  // Cambio de usuario = cambio de turno (§ CAJA): si el saliente tiene un turno abierto,
+  // primero hay que contarlo y cerrarlo — recién entonces se muestra el selector de
+  // usuario. Abrir el turno del ENTRANTE no es responsabilidad de este componente: en
+  // cuanto `iniciarSesion` cambia `sesion.usuarioId`, la compuerta de `AppShell.tsx` lo
+  // pide sola (ver su comentario), así que no se duplica ese paso aquí.
+  async function abrir() {
+    const abiertos = await facturaRepo.listarAbiertos();
+    const evaluacion = evaluarCambioUsuario(abiertos);
+    if (!evaluacion.permitido) {
+      await avisar(evaluacion.mensaje ?? "No se puede cambiar de usuario en este momento.");
+      return;
+    }
+
+    const turno = await corteCajaRepo.turnoAbierto();
+    setAbierto(true);
+    if (turno) {
+      setTurnoACerrar(turno);
+      return;
+    }
+    await cargarUsuarios();
+  }
+
   function cerrar() {
     setAbierto(false);
+    setTurnoACerrar(null);
     setSeleccionado(null);
     setPin("");
   }
@@ -142,13 +165,26 @@ export function CambioRapidoUsuario(): ReactElement | null {
   return (
     <div style={fondo} onClick={cerrar}>
       <div onClick={(e) => e.stopPropagation()}>
-        {usuarios === null && (
+        {turnoACerrar && (
+          <PromptCerrarTurno
+            montoInicial={turnoACerrar.monto_inicial}
+            titulo="Cerrar turno para cambiar de usuario"
+            onConfirmar={async (efectivoContado) => {
+              await corteCajaRepo.cerrarTurno({ efectivoContado });
+              setTurnoACerrar(null);
+              await cargarUsuarios();
+            }}
+            onCancelar={cerrar}
+          />
+        )}
+
+        {!turnoACerrar && usuarios === null && (
           <div style={tarjeta}>
             <p style={{ margin: 0, color: c.texto }}>Cargando usuarios…</p>
           </div>
         )}
 
-        {usuarios !== null && !seleccionado && (
+        {!turnoACerrar && usuarios !== null && !seleccionado && (
           <SeleccionUsuario
             usuarios={usuarios}
             usuarioActualId={sesion.usuarioId}

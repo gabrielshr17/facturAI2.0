@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { nuevaDb } from "./_ayuda.js";
 import { conSesion, crearPortadorSesion, exigirPermiso } from "../src/db/sesion.js";
-import { PermisoError, permisosDeRol, type PortadorSesion, type RolUsuario } from "../src/dominio/permisos.js";
+import {
+  PermisoError,
+  permisosDeRol,
+  type PortadorSesion,
+  type RolUsuario,
+} from "../src/dominio/permisos.js";
 import { crearProductoRepo } from "../src/repos/producto-repo.js";
 import { crearFacturaRepo } from "../src/repos/factura-repo.js";
 import { crearCorteCajaRepo } from "../src/repos/corte-caja-repo.js";
@@ -48,10 +53,13 @@ describe("conSesion", () => {
     const portador = crearPortadorSesion(null);
     const envuelto = conSesion(espia, portador);
 
-    await envuelto.run("INSERT INTO proveedor (id, nombre, created_at, updated_at) VALUES (?,?,?,?)", [
-      "prov-1", "Proveedor Test", "2024-01-01T00:00:00.000Z", "2024-01-01T00:00:00.000Z",
+    await envuelto.run(
+      "INSERT INTO proveedor (id, nombre, created_at, updated_at) VALUES (?,?,?,?)",
+      ["prov-1", "Proveedor Test", "2024-01-01T00:00:00.000Z", "2024-01-01T00:00:00.000Z"],
+    );
+    const fila = await envuelto.get<{ nombre: string }>("SELECT nombre FROM proveedor WHERE id=?", [
+      "prov-1",
     ]);
-    const fila = await envuelto.get<{ nombre: string }>("SELECT nombre FROM proveedor WHERE id=?", ["prov-1"]);
     expect(fila?.nombre).toBe("Proveedor Test");
 
     const todas = await envuelto.all<{ nombre: string }>("SELECT nombre FROM proveedor");
@@ -72,7 +80,9 @@ describe("exigirPermiso: modo permisivo (driver sin sesión adjunta)", () => {
     const db = await nuevaDb();
     const productos = crearProductoRepo(db);
     const p = await productos.crear({ descripcion: "Agua", costo: 10, pct_ganancia: 20 });
-    await expect(productos.actualizar(p.id, { descripcion: "Agua fría", costo: 12 })).resolves.toBeUndefined();
+    await expect(
+      productos.actualizar(p.id, { descripcion: "Agua fría", costo: 12 }),
+    ).resolves.toBeUndefined();
   });
 });
 
@@ -86,7 +96,9 @@ describe("exigirPermiso: sesión de cajero corta ANTES de escribir", () => {
     const dbConSesion = conSesion(dbCruda, portador);
     const productos = crearProductoRepo(dbConSesion);
 
-    await expect(productos.actualizar(p.id, { descripcion: "Refresco caro", costo: 999 })).rejects.toBeInstanceOf(PermisoError);
+    await expect(
+      productos.actualizar(p.id, { descripcion: "Refresco caro", costo: 999 }),
+    ).rejects.toBeInstanceOf(PermisoError);
 
     const releido = await sinSesion.obtener(p.id);
     expect(releido?.descripcion).toBe("Refresco");
@@ -98,7 +110,9 @@ describe("exigirPermiso: sesión de cajero corta ANTES de escribir", () => {
     const portador = crearPortadorSesion(await sesionDe(dbCruda, "cajero", "Cajero Uno"));
     const productos = crearProductoRepo(conSesion(dbCruda, portador));
 
-    await expect(productos.crear({ descripcion: "Nuevo", costo: 1, pct_ganancia: 1 })).rejects.toBeInstanceOf(PermisoError);
+    await expect(
+      productos.crear({ descripcion: "Nuevo", costo: 1, pct_ganancia: 1 }),
+    ).rejects.toBeInstanceOf(PermisoError);
 
     const listado = await crearProductoRepo(dbCruda).listar();
     expect(listado.length).toBe(0);
@@ -118,24 +132,41 @@ describe("exigirPermiso: sesión de cajero corta ANTES de escribir", () => {
     expect(releida?.deleted_at).toBeNull();
   });
 
-  it("corteCajaRepo.registrarCorte lanza PermisoError; con sesión de supervisor funciona", async () => {
+  it("corteCajaRepo.cerrarTurno: el que abrió el turno lo cierra sin caja.cerrar; otro cajero no puede", async () => {
     const dbCruda = await nuevaDb();
-    const portadorCajero = crearPortadorSesion(await sesionDe(dbCruda, "cajero", "Cajero Uno"));
+    const sesionCajero = await sesionDe(dbCruda, "cajero", "Cajero Uno");
+    const portadorCajero = crearPortadorSesion(sesionCajero);
     const corteComoCajero = crearCorteCajaRepo(conSesion(dbCruda, portadorCajero));
-    await expect(
-      corteComoCajero.registrarCorte({ desde: "2024-01-01", hasta: "2024-01-01", montoInicial: 0, efectivoContado: 0 }),
-    ).rejects.toBeInstanceOf(PermisoError);
+    await corteComoCajero.abrirTurno({ montoInicial: 0 });
 
-    const sinCorte = await crearCorteCajaRepo(dbCruda).listar();
-    expect(sinCorte.length).toBe(0);
+    const sesionOtroCajero = await sesionDe(dbCruda, "cajero", "Cajero Dos");
+    const portadorOtro = crearPortadorSesion(sesionOtroCajero);
+    const corteComoOtroCajero = crearCorteCajaRepo(conSesion(dbCruda, portadorOtro));
+    await expect(corteComoOtroCajero.cerrarTurno({ efectivoContado: 0 })).rejects.toBeInstanceOf(
+      PermisoError,
+    );
+
+    const cerrado = await corteComoCajero.cerrarTurno({ efectivoContado: 0 });
+    expect(cerrado.usuario_id).toBe(sesionCajero.usuarioId);
+    expect(cerrado.estado).toBe("cerrado");
+  });
+
+  it("corteCajaRepo.abrirTurno lanza PermisoError sin caja.abrir; cerrarTurno permite el cierre forzado con caja.cerrar", async () => {
+    const dbCruda = await nuevaDb();
+    const sesionCajero = await sesionDe(dbCruda, "cajero", "Cajero Uno");
+    const corteComoCajero = crearCorteCajaRepo(
+      conSesion(dbCruda, crearPortadorSesion(sesionCajero)),
+    );
+    await corteComoCajero.abrirTurno({ montoInicial: 0 });
 
     const sesionSupervisor = await sesionDe(dbCruda, "supervisor", "Supervisor Uno");
-    const portadorSupervisor = crearPortadorSesion(sesionSupervisor);
-    const corteComoSupervisor = crearCorteCajaRepo(conSesion(dbCruda, portadorSupervisor));
-    const corte = await corteComoSupervisor.registrarCorte({
-      desde: "2024-01-01", hasta: "2024-01-01", montoInicial: 0, efectivoContado: 0,
-    });
-    expect(corte.usuario_id).toBe(sesionSupervisor.usuarioId);
+    const corteComoSupervisor = crearCorteCajaRepo(
+      conSesion(dbCruda, crearPortadorSesion(sesionSupervisor)),
+    );
+    // Cierre forzado (no es el dueño del turno): requiere caja.cerrar, que supervisor sí tiene.
+    const cerrado = await corteComoSupervisor.cerrarTurno({ efectivoContado: 0 });
+    expect(cerrado.usuario_id).toBe(sesionCajero.usuarioId);
+    expect(cerrado.estado).toBe("cerrado");
   });
 });
 
@@ -152,7 +183,15 @@ describe("con sesión de supervisor, compraRepo.crear funciona y atribuye la bit
 
     await compras.crear({
       proveedor_id: proveedor.id,
-      lineas: [{ descripcion: "Artículo", cantidad: 1, costoUnitario: 100, impuestoTipo: "itbis18", tasaImpuesto: 0.18 }],
+      lineas: [
+        {
+          descripcion: "Artículo",
+          cantidad: 1,
+          costoUnitario: 100,
+          impuestoTipo: "itbis18",
+          tasaImpuesto: 0.18,
+        },
+      ],
     });
 
     const bitacora = await dbCruda.all<{ usuario_id: string | null; accion: string }>(
@@ -181,7 +220,11 @@ describe("registrarAccion: atribución automática desde la sesión", () => {
     const portador = crearPortadorSesion(sesionDueno);
     const dbConSesion = conSesion(dbCruda, portador);
 
-    const registro = await registrarAccion(dbConSesion, { usuarioId: otro.id, accion: "prueba", entidad: "prueba" });
+    const registro = await registrarAccion(dbConSesion, {
+      usuarioId: otro.id,
+      accion: "prueba",
+      entidad: "prueba",
+    });
     expect(registro.usuario_id).toBe(otro.id);
     expect(registro.usuario_id).not.toBe(sesionDueno.usuarioId);
   });
@@ -198,14 +241,14 @@ describe("puntos de entrada que aceptan usuario_id opcional heredan el de la ses
     expect(ticket.usuario_id).toBe(sesionCajero.usuarioId);
   });
 
-  it("registrarCorte() guarda usuario_id de la sesión", async () => {
+  it("abrirTurno() guarda usuario_id de la sesión (quien abre el turno)", async () => {
     const dbCruda = await nuevaDb();
-    const sesionSupervisor = await sesionDe(dbCruda, "supervisor", "Supervisor Uno");
-    const portador = crearPortadorSesion(sesionSupervisor);
+    const sesionCajero = await sesionDe(dbCruda, "cajero", "Cajero Uno");
+    const portador = crearPortadorSesion(sesionCajero);
     const corte = crearCorteCajaRepo(conSesion(dbCruda, portador));
 
-    const c = await corte.registrarCorte({ desde: "2024-01-01", hasta: "2024-01-01", montoInicial: 0, efectivoContado: 0 });
-    expect(c.usuario_id).toBe(sesionSupervisor.usuarioId);
+    const c = await corte.abrirTurno({ montoInicial: 0 });
+    expect(c.usuario_id).toBe(sesionCajero.usuarioId);
   });
 
   it("cotizacion.crear() guarda usuario_id de la sesión", async () => {
@@ -215,7 +258,15 @@ describe("puntos de entrada que aceptan usuario_id opcional heredan el de la ses
     const cotizaciones = crearCotizacionRepo(conSesion(dbCruda, portador));
 
     const c = await cotizaciones.crear({
-      lineas: [{ descripcion: "Artículo", cantidad: 1, precioUnitario: 100, impuestoTipo: "itbis18", tasaImpuesto: 0.18 }],
+      lineas: [
+        {
+          descripcion: "Artículo",
+          cantidad: 1,
+          precioUnitario: 100,
+          impuestoTipo: "itbis18",
+          tasaImpuesto: 0.18,
+        },
+      ],
     });
     expect(c.usuario_id).toBe(sesionCajero.usuarioId);
   });

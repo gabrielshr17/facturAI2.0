@@ -17,6 +17,12 @@ describe("permisosDeRol — defaults por rol", () => {
     expect(p.has("reporte.ganancia")).toBe(false);
   });
 
+  it("cajero puede abrir su propio turno de caja pero no cerrar el de otro (caja.cerrar es de supervisor+)", () => {
+    const p = permisosDeRol("cajero");
+    expect(p.has("caja.abrir")).toBe(true);
+    expect(p.has("caja.cerrar")).toBe(false);
+  });
+
   it("supervisor es superconjunto estricto de cajero, con compras y cuadre de caja", () => {
     const cajero = permisosDeRol("cajero");
     const supervisor = permisosDeRol("supervisor");
@@ -80,20 +86,15 @@ describe("resolverPermisos — excepciones por usuario sobre el default del rol"
   it("JSON malformado devuelve los permisos del rol y avisa por el callback, sin lanzar", () => {
     const base = permisosDeRol("cajero");
     let mensaje: string | undefined;
-    const resuelto = resolverPermisos(
-      { rol: "cajero", permisos_json: "{esto no es json" },
-      (m) => {
-        mensaje = m;
-      },
-    );
+    const resuelto = resolverPermisos({ rol: "cajero", permisos_json: "{esto no es json" }, (m) => {
+      mensaje = m;
+    });
     expect(resuelto).toEqual(base);
     expect(mensaje).toBeTruthy();
   });
 
   it("JSON malformado sin callback no lanza y devuelve los permisos del rol", () => {
-    expect(() =>
-      resolverPermisos({ rol: "cajero", permisos_json: "no-es-json" }),
-    ).not.toThrow();
+    expect(() => resolverPermisos({ rol: "cajero", permisos_json: "no-es-json" })).not.toThrow();
   });
 });
 

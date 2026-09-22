@@ -50,6 +50,7 @@ export type Permiso =
   | "cliente.eliminar"
   | "proveedor.eliminar"
   | "compra.registrar"
+  | "caja.abrir"
   | "caja.cerrar"
   | "devolucion.registrar"
   | "factura.eliminar"
@@ -92,6 +93,7 @@ export const PERMISOS: readonly Permiso[] = [
   "cliente.eliminar",
   "proveedor.eliminar",
   "compra.registrar",
+  "caja.abrir",
   "caja.cerrar",
   "devolucion.registrar",
   "factura.eliminar",
@@ -100,7 +102,7 @@ export const PERMISOS: readonly Permiso[] = [
   "personal.gestionar",
 ];
 
-const PERMISOS_CAJERO: readonly Permiso[] = ["modulo.ventas", "factura.cobrar"];
+const PERMISOS_CAJERO: readonly Permiso[] = ["modulo.ventas", "factura.cobrar", "caja.abrir"];
 
 const PERMISOS_SUPERVISOR: readonly Permiso[] = [
   ...PERMISOS_CAJERO,

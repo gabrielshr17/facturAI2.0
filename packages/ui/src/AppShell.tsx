@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Sun, Moon, Menu, LogOut } from "lucide-react";
+import type { CorteCaja } from "@sfr/core";
 import { Marca } from "./componentes/Marca.js";
 import { ErrorBoundary } from "./componentes/ErrorBoundary.js";
 import { CambioRapidoUsuario } from "./componentes/CambioRapidoUsuario.js";
 import { BloqueoInactividad } from "./componentes/BloqueoInactividad.js";
+import { PromptAbrirTurno, PromptCerrarTurno } from "./componentes/TarjetasTurno.js";
 import { ProveedorAlertas } from "./contexto/Alertas.js";
 import { useSesion } from "./sesion/contexto.js";
 import { useRepos } from "./data/contexto.js";
@@ -61,7 +63,52 @@ function moduloPorId(lista: ModuloDef[], id: string): ModuloDef | undefined {
  */
 export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
   const { sesion, cerrarSesion } = useSesion();
-  const { usuario: usuarioRepo } = useRepos();
+  const { usuario: usuarioRepo, corteCaja: corteCajaRepo, negocio: negocioRepo } = useRepos();
+
+  // Ciclo de turno de caja (§ CAJA): login abre turno, logout lo cierra. `exigeCajaAbierta`
+  // se lee una sola vez (configuración del negocio, no cambia por usuario); `estadoTurno` se
+  // vuelve a consultar cada vez que cambia `sesion.usuarioId` — login, logout y el cambio
+  // rápido de usuario (`Ctrl+U`, que ya cierra el turno saliente ANTES de llamar
+  // `iniciarSesion` del nuevo usuario, ver `CambioRapidoUsuario.tsx`) pasan todos por ahí.
+  const [exigeCajaAbierta, setExigeCajaAbierta] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelado = false;
+    void negocioRepo.obtener().then((n) => {
+      if (!cancelado) setExigeCajaAbierta(n?.exige_caja_abierta === 1);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [negocioRepo]);
+
+  const [estadoTurno, setEstadoTurno] = useState<{ cargado: boolean; abierto: CorteCaja | null }>({
+    cargado: false,
+    abierto: null,
+  });
+  useEffect(() => {
+    if (sesion.usuarioId === null) {
+      setEstadoTurno({ cargado: true, abierto: null });
+      return;
+    }
+    let cancelado = false;
+    setEstadoTurno((prev) => ({ ...prev, cargado: false }));
+    void corteCajaRepo.turnoAbierto().then((abierto) => {
+      if (!cancelado) setEstadoTurno({ cargado: true, abierto });
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [sesion.usuarioId, corteCajaRepo]);
+
+  const [cerrandoTurno, setCerrandoTurno] = useState(false);
+
+  async function manejarCerrarSesion() {
+    if (estadoTurno.abierto) {
+      setCerrandoTurno(true);
+      return;
+    }
+    cerrarSesion();
+  }
 
   // El portador de sesión (§ RBAC-05) solo trae `usuarioId`/`rol`: el NOMBRE hay que
   // resolverlo aparte con una consulta. Se dispara una sola vez por cambio de usuario
@@ -167,6 +214,37 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
     return <div style={{ padding: 24 }}>No hay ningún módulo disponible para esta sesión.</div>;
   }
 
+  // Compuerta de turno (§ CAJA): mientras el negocio exige caja abierta y la sesión real
+  // todavía no tiene turno, NINGÚN módulo (ni Ventas) se renderiza — solo el paso "abrir
+  // turno". Se resuelve DESPUÉS de todos los hooks de arriba (regla de hooks) pero ANTES
+  // del cascarón normal. `sesion.usuarioId === null` cubre `SESION_LOCAL` (instalaciones/
+  // pruebas que montan `<AppShell>` sin pasar por `<Acceso>`): ahí no hay turno que abrir.
+  // A propósito NO bloquea mientras `exigeCajaAbierta`/`estadoTurno` todavía están
+  // cargando (ambos arrancan en su estado "no cargado"): el primer render debe verse
+  // igual que hoy, sin parpadeo en blanco, y solo pasa a bloquear una vez confirmado
+  // que de verdad hace falta un turno.
+  if (
+    sesion.usuarioId !== null &&
+    exigeCajaAbierta === true &&
+    estadoTurno.cargado &&
+    !estadoTurno.abierto
+  ) {
+    return (
+      <ProveedorAlertas>
+        <div style={styles.overlayCompleto}>
+          <PromptAbrirTurno
+            nombreUsuario={nombreUsuario ?? undefined}
+            onConfirmar={async (montoInicial) => {
+              await corteCajaRepo.abrirTurno({ montoInicial });
+              const abierto = await corteCajaRepo.turnoAbierto();
+              setEstadoTurno({ cargado: true, abierto });
+            }}
+          />
+        </div>
+      </ProveedorAlertas>
+    );
+  }
+
   const nav = (
     <nav
       aria-label="Módulos"
@@ -225,7 +303,7 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
             </div>
           )}
           <button
-            onClick={cerrarSesion}
+            onClick={() => void manejarCerrarSesion()}
             aria-label="Cerrar sesión"
             title={
               soloIconos
@@ -345,6 +423,24 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
           `CambioRapidoUsuario` para vivir acá: necesita `useAlertas()` para el PIN
           incorrecto, y no debe desmontar ningún módulo activo al bloquear. */}
         <BloqueoInactividad />
+        {/* Cerrar sesión con turno abierto (§ CAJA): pide contar el efectivo ANTES de
+          cerrar sesión de verdad — ver `manejarCerrarSesion`. */}
+        {cerrandoTurno && estadoTurno.abierto && (
+          <div style={styles.overlayModal} onClick={() => setCerrandoTurno(false)}>
+            <div onClick={(e) => e.stopPropagation()}>
+              <PromptCerrarTurno
+                montoInicial={estadoTurno.abierto.monto_inicial}
+                titulo="Cerrar turno para salir"
+                onConfirmar={async (efectivoContado) => {
+                  await corteCajaRepo.cerrarTurno({ efectivoContado });
+                  setCerrandoTurno(false);
+                  cerrarSesion();
+                }}
+                onCancelar={() => setCerrandoTurno(false)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </ProveedorAlertas>
   );
@@ -462,4 +558,29 @@ const styles: Record<string, CSSProperties> = {
   // llegara a esconder la barra.
   main: { flex: 1, minWidth: 0, minHeight: 0, padding: "24px 32px", overflow: "auto" },
   titulo: { marginTop: 0, marginBottom: 20, fontSize: 22, letterSpacing: -0.3 },
+  // Compuerta de "abrir turno": pantalla completa, mismo tono que `pantallas/Acceso.tsx`
+  // (zIndex 600 — por encima de cualquier `avisar()` en vuelo, mismo motivo que ahí).
+  overlayCompleto: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 600,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    background: `linear-gradient(160deg, ${c.azulOscuro}, #0f172a)`,
+  },
+  // "Cerrar turno" al salir: modal flotante sobre la app ya en uso, mismo nivel que
+  // `CambioRapidoUsuario.tsx` (100 — por debajo de `useAlertas()` en 500).
+  overlayModal: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 100,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    background: "var(--sfr-overlay)",
+    backdropFilter: "blur(2px)",
+  },
 };
