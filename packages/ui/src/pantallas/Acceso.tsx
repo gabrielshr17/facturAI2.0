@@ -356,7 +356,15 @@ function TecladoPin({
 const fondo: CSSProperties = {
   position: "fixed",
   inset: 0,
-  zIndex: 600,
+  // Por DEBAJO de useAlertas() (500, ver design-guidelines.md): `<Acceso>` monta su
+  // PROPIO `<ProveedorAlertas>` (arranca vacío, nunca hereda un aviso de otro
+  // proveedor), así que cualquier aviso que aparezca mientras esta pantalla está
+  // activa (PIN incorrecto, etc.) lo dispara ella misma — tiene que verse ENCIMA,
+  // no detrás. Con 600 (bug real, encontrado probando el login) ese aviso quedaba
+  // invisible detrás de esta pantalla y sin forma de descartarlo, dejando el
+  // teclado de PIN deshabilitado para siempre (`enviando` nunca se apagaba porque
+  // el `await avisar(...)` de `intentarLogin` no podía resolver).
+  zIndex: 490,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
