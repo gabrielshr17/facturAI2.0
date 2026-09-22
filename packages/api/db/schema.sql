@@ -287,8 +287,10 @@ CREATE TABLE corte_caja (
   -- Sin FK a propósito, mismo motivo que factura.caja_id/usuario_id arriba.
   caja_id             TEXT,
   usuario_id          TEXT,
-  fecha_apertura      DATE NOT NULL,
-  fecha_cierre        DATE NOT NULL,
+  -- TIMESTAMPTZ (no DATE): el turno guarda el instante exacto de apertura/cierre,
+  -- no solo el día, para poder acotar las ventas de cada turno sin solaparse.
+  fecha_apertura      TIMESTAMPTZ NOT NULL,
+  fecha_cierre        TIMESTAMPTZ NOT NULL,
   monto_inicial       NUMERIC(12,2) NOT NULL DEFAULT 0,
   total_ventas        NUMERIC(12,2) NOT NULL DEFAULT 0,
   total_itbis         NUMERIC(12,2) NOT NULL DEFAULT 0,
@@ -305,6 +307,10 @@ CREATE TABLE corte_caja (
   deleted_at          TIMESTAMPTZ
 );
 CREATE INDEX ix_corte_caja_fecha_cierre ON corte_caja(fecha_cierre);
+-- Respaldo del índice único parcial de SQLite (packages/core/src/db/migraciones/40-caja.ts):
+-- como máximo un turno abierto a la vez.
+CREATE UNIQUE INDEX ux_corte_caja_un_abierto ON corte_caja(estado)
+  WHERE estado = 'abierto' AND deleted_at IS NULL;
 
 -- Inventario ----------------------------------------------------------------
 CREATE TABLE movimiento_inventario (

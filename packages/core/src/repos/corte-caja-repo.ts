@@ -1,8 +1,8 @@
 import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
 import { calcularCorteCaja } from "../dominio/caja.js";
-import { tieneValor, type ErrorValidacion } from "../dominio/validacion.js";
-import { exigirPermiso, usuarioDe } from "../db/sesion.js";
+import type { ErrorValidacion } from "../dominio/validacion.js";
+import { exigirPermiso, sesionDe, usuarioDe } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { CorteCaja } from "./tipos.js";
@@ -20,12 +20,11 @@ export interface ResumenPeriodoVentas {
   totalCredito: number;
 }
 
-export interface RegistrarCorteInput {
-  cajaId?: string | null;
-  usuarioId?: string | null;
-  desde: string;
-  hasta: string;
+export interface AbrirTurnoInput {
   montoInicial: number;
+}
+
+export interface CerrarTurnoInput {
   efectivoContado: number;
 }
 
@@ -34,14 +33,22 @@ const COLS = `id, caja_id, usuario_id, fecha_apertura, fecha_cierre, monto_inici
   total_credito, efectivo_esperado, efectivo_contado, diferencia, estado,
   created_at, updated_at, deleted_at`;
 
+/**
+ * `desde`/`hasta` ahora son timestamps ISO completos (no solo fechas): un
+ * turno se acota por el instante exacto de apertura/cierre, no por el día,
+ * para que dos turnos consecutivos el mismo día nunca se solapen ni dejen
+ * huecos. La comparación es de texto directo (sin `date(...)`) porque
+ * `now()` (`ids.ts`) y `factura.fecha_hora` usan el mismo formato ISO 8601,
+ * que ordena igual como texto que como fecha.
+ */
 function validarPeriodo(desde: string, hasta: string): ErrorValidacion[] {
   const errores: ErrorValidacion[] = [];
-  if (!tieneValor(desde) || !tieneValor(hasta)) {
-    errores.push({ campo: "periodo", mensaje: "Debe indicar la fecha desde y hasta." });
+  if (!desde || !hasta) {
+    errores.push({ campo: "periodo", mensaje: "Debe indicar el inicio y el fin del período." });
   } else if (desde > hasta) {
     errores.push({
       campo: "periodo",
-      mensaje: "La fecha 'desde' no puede ser posterior a 'hasta'.",
+      mensaje: "El inicio del período no puede ser posterior al fin.",
     });
   }
   return errores;
@@ -49,7 +56,7 @@ function validarPeriodo(desde: string, hasta: string): ErrorValidacion[] {
 
 export function crearCorteCajaRepo(db: SqlDriver) {
   return {
-    /** Totales de ventas cobradas entre `desde` y `hasta` (fechas ISO, inclusive). */
+    /** Totales de ventas cobradas entre `desde` y `hasta` (timestamps ISO, inclusive). */
     async calcularResumen(desde: string, hasta: string): Promise<ResumenPeriodoVentas> {
       const errores = validarPeriodo(desde, hasta);
       if (errores.length) throw new ValidacionError(errores);
@@ -62,7 +69,7 @@ export function crearCorteCajaRepo(db: SqlDriver) {
         `SELECT COUNT(*) as cantidad, SUM(total) as totalVentas, SUM(total_itbis) as totalItbis
          FROM factura
          WHERE estado='cobrada' AND deleted_at IS NULL
-           AND date(fecha_hora) >= date(?) AND date(fecha_hora) <= date(?)`,
+           AND fecha_hora >= ? AND fecha_hora <= ?`,
         [desde, hasta],
       );
 
@@ -71,7 +78,7 @@ export function crearCorteCajaRepo(db: SqlDriver) {
          FROM pago p
          JOIN factura f ON f.id = p.factura_id
          WHERE f.estado='cobrada' AND f.deleted_at IS NULL AND p.deleted_at IS NULL
-           AND date(f.fecha_hora) >= date(?) AND date(f.fecha_hora) <= date(?)
+           AND f.fecha_hora >= ? AND f.fecha_hora <= ?
          GROUP BY p.metodo`,
         [desde, hasta],
       );
@@ -93,46 +100,47 @@ export function crearCorteCajaRepo(db: SqlDriver) {
       };
     },
 
-    /** Calcula el resumen del período y registra el corte (cerrado) con el efectivo contado. */
-    async registrarCorte(input: RegistrarCorteInput): Promise<CorteCaja> {
-      exigirPermiso(db, "caja.cerrar");
-      const errores = validarPeriodo(input.desde, input.hasta);
+    /** El turno abierto ahora mismo (a lo sumo uno, ver migración 40-caja), o null. */
+    async turnoAbierto(): Promise<CorteCaja | null> {
+      const fila = await db.get<CorteCaja>(
+        `SELECT ${COLS} FROM corte_caja WHERE estado='abierto' AND deleted_at IS NULL LIMIT 1`,
+      );
+      return fila ?? null;
+    },
+
+    /** Abre un turno nuevo con el fondo de caja inicial. Requiere `caja.abrir`. */
+    async abrirTurno(input: AbrirTurnoInput): Promise<CorteCaja> {
+      exigirPermiso(db, "caja.abrir");
+      const errores: ErrorValidacion[] = [];
       if (input.montoInicial < 0) {
         errores.push({ campo: "montoInicial", mensaje: "El monto inicial no puede ser negativo." });
       }
-      if (input.efectivoContado < 0) {
-        errores.push({
-          campo: "efectivoContado",
-          mensaje: "El efectivo contado no puede ser negativo.",
-        });
-      }
       if (errores.length) throw new ValidacionError(errores);
 
-      const resumen = await this.calcularResumen(input.desde, input.hasta);
-      const { efectivoEsperado, diferencia } = calcularCorteCaja({
-        montoInicial: input.montoInicial,
-        totalEfectivo: resumen.totalEfectivo,
-        efectivoContado: input.efectivoContado,
-      });
+      if (await this.turnoAbierto()) {
+        throw new ValidacionError([
+          { campo: "turno", mensaje: "Ya hay un turno de caja abierto." },
+        ]);
+      }
 
       const ts = now();
       const c: CorteCaja = {
         id: newId(),
-        caja_id: input.cajaId ?? null,
-        usuario_id: input.usuarioId ?? usuarioDe(db),
-        fecha_apertura: input.desde,
-        fecha_cierre: input.hasta,
+        caja_id: null,
+        usuario_id: usuarioDe(db),
+        fecha_apertura: ts,
+        fecha_cierre: ts,
         monto_inicial: input.montoInicial,
-        total_ventas: resumen.totalVentas,
-        total_itbis: resumen.totalItbis,
-        total_efectivo: resumen.totalEfectivo,
-        total_tarjeta: resumen.totalTarjeta,
-        total_transferencia: resumen.totalTransferencia,
-        total_credito: resumen.totalCredito,
-        efectivo_esperado: efectivoEsperado,
-        efectivo_contado: input.efectivoContado,
-        diferencia,
-        estado: "cerrado",
+        total_ventas: 0,
+        total_itbis: 0,
+        total_efectivo: 0,
+        total_tarjeta: 0,
+        total_transferencia: 0,
+        total_credito: 0,
+        efectivo_esperado: input.montoInicial,
+        efectivo_contado: 0,
+        diferencia: 0,
+        estado: "abierto",
         created_at: ts,
         updated_at: ts,
         deleted_at: null,
@@ -160,17 +168,81 @@ export function crearCorteCajaRepo(db: SqlDriver) {
         c.deleted_at,
       ]);
       await registrarAccion(db, {
-        accion: "cerrar_caja",
+        accion: "abrir_caja",
         entidad: "corte_caja",
         entidadId: c.id,
-        resumen: `Período ${c.fecha_apertura} a ${c.fecha_cierre}, diferencia RD$ ${c.diferencia.toFixed(2)}`,
+        resumen: `Turno abierto con fondo inicial RD$ ${c.monto_inicial.toFixed(2)}`,
       });
       return c;
     },
 
+    /**
+     * Cierra el turno abierto con el efectivo contado. Quien lo abrió puede
+     * cerrarlo sin `caja.cerrar` (cierre propio, p. ej. al cerrar sesión); de
+     * lo contrario hace falta `caja.cerrar` (cierre forzado por supervisor+,
+     * p. ej. un turno que quedó abierto tras un cierre inesperado).
+     */
+    async cerrarTurno(input: CerrarTurnoInput): Promise<CorteCaja> {
+      const abierto = await this.turnoAbierto();
+      if (!abierto) {
+        throw new ValidacionError([{ campo: "turno", mensaje: "No hay ningún turno abierto." }]);
+      }
+
+      const sesion = sesionDe(db);
+      const esPropio = sesion !== null && sesion.usuarioId === abierto.usuario_id;
+      if (!esPropio) exigirPermiso(db, "caja.cerrar");
+
+      if (input.efectivoContado < 0) {
+        throw new ValidacionError([
+          { campo: "efectivoContado", mensaje: "El efectivo contado no puede ser negativo." },
+        ]);
+      }
+
+      const ts = now();
+      const resumen = await this.calcularResumen(abierto.fecha_apertura, ts);
+      const { efectivoEsperado, diferencia } = calcularCorteCaja({
+        montoInicial: abierto.monto_inicial,
+        totalEfectivo: resumen.totalEfectivo,
+        efectivoContado: input.efectivoContado,
+      });
+
+      await db.run(
+        `UPDATE corte_caja SET fecha_cierre=?, total_ventas=?, total_itbis=?, total_efectivo=?,
+           total_tarjeta=?, total_transferencia=?, total_credito=?, efectivo_esperado=?,
+           efectivo_contado=?, diferencia=?, estado='cerrado', updated_at=? WHERE id=?`,
+        [
+          ts,
+          resumen.totalVentas,
+          resumen.totalItbis,
+          resumen.totalEfectivo,
+          resumen.totalTarjeta,
+          resumen.totalTransferencia,
+          resumen.totalCredito,
+          efectivoEsperado,
+          input.efectivoContado,
+          diferencia,
+          ts,
+          abierto.id,
+        ],
+      );
+      await registrarAccion(db, {
+        accion: "cerrar_caja",
+        entidad: "corte_caja",
+        entidadId: abierto.id,
+        resumen: `Turno ${abierto.fecha_apertura} a ${ts}, diferencia RD$ ${diferencia.toFixed(2)}`,
+      });
+
+      const cerrado = await db.get<CorteCaja>(`SELECT ${COLS} FROM corte_caja WHERE id=?`, [
+        abierto.id,
+      ]);
+      if (!cerrado) throw new Error("No se pudo leer el corte tras cerrarlo.");
+      return cerrado;
+    },
+
     async listar(): Promise<CorteCaja[]> {
       return db.all<CorteCaja>(
-        `SELECT ${COLS} FROM corte_caja WHERE deleted_at IS NULL ORDER BY fecha_cierre DESC, created_at DESC`,
+        `SELECT ${COLS} FROM corte_caja WHERE deleted_at IS NULL AND estado='cerrado'
+         ORDER BY fecha_cierre DESC, created_at DESC`,
       );
     },
   };
