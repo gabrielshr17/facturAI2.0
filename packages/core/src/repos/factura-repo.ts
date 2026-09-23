@@ -15,6 +15,7 @@ import { exigirPermiso, usuarioDe } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { ImpuestoTipo } from "../dominio/impuesto.js";
+import { precioSegunNivel, type NivelPrecio } from "../dominio/precio.js";
 import type { Factura, FacturaLinea, Pago } from "./tipos.js";
 
 /**
@@ -189,6 +190,47 @@ export function crearFacturaRepo(db: SqlDriver) {
        WHERE id=?`,
       [t.subtotalGravado, t.subtotalExento, t.totalItbis, t.total, now(), facturaId],
     );
+  }
+
+  async function reaplicarNivelPrecio(facturaId: string, clienteId: string | null): Promise<void> {
+    const cliente = clienteId
+      ? await db.get<{ nivel_precio: string | null }>(
+          "SELECT nivel_precio FROM cliente WHERE id=?",
+          [clienteId],
+        )
+      : undefined;
+    const nivel: NivelPrecio =
+      cliente?.nivel_precio === "2" || cliente?.nivel_precio === "3" ? cliente.nivel_precio : "1";
+
+    const lineas = await db.all<{
+      id: string;
+      cantidad: number;
+      tasa_impuesto: number;
+      precio_venta: number;
+      precio_2: number | null;
+      precio_3: number | null;
+    }>(
+      `SELECT fl.id, fl.cantidad, fl.tasa_impuesto, p.precio_venta, p.precio_2, p.precio_3
+       FROM factura_linea fl
+       JOIN producto p ON p.id = fl.producto_id
+       WHERE fl.factura_id=? AND fl.deleted_at IS NULL AND fl.es_mayoreo=0`,
+      [facturaId],
+    );
+    for (const l of lineas) {
+      const precioUnitario = precioSegunNivel(l, nivel);
+      const calc = calcularLinea({
+        precioUnitario,
+        cantidad: l.cantidad,
+        tasaImpuesto: l.tasa_impuesto,
+      });
+      await db.run(
+        `UPDATE factura_linea
+           SET precio_unitario=?, monto_itbis=?, subtotal=?, nivel_precio=?, updated_at=?
+         WHERE id=?`,
+        [precioUnitario, calc.montoItbis, calc.subtotal, nivel, now(), l.id],
+      );
+    }
+    await recalcularTotales(facturaId);
   }
 
   const repo = {
@@ -399,6 +441,7 @@ export function crearFacturaRepo(db: SqlDriver) {
         now(),
         facturaId,
       ]);
+      await reaplicarNivelPrecio(facturaId, clienteId);
     },
 
     async actualizarNotas(facturaId: string, notas: string): Promise<void> {
