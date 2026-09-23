@@ -8,6 +8,9 @@
     "sql:default",
     "sql:allow-execute",
     "core:window:allow-close",
-    "core:window:allow-destroy"
+    "core:window:allow-destroy",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }

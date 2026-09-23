@@ -14,6 +14,7 @@
     "@sfr/core": "workspace:*",
     "@sfr/ui": "workspace:*",
     "@tauri-apps/api": "^2.4.0",
+    "@tauri-apps/plugin-autostart": "^2.5.1",
     "@tauri-apps/plugin-sql": "^2.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

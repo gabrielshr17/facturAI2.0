@@ -10,6 +10,7 @@ import {
   configurarAdaptadorImpresora,
   configurarAdaptadorImpresoraTexto,
   ejecutarManejadorCierreVentana,
+  configurarAdaptadorInicioAutomatico,
 } from "@sfr/ui";
 import { migrate, seed, crearUsuarioRepo, type SqlDriver } from "@sfr/core";
 import { crearTauriSqlDriver } from "./db/tauri-sql-driver.js";
@@ -17,11 +18,13 @@ import {
   adaptadorImpresoraTauri,
   adaptadorImpresoraTextoTauri,
 } from "./impresora/tauri-impresora.js";
+import { adaptadorInicioAutomaticoTauri } from "./sistema/tauri-inicio-automatico.js";
 import { iniciarSincronizacionEnSegundoPlano } from "./sync/arrancar.js";
 import "@sfr/ui/estilos-globales.css";
 
 configurarAdaptadorImpresora(adaptadorImpresoraTauri);
 configurarAdaptadorImpresoraTexto(adaptadorImpresoraTextoTauri);
+configurarAdaptadorInicioAutomatico(adaptadorInicioAutomaticoTauri);
 
 /**
  * Cerrar la ventana con el botón nativo del sistema operativo (§ CAJA): igual que "Cerrar
