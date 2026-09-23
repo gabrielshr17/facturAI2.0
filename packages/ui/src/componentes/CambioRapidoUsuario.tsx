@@ -168,6 +168,7 @@ export function CambioRapidoUsuario(): ReactElement | null {
         {turnoACerrar && (
           <PromptCerrarTurno
             montoInicial={turnoACerrar.monto_inicial}
+            fechaApertura={turnoACerrar.fecha_apertura}
             titulo="Cerrar turno para cambiar de usuario"
             onConfirmar={async (efectivoContado) => {
               await corteCajaRepo.cerrarTurno({ efectivoContado });
