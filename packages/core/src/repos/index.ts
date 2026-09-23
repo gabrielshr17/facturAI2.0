@@ -75,6 +75,7 @@ export {
   type ResumenPeriodoVentas,
   type AbrirTurnoInput,
   type CerrarTurnoInput,
+  type VerificarPagoInput,
   type CorteCajaRepo,
 } from "./corte-caja-repo.js";
 export {

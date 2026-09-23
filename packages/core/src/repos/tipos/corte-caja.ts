@@ -18,5 +18,16 @@ export interface CorteCaja extends Auditoria {
   efectivo_esperado: number;
   efectivo_contado: number;
   diferencia: number;
+  /**
+   * Verificación opcional de tarjeta/transferencia (§ CAJA): `null` = nadie
+   * lo verificó todavía, distinto de `0` (verificado y coincidió exacto).
+   * No es un conteo ciego como el efectivo — un supervisor la llena en
+   * Corte de Caja transcribiendo el reporte de lote del datáfono o la
+   * confirmación bancaria, para cualquier turno ya cerrado.
+   */
+  tarjeta_verificado: number | null;
+  tarjeta_diferencia: number | null;
+  transferencia_verificado: number | null;
+  transferencia_diferencia: number | null;
   estado: EstadoCorteCaja;
 }

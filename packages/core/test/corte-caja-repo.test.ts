@@ -177,3 +177,89 @@ describe("corteCajaRepo — resumen y ciclo de turno (Corte de caja)", () => {
     expect(lista.every((c) => c.estado === "cerrado")).toBe(true);
   });
 });
+
+describe("corteCajaRepo — verificarPago (tarjeta/transferencia, § CAJA)", () => {
+  let db: SqlDriver;
+  beforeEach(async () => {
+    db = await nuevaDb();
+  });
+
+  async function turnoConTarjetaYTransferencia(): Promise<string> {
+    const facturas = crearFacturaRepo(db);
+    const cortes = crearCorteCajaRepo(db);
+    await cortes.abrirTurno({ montoInicial: 0 });
+    const t = await facturas.abrirTicket();
+    await facturas.agregarLinea(t.id, {
+      descripcion: "Artículo",
+      cantidad: 1,
+      precioUnitario: 150,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
+    });
+    await facturas.cobrar(t.id, {
+      pagos: [
+        { metodo: "tarjeta", monto: 100 },
+        { metodo: "transferencia", monto: 50 },
+      ],
+    });
+    const cerrado = await cortes.cerrarTurno({ efectivoContado: 0 });
+    return cerrado.id;
+  }
+
+  it("un monto verificado que coincide da diferencia 0", async () => {
+    const cortes = crearCorteCajaRepo(db);
+    const id = await turnoConTarjetaYTransferencia();
+
+    const actualizado = await cortes.verificarPago(id, { tarjetaVerificado: 100 });
+    expect(actualizado.tarjeta_verificado).toBe(100);
+    expect(actualizado.tarjeta_diferencia).toBe(0);
+  });
+
+  it("un monto verificado de menos da diferencia negativa", async () => {
+    const cortes = crearCorteCajaRepo(db);
+    const id = await turnoConTarjetaYTransferencia();
+
+    const actualizado = await cortes.verificarPago(id, { tarjetaVerificado: 95 });
+    expect(actualizado.tarjeta_diferencia).toBe(-5);
+  });
+
+  it("verificar tarjeta no toca transferencia, y viceversa", async () => {
+    const cortes = crearCorteCajaRepo(db);
+    const id = await turnoConTarjetaYTransferencia();
+
+    await cortes.verificarPago(id, { tarjetaVerificado: 100 });
+    const conAmbas = await cortes.verificarPago(id, { transferenciaVerificado: 50 });
+
+    expect(conAmbas.tarjeta_verificado).toBe(100);
+    expect(conAmbas.tarjeta_diferencia).toBe(0);
+    expect(conAmbas.transferencia_verificado).toBe(50);
+    expect(conAmbas.transferencia_diferencia).toBe(0);
+  });
+
+  it("null hasta que se verifica", async () => {
+    const cortes = crearCorteCajaRepo(db);
+    await turnoConTarjetaYTransferencia();
+
+    const [turno] = await cortes.listar();
+    expect(turno.tarjeta_verificado).toBeNull();
+    expect(turno.tarjeta_diferencia).toBeNull();
+    expect(turno.transferencia_verificado).toBeNull();
+    expect(turno.transferencia_diferencia).toBeNull();
+  });
+
+  it("rechaza un monto verificado negativo", async () => {
+    const cortes = crearCorteCajaRepo(db);
+    const id = await turnoConTarjetaYTransferencia();
+
+    await expect(cortes.verificarPago(id, { tarjetaVerificado: -1 })).rejects.toBeInstanceOf(
+      ValidacionError,
+    );
+  });
+
+  it("falla contra un corte que no existe", async () => {
+    const cortes = crearCorteCajaRepo(db);
+    await expect(
+      cortes.verificarPago("corte-inexistente", { tarjetaVerificado: 10 }),
+    ).rejects.toThrow();
+  });
+});

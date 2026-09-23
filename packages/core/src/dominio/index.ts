@@ -18,7 +18,12 @@ export {
   procesarCobro,
 } from "./factura.js";
 export { type TipoEcf, formatearNcf, tipoEcfSugerido, ETIQUETA_TIPO_ECF } from "./ecf.js";
-export { type CorteCajaInput, type CorteCajaResultado, calcularCorteCaja } from "./caja.js";
+export {
+  type CorteCajaInput,
+  type CorteCajaResultado,
+  calcularCorteCaja,
+  calcularDiferenciaVerificacion,
+} from "./caja.js";
 export {
   type PoliticaSinExistencia,
   type DisponibilidadInput,

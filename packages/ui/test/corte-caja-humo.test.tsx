@@ -1,0 +1,73 @@
+// Pruebas de humo de la verificación opcional de tarjeta/transferencia en Corte de Caja
+// (§ CAJA). No reimplementan la lógica de `corteCajaRepo.verificarPago` (ya cubierta en
+// packages/core/test/corte-caja-repo.test.ts): solo verifican que la pantalla la dispara
+// y refleja el resultado. Los datos se preparan ANTES de montar (no con `renderConDatos` +
+// mutación posterior): `CorteCaja` solo carga su historial una vez al montar, así que
+// mutar después no lo refrescaría sin pasar por sus propios botones.
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
+import { migrate, seed, crearRepos, permisosDeRol, type PortadorSesion } from "@sfr/core";
+import { createNodeSqliteDriver } from "../../core/src/db/drivers/node-sqlite.js";
+import { CorteCaja } from "../src/pantallas/CorteCaja.js";
+import { ProveedorDatos } from "../src/data/contexto.js";
+import { ProveedorSesion } from "../src/sesion/contexto.js";
+
+beforeEach(() => {
+  localStorage.clear();
+});
+
+async function montarConTurnoDeTarjeta() {
+  const db = createNodeSqliteDriver();
+  await migrate(db);
+  await seed(db);
+  const repos = crearRepos(db);
+
+  await repos.corteCaja.abrirTurno({ montoInicial: 0 });
+  const t = await repos.factura.abrirTicket();
+  await repos.factura.agregarLinea(t.id, {
+    descripcion: "Artículo",
+    cantidad: 1,
+    precioUnitario: 100,
+    impuestoTipo: "itbis18",
+    tasaImpuesto: 0.18,
+  });
+  await repos.factura.cobrar(t.id, { pagos: [{ metodo: "tarjeta", monto: 100 }] });
+  await repos.corteCaja.cerrarTurno({ efectivoContado: 0 });
+
+  const sesion: PortadorSesion = {
+    usuarioId: null,
+    rol: "dueno",
+    permisos: permisosDeRol("dueno"),
+  };
+  return render(
+    <ProveedorSesion db={db} sesionInicial={sesion}>
+      <ProveedorDatos>
+        <CorteCaja />
+      </ProveedorDatos>
+    </ProveedorSesion>,
+  );
+}
+
+describe("CorteCaja — verificar tarjeta/transferencia (humo, § CAJA)", () => {
+  it("un turno con ventas por tarjeta muestra 'Verificar'; guardar calcula la diferencia", async () => {
+    await montarConTurnoDeTarjeta();
+
+    const botonVerificar = await screen.findByText("Verificar");
+    fireEvent.click(botonVerificar);
+
+    const campo = await screen.findByLabelText("Monto verificado");
+    fireEvent.change(campo, { target: { value: "95" } });
+    fireEvent.click(screen.getByText("Guardar"));
+
+    await waitFor(() => expect(screen.getByText(/dif: RD\$ -5\.00/)).toBeTruthy());
+  });
+
+  it("un turno sin ventas por transferencia muestra '—' en esa columna, sin botón", async () => {
+    await montarConTurnoDeTarjeta();
+
+    await screen.findByText("Verificar"); // espera a que cargue el historial
+    const filas = screen.getAllByRole("row");
+    const filaDatos = filas[1]; // fila 0 es el encabezado
+    expect(filaDatos.textContent).toContain("—");
+  });
+});
