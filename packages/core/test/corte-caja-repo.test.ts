@@ -48,6 +48,33 @@ describe("corteCajaRepo — resumen y ciclo de turno (Corte de caja)", () => {
     expect(resumen.totalTransferencia).toBe(0);
   });
 
+  it("resta el cambio en efectivo del total: el cliente tiende de más y se le devuelve vuelto", async () => {
+    // `pago.monto` guarda lo tendido (200) para cubrir una venta de 150, no lo que
+    // queda en la gaveta (150). El cambio (50) siempre sale en efectivo, así que el
+    // corte de caja no debe contarlo como si siguiera en la caja.
+    const facturas = crearFacturaRepo(db);
+    const cortes = crearCorteCajaRepo(db);
+
+    const t = await facturas.abrirTicket();
+    await facturas.agregarLinea(t.id, {
+      descripcion: "Artículo",
+      cantidad: 1,
+      precioUnitario: 150,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
+    });
+    const { cambio } = await facturas.cobrar(t.id, {
+      pagos: [{ metodo: "efectivo", monto: 200 }],
+    });
+    expect(cambio).toBe(50);
+
+    const resumen = await cortes.calcularResumen(
+      "2000-01-01T00:00:00.000Z",
+      "2999-01-01T00:00:00.000Z",
+    );
+    expect(resumen.totalEfectivo).toBe(150);
+  });
+
   it("no incluye tickets abiertos (sin cobrar) en el resumen", async () => {
     const facturas = crearFacturaRepo(db);
     const cortes = crearCorteCajaRepo(db);
