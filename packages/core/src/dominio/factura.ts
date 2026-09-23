@@ -99,6 +99,25 @@ export interface ResultadoCobro {
  * cambio si hay pago en efectivo suficiente para cubrir el excedente; así una
  * "sobre-captura" en tarjeta/transferencia no produce cambio ficticio.
  */
+/**
+ * Recargo fijo por pagar con tarjeta (§ PRECIOS/COBRO): 5%, no configurable
+ * por negocio. Se aplica solo a la porción de la factura pagada con
+ * tarjeta — el resto de los métodos no se toca.
+ *
+ * A propósito NO se le resta a `procesarCobro`/`factura.total`: el recargo
+ * es lo que de verdad se cobra en la tarjeta (lo que refleja `pago.monto`/
+ * `factura.monto_pagado`), no una línea más del ticket — la factura impresa
+ * sigue mostrando el precio de los productos tal cual, sin un ítem de
+ * "recargo" separado (decisión ya tomada, ver el plan de la tarea).
+ */
+const RECARGO_TARJETA_PCT = 0.05;
+
+export function aplicarRecargoTarjeta(pagos: PagoInput[]): PagoInput[] {
+  return pagos.map((p) =>
+    p.metodo === "tarjeta" ? { ...p, monto: redondear2(p.monto * (1 + RECARGO_TARJETA_PCT)) } : p,
+  );
+}
+
 export function procesarCobro(total: number, pagos: PagoInput[]): ResultadoCobro {
   const totalR = redondear2(total);
   const montoPagado = sumar(pagos.map((p) => p.monto));

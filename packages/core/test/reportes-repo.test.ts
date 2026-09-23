@@ -5,7 +5,9 @@ import { crearFacturaRepo, crearProductoRepo, crearReportesRepo } from "../src/i
 
 describe("reportesRepo", () => {
   let db: SqlDriver;
-  beforeEach(async () => { db = await nuevaDb(); });
+  beforeEach(async () => {
+    db = await nuevaDb();
+  });
 
   async function venta(
     facturas: ReturnType<typeof crearFacturaRepo>,
@@ -17,7 +19,12 @@ describe("reportesRepo", () => {
   ) {
     const t = await facturas.abrirTicket();
     await facturas.agregarLinea(t.id, {
-      producto_id: productoId, descripcion, cantidad, precioUnitario, impuestoTipo: "itbis18", tasaImpuesto: 0.18,
+      producto_id: productoId,
+      descripcion,
+      cantidad,
+      precioUnitario,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
     });
     await facturas.cobrar(t.id, { pagos: [{ metodo, monto: cantidad * precioUnitario }] });
     return t;
@@ -98,7 +105,8 @@ describe("reportesRepo", () => {
     const filas = await reportes.ventasPorMetodoPago(hoy, hoy);
     const porMetodo = Object.fromEntries(filas.map((f) => [f.metodo, f.total]));
     expect(porMetodo.efectivo).toBe(50);
-    expect(porMetodo.tarjeta).toBe(30);
+    // 30 + 5% de recargo de tarjeta (§ PRECIOS/COBRO): lo realmente cobrado en la tarjeta.
+    expect(porMetodo.tarjeta).toBe(31.5);
   });
 
   it("no cuenta tickets abiertos (sin cobrar)", async () => {

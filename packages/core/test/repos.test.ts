@@ -24,7 +24,12 @@ describe("productoRepo — CRUD persiste en SQLite", () => {
 
   it("respeta el precio manual (manda sobre la derivación)", async () => {
     const repo = crearProductoRepo(db);
-    const p = await repo.crear({ descripcion: "Refresco", costo: 20, pct_ganancia: 50, precio_venta: 35 });
+    const p = await repo.crear({
+      descripcion: "Refresco",
+      costo: 20,
+      pct_ganancia: 50,
+      precio_venta: 35,
+    });
     expect(p.precio_venta).toBe(35);
   });
 
@@ -61,28 +66,76 @@ describe("productoRepo — CRUD persiste en SQLite", () => {
     await expect(repo.crear({ descripcion: "  " })).rejects.toBeInstanceOf(ValidacionError);
   });
 
-  it("ida y vuelta: columnas del censo (precio_2, cantidad_minima_mayoreo, existencia_minima)", async () => {
+  it("ida y vuelta: columnas del censo (precio_2, precio_3, cantidad_minima_mayoreo, existencia_minima)", async () => {
     const repo = crearProductoRepo(db);
     const p = await repo.crear({
       descripcion: "Detergente",
       precio_2: 120.5,
+      precio_3: 110.25,
       cantidad_minima_mayoreo: 12,
       existencia_minima: 5,
     });
     expect(p.precio_2).toBe(120.5);
+    expect(p.precio_3).toBe(110.25);
     expect(p.cantidad_minima_mayoreo).toBe(12);
     expect(p.existencia_minima).toBe(5);
 
     const leido = await repo.obtener(p.id);
     expect(leido?.precio_2).toBe(120.5);
+    expect(leido?.precio_3).toBe(110.25);
     expect(leido?.cantidad_minima_mayoreo).toBe(12);
     expect(leido?.existencia_minima).toBe(5);
 
-    await repo.actualizar(p.id, { descripcion: "Detergente", precio_2: 200, cantidad_minima_mayoreo: 24, existencia_minima: 10 });
+    await repo.actualizar(p.id, {
+      descripcion: "Detergente",
+      precio_2: 200,
+      precio_3: 190,
+      cantidad_minima_mayoreo: 24,
+      existencia_minima: 10,
+    });
     const actualizado = await repo.obtener(p.id);
     expect(actualizado?.precio_2).toBe(200);
+    expect(actualizado?.precio_3).toBe(190);
     expect(actualizado?.cantidad_minima_mayoreo).toBe(24);
     expect(actualizado?.existencia_minima).toBe(10);
+  });
+
+  it("al crear sin precio_2/precio_3, los sugiere como costo+10%/costo+5% (ITBIS incluido)", async () => {
+    const repo = crearProductoRepo(db);
+    const p = await repo.crear({ descripcion: "Arroz 5lb", costo: 40, pct_ganancia: 25 });
+    // base 44 (40+10%) + 18% ITBIS = 51.92
+    expect(p.precio_2).toBe(51.92);
+    // base 42 (40+5%) + 18% ITBIS = 49.56
+    expect(p.precio_3).toBe(49.56);
+  });
+
+  it("precio_2/precio_3 explícitos al crear ganan sobre la sugerencia", async () => {
+    const repo = crearProductoRepo(db);
+    const p = await repo.crear({
+      descripcion: "Arroz 5lb",
+      costo: 40,
+      pct_ganancia: 25,
+      precio_2: 999,
+      precio_3: 888,
+    });
+    expect(p.precio_2).toBe(999);
+    expect(p.precio_3).toBe(888);
+  });
+
+  it("actualizar() nunca recalcula precio_2/precio_3: sin tope, el valor guardado manda siempre", async () => {
+    const repo = crearProductoRepo(db);
+    const p = await repo.crear({ descripcion: "Arroz 5lb", costo: 40, pct_ganancia: 25 });
+    // Aunque el costo suba, precio_2/precio_3 no se tocan si no vienen en el input.
+    await repo.actualizar(p.id, { descripcion: "Arroz 5lb", costo: 100 });
+    const sinCambioExplicito = await repo.obtener(p.id);
+    expect(sinCambioExplicito?.precio_2).toBe(51.92);
+    expect(sinCambioExplicito?.precio_3).toBe(49.56);
+
+    // Y un valor manual muy por encima de costo+10%/5% se guarda tal cual (sin tope).
+    await repo.actualizar(p.id, { descripcion: "Arroz 5lb", precio_2: 500, precio_3: 500 });
+    const conTopeSuperado = await repo.obtener(p.id);
+    expect(conTopeSuperado?.precio_2).toBe(500);
+    expect(conTopeSuperado?.precio_3).toBe(500);
   });
 });
 
@@ -108,7 +161,9 @@ describe("clienteRepo — CRUD y validaciones", () => {
 
   it("rechaza correo inválido", async () => {
     const repo = crearClienteRepo(db);
-    await expect(repo.crear({ nombre: "X", correo: "malo@" })).rejects.toBeInstanceOf(ValidacionError);
+    await expect(repo.crear({ nombre: "X", correo: "malo@" })).rejects.toBeInstanceOf(
+      ValidacionError,
+    );
   });
 
   it("rechaza RNC inválido", async () => {

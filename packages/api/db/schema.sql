@@ -128,6 +128,9 @@ CREATE TABLE producto (
   -- cantidad_minima_mayoreo los consume PRECIOS (tercer nivel de precio);
   -- existencia_minima lo consume BACKOFFICE (alerta de existencia baja).
   precio_2                NUMERIC(12,2),
+  -- Segundo nivel de precio adicional (migración SQLite 50): precio_2 es el
+  -- nivel 2, este es el nivel 3.
+  precio_3                NUMERIC(12,2),
   cantidad_minima_mayoreo NUMERIC(14,4),
   existencia_minima       NUMERIC(14,4),
   activo                  BOOLEAN NOT NULL DEFAULT true,

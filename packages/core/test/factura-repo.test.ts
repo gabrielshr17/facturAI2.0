@@ -78,10 +78,18 @@ describe("facturaRepo — armar ticket (§7.1)", () => {
     const repo = crearFacturaRepo(db);
     const t = await repo.abrirTicket();
     const l1 = await repo.agregarLinea(t.id, {
-      descripcion: "A", cantidad: 1, precioUnitario: 50, impuestoTipo: "itbis18", tasaImpuesto: 0.18,
+      descripcion: "A",
+      cantidad: 1,
+      precioUnitario: 50,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
     });
     await repo.agregarLinea(t.id, {
-      descripcion: "B", cantidad: 1, precioUnitario: 20, impuestoTipo: "exento", tasaImpuesto: 0,
+      descripcion: "B",
+      cantidad: 1,
+      precioUnitario: 20,
+      impuestoTipo: "exento",
+      tasaImpuesto: 0,
     });
 
     await repo.eliminarLinea(l1.id);
@@ -95,10 +103,18 @@ describe("facturaRepo — armar ticket (§7.1)", () => {
     const repo = crearFacturaRepo(db);
     const t = await repo.abrirTicket();
     const l1 = await repo.agregarLinea(t.id, {
-      descripcion: "A", cantidad: 2, precioUnitario: 50, impuestoTipo: "itbis18", tasaImpuesto: 0.18,
+      descripcion: "A",
+      cantidad: 2,
+      precioUnitario: 50,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
     });
     await repo.agregarLinea(t.id, {
-      descripcion: "B", cantidad: 1, precioUnitario: 20, impuestoTipo: "exento", tasaImpuesto: 0,
+      descripcion: "B",
+      cantidad: 1,
+      precioUnitario: 20,
+      impuestoTipo: "exento",
+      tasaImpuesto: 0,
     });
 
     await repo.eliminarLinea(l1.id);
@@ -140,10 +156,22 @@ describe("facturaRepo — armar ticket (§7.1)", () => {
     const repo = crearFacturaRepo(db);
     const t = await repo.abrirTicket();
     await expect(
-      repo.agregarLinea(t.id, { descripcion: "  ", cantidad: 1, precioUnitario: 10, impuestoTipo: "exento", tasaImpuesto: 0 }),
+      repo.agregarLinea(t.id, {
+        descripcion: "  ",
+        cantidad: 1,
+        precioUnitario: 10,
+        impuestoTipo: "exento",
+        tasaImpuesto: 0,
+      }),
     ).rejects.toBeInstanceOf(ValidacionError);
     await expect(
-      repo.agregarLinea(t.id, { descripcion: "X", cantidad: 0, precioUnitario: 10, impuestoTipo: "exento", tasaImpuesto: 0 }),
+      repo.agregarLinea(t.id, {
+        descripcion: "X",
+        cantidad: 0,
+        precioUnitario: 10,
+        impuestoTipo: "exento",
+        tasaImpuesto: 0,
+      }),
     ).rejects.toBeInstanceOf(ValidacionError);
   });
 
@@ -180,7 +208,11 @@ describe("facturaRepo — cobrar (§7.2)", () => {
   async function ticketCon100(repo: ReturnType<typeof crearFacturaRepo>) {
     const t = await repo.abrirTicket();
     await repo.agregarLinea(t.id, {
-      descripcion: "Arroz", cantidad: 2, precioUnitario: 50, impuestoTipo: "itbis18", tasaImpuesto: 0.18,
+      descripcion: "Arroz",
+      cantidad: 2,
+      precioUnitario: 50,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
     });
     return t;
   }
@@ -189,7 +221,9 @@ describe("facturaRepo — cobrar (§7.2)", () => {
     const repo = crearFacturaRepo(db);
     const t = await ticketCon100(repo);
 
-    const { factura, cambio } = await repo.cobrar(t.id, { pagos: [{ metodo: "efectivo", monto: 100 }] });
+    const { factura, cambio } = await repo.cobrar(t.id, {
+      pagos: [{ metodo: "efectivo", monto: 100 }],
+    });
     expect(factura.estado).toBe("cobrada");
     expect(factura.monto_pagado).toBe(100);
     expect(cambio).toBe(0);
@@ -204,7 +238,7 @@ describe("facturaRepo — cobrar (§7.2)", () => {
     expect(cambio).toBe(50);
   });
 
-  it("cobra con pago mixto (tarjeta + efectivo) y registra ambos pagos", async () => {
+  it("cobra con pago mixto (tarjeta + efectivo) y registra ambos pagos con el 5% de recargo solo en tarjeta", async () => {
     const repo = crearFacturaRepo(db);
     const t = await ticketCon100(repo);
 
@@ -216,16 +250,32 @@ describe("facturaRepo — cobrar (§7.2)", () => {
     });
     const pagos = await repo.obtenerPagos(t.id);
     expect(pagos).toHaveLength(2);
-    expect(pagos.reduce((s, p) => s + p.monto, 0)).toBe(100);
+    const tarjeta = pagos.find((p) => p.metodo === "tarjeta");
+    const efectivo = pagos.find((p) => p.metodo === "efectivo");
+    expect(tarjeta?.monto).toBe(63); // 60 + 5%
+    expect(efectivo?.monto).toBe(40); // sin tocar
+    expect(pagos.reduce((s, p) => s + p.monto, 0)).toBe(103);
+  });
+
+  it("un cobro 100% tarjeta guarda el monto con recargo, pero factura.total no cambia", async () => {
+    const repo = crearFacturaRepo(db);
+    const t = await ticketCon100(repo);
+
+    const { factura } = await repo.cobrar(t.id, { pagos: [{ metodo: "tarjeta", monto: 100 }] });
+    expect(factura.total).toBe(100); // el total de la venta no se infla
+    expect(factura.monto_pagado).toBe(105); // lo realmente cobrado en la tarjeta sí
+
+    const [pago] = await repo.obtenerPagos(t.id);
+    expect(pago.monto).toBe(105);
   });
 
   it("rechaza cobro insuficiente con el faltante exacto", async () => {
     const repo = crearFacturaRepo(db);
     const t = await ticketCon100(repo);
 
-    await expect(
-      repo.cobrar(t.id, { pagos: [{ metodo: "efectivo", monto: 70 }] }),
-    ).rejects.toThrow(/30\.00/);
+    await expect(repo.cobrar(t.id, { pagos: [{ metodo: "efectivo", monto: 70 }] })).rejects.toThrow(
+      /30\.00/,
+    );
   });
 
   it("rechaza cobrar un ticket sin artículos", async () => {
@@ -270,7 +320,11 @@ describe("facturaRepo — cobrar a crédito (validación de cliente y límite)",
   async function ticketCon100(repo: ReturnType<typeof crearFacturaRepo>, clienteId?: string) {
     const t = await repo.abrirTicket(clienteId ? { cliente_id: clienteId } : {});
     await repo.agregarLinea(t.id, {
-      descripcion: "Arroz", cantidad: 2, precioUnitario: 50, impuestoTipo: "itbis18", tasaImpuesto: 0.18,
+      descripcion: "Arroz",
+      cantidad: 2,
+      precioUnitario: 50,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
     });
     return t;
   }
@@ -279,9 +333,9 @@ describe("facturaRepo — cobrar a crédito (validación de cliente y límite)",
     const repo = crearFacturaRepo(db);
     const t = await ticketCon100(repo);
 
-    await expect(
-      repo.cobrar(t.id, { pagos: [{ metodo: "credito", monto: 100 }] }),
-    ).rejects.toThrow(/requiere asignar un cliente/);
+    await expect(repo.cobrar(t.id, { pagos: [{ metodo: "credito", monto: 100 }] })).rejects.toThrow(
+      /requiere asignar un cliente/,
+    );
   });
 
   it("rechaza pago a crédito si el cliente no tiene crédito habilitado", async () => {
@@ -290,9 +344,9 @@ describe("facturaRepo — cobrar a crédito (validación de cliente y límite)",
     const cliente = await clientes.crear({ nombre: "Sin Crédito", aplica_credito: false });
     const t = await ticketCon100(repo, cliente.id);
 
-    await expect(
-      repo.cobrar(t.id, { pagos: [{ metodo: "credito", monto: 100 }] }),
-    ).rejects.toThrow(/no tiene crédito habilitado/);
+    await expect(repo.cobrar(t.id, { pagos: [{ metodo: "credito", monto: 100 }] })).rejects.toThrow(
+      /no tiene crédito habilitado/,
+    );
   });
 
   it("rechaza pago a crédito que excede el límite disponible del cliente", async () => {
@@ -305,9 +359,9 @@ describe("facturaRepo — cobrar a crédito (validación de cliente y límite)",
     });
     const t = await ticketCon100(repo, cliente.id);
 
-    await expect(
-      repo.cobrar(t.id, { pagos: [{ metodo: "credito", monto: 100 }] }),
-    ).rejects.toThrow(/crédito disponible/);
+    await expect(repo.cobrar(t.id, { pagos: [{ metodo: "credito", monto: 100 }] })).rejects.toThrow(
+      /crédito disponible/,
+    );
   });
 
   it("acepta pago a crédito dentro del límite y actualiza el saldo del cliente", async () => {
@@ -352,13 +406,14 @@ describe("facturaRepo — listarCobradas (Consulta de facturas)", () => {
     db = await nuevaDb();
   });
 
-  async function cobrarTicket(
-    repo: ReturnType<typeof crearFacturaRepo>,
-    clienteId: string | null,
-  ) {
+  async function cobrarTicket(repo: ReturnType<typeof crearFacturaRepo>, clienteId: string | null) {
     const t = await repo.abrirTicket({ cliente_id: clienteId });
     await repo.agregarLinea(t.id, {
-      descripcion: "Arroz", cantidad: 1, precioUnitario: 50, impuestoTipo: "itbis18", tasaImpuesto: 0.18,
+      descripcion: "Arroz",
+      cantidad: 1,
+      precioUnitario: 50,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
     });
     const { factura } = await repo.cobrar(t.id, { pagos: [{ metodo: "efectivo", monto: 50 }] });
     return factura;

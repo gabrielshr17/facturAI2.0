@@ -64,3 +64,35 @@ export function calcularPrecioVenta(input: CalculoPrecioInput): number {
   const base = precioBaseDesdeCosto(costo, pctGanancia);
   return redondear2(base * (1 + tasaImpuesto));
 }
+
+/**
+ * Sugerencia inicial de `precio_2`/`precio_3` (§ PRECIOS): mismo cálculo que
+ * `calcularPrecioVenta` (margen fijo sobre costo + impuesto), pero con un
+ * margen FIJO (10%/5%) en vez del `pct_ganancia` propio del producto — a
+ * diferencia de `precio_venta`, estos niveles NUNCA se recalculan después de
+ * creados: es solo el valor con el que arranca el campo, editable sin tope.
+ */
+export function precioTierDesdeCosto(
+  costo: number,
+  pctMargen: number,
+  tasaImpuesto: number,
+): number {
+  const base = precioBaseDesdeCosto(costo, pctMargen);
+  return redondear2(base * (1 + tasaImpuesto));
+}
+
+export type NivelPrecio = "1" | "2" | "3";
+
+/**
+ * Qué precio cobrar según el nivel de precio del cliente en el ticket. Cae a
+ * `precio_venta` (nivel 1) si el nivel 2/3 nunca se configuró para ese
+ * producto — p.ej. productos creados antes de esta banda de migración.
+ */
+export function precioSegunNivel(
+  producto: { precio_venta: number; precio_2: number | null; precio_3: number | null },
+  nivel: NivelPrecio,
+): number {
+  if (nivel === "2") return producto.precio_2 ?? producto.precio_venta;
+  if (nivel === "3") return producto.precio_3 ?? producto.precio_venta;
+  return producto.precio_venta;
+}

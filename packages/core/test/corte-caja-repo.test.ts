@@ -42,7 +42,9 @@ describe("corteCajaRepo — resumen y ciclo de turno (Corte de caja)", () => {
     expect(resumen.cantidadFacturas).toBe(2);
     expect(resumen.totalVentas).toBe(200);
     expect(resumen.totalEfectivo).toBe(140);
-    expect(resumen.totalTarjeta).toBe(60);
+    // 60 + 5% de recargo de tarjeta (§ PRECIOS/COBRO): esto es lo realmente cobrado en la
+    // tarjeta, no el monto de venta que cubría esa fila de pago.
+    expect(resumen.totalTarjeta).toBe(63);
     expect(resumen.totalTransferencia).toBe(0);
   });
 

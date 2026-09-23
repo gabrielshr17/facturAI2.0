@@ -5,6 +5,7 @@ import {
   calcularLinea,
   calcularTotales,
   procesarCobro,
+  aplicarRecargoTarjeta,
   type LineaInput,
   type PagoInput,
 } from "../dominio/factura.js";
@@ -543,8 +544,19 @@ export function crearFacturaRepo(db: SqlDriver) {
         ]);
       }
 
+      // El recargo de tarjeta (§ PRECIOS/COBRO, 5% fijo) se aplica DESPUÉS de decidir si el
+      // cobro alcanza y cuánto cambio dar — `procesarCobro` arriba corre sobre los montos
+      // como los tipeó el cajero (lo que cubre la venta), sin tocar. Recién acá, al guardar
+      // lo realmente cobrado, la porción de tarjeta se infla: así `pago.monto`/
+      // `factura.monto_pagado` reflejan la plata de verdad recibida (incluyendo el recargo),
+      // sin inflar `factura.total`/`subtotal_gravado`/`total_itbis` (que ya se calcularon
+      // antes, solo de las líneas del ticket) ni el cambio en efectivo (el recargo nunca
+      // sale de la porción en efectivo).
+      const pagosCobrados = aplicarRecargoTarjeta(input.pagos);
+      const montoPagado = sumar(pagosCobrados.map((p) => p.monto));
+
       const ts = now();
-      for (const p of input.pagos) {
+      for (const p of pagosCobrados) {
         await db.run(`INSERT INTO pago (${COLS_PAGO}) VALUES (?,?,?,?,?,?,?,?)`, [
           newId(),
           facturaId,
@@ -560,7 +572,7 @@ export function crearFacturaRepo(db: SqlDriver) {
       await db.run(
         `UPDATE factura SET estado='cobrada', monto_pagado=?, cambio=?, notas=?, fecha_hora=?, updated_at=?
          WHERE id=?`,
-        [resultado.montoPagado, resultado.cambio, input.notas ?? factura.notas, ts, ts, facturaId],
+        [montoPagado, resultado.cambio, input.notas ?? factura.notas, ts, ts, facturaId],
       );
 
       await descontarExistenciaPorVenta(facturaId, lineas);
