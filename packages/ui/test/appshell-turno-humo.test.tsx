@@ -118,6 +118,12 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
 
     fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
 
+    // Paso de confirmación: se muestra el efectivo contado antes de cerrar de verdad.
+    expect(await screen.findByText("Confirmar cierre")).toBeTruthy();
+    expect(ultimaSesion!.usuarioId).not.toBeNull();
+
+    fireEvent.click(screen.getByText("Confirmar cierre"));
+
     await waitFor(() => expect(ultimaSesion!.usuarioId).toBeNull());
     expect(await repos.corteCaja.turnoAbierto()).toBeNull();
     const [cerrado] = await repos.corteCaja.listar();
@@ -139,6 +145,9 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
     expect(screen.queryByText("¿Quién va a usar la caja ahora?")).toBeNull();
 
     fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
+    expect(await screen.findByText("Confirmar cierre")).toBeTruthy();
+    fireEvent.click(screen.getByText("Confirmar cierre"));
+
     fireEvent.click(await screen.findByText("Cajero Dos"));
     escribirPin("2222");
     fireEvent.click(screen.getByText("Entrar (Enter)"));
@@ -218,6 +227,9 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
 
     fireEvent.change(screen.getByLabelText("RD$ 100"), { target: { value: "1" } });
     fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
+
+    expect(await screen.findByText("Confirmar cierre")).toBeTruthy();
+    fireEvent.click(screen.getByText("Confirmar cierre"));
 
     await expect(resultado).resolves.toBe("cerrar");
     expect(await repos.corteCaja.turnoAbierto()).toBeNull();

@@ -236,6 +236,7 @@ export function CorteCaja() {
           <div onClick={(e) => e.stopPropagation()}>
             <PromptCerrarTurno
               montoInicial={turno.monto_inicial}
+              fechaApertura={turno.fecha_apertura}
               nombreApertura={nombreDe(turno.usuario_id)}
               titulo="Forzar cierre de turno"
               onConfirmar={forzarCierre}

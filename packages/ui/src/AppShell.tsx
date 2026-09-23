@@ -507,6 +507,7 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
             <div onClick={(e) => e.stopPropagation()}>
               <PromptCerrarTurno
                 montoInicial={estadoTurno.abierto.monto_inicial}
+                fechaApertura={estadoTurno.abierto.fecha_apertura}
                 titulo="Cerrar turno para salir"
                 onConfirmar={async (efectivoContado) => {
                   await corteCajaRepo.cerrarTurno({ efectivoContado });
@@ -525,6 +526,7 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
             <div onClick={(e) => e.stopPropagation()}>
               <PromptCerrarTurno
                 montoInicial={estadoTurno.abierto.monto_inicial}
+                fechaApertura={estadoTurno.abierto.fecha_apertura}
                 titulo="Cerrar turno para salir de la aplicación"
                 onConfirmar={async (efectivoContado) => {
                   await corteCajaRepo.cerrarTurno({ efectivoContado });
