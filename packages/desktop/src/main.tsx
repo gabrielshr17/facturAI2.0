@@ -1,5 +1,6 @@
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   AppShell,
   ProveedorDatos,
@@ -8,6 +9,7 @@ import {
   useSesion,
   configurarAdaptadorImpresora,
   configurarAdaptadorImpresoraTexto,
+  ejecutarManejadorCierreVentana,
 } from "@sfr/ui";
 import { migrate, seed, crearUsuarioRepo, type SqlDriver } from "@sfr/core";
 import { crearTauriSqlDriver } from "./db/tauri-sql-driver.js";
@@ -20,6 +22,22 @@ import "@sfr/ui/estilos-globales.css";
 
 configurarAdaptadorImpresora(adaptadorImpresoraTauri);
 configurarAdaptadorImpresoraTexto(adaptadorImpresoraTextoTauri);
+
+/**
+ * Cerrar la ventana con el botón nativo del sistema operativo (§ CAJA): igual que "Cerrar
+ * sesión", pide contar el efectivo si hay un turno propio abierto. `preventDefault()`
+ * frena el cierre nativo hasta que `AppShell` (vía `ejecutarManejadorCierreVentana`,
+ * `@sfr/ui`) decida — `destroy()` en vez de `close()` es a propósito: `close()` volvería a
+ * disparar este mismo evento y crearía un bucle infinito, `destroy()` cierra de verdad sin
+ * pasar de nuevo por `onCloseRequested`. Antes de que `AppShell` se monte (pantalla de
+ * login, carga inicial) no hay ningún manejador registrado todavía, así que
+ * `ejecutarManejadorCierreVentana` deja cerrar sin preguntar nada.
+ */
+void getCurrentWindow().onCloseRequested(async (evento) => {
+  evento.preventDefault();
+  const resultado = await ejecutarManejadorCierreVentana();
+  if (resultado === "cerrar") await getCurrentWindow().destroy();
+});
 
 /** Ver `packages/web/src/main.tsx` para el porqué de esta compuerta (§ RBAC-05). */
 function Compuerta({ plataforma }: { plataforma: "Web" | "Escritorio" }) {

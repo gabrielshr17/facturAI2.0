@@ -19,6 +19,11 @@ export { Configuracion } from "./pantallas/Configuracion.js";
 export { Personal } from "./pantallas/Personal.js";
 export { configurarAdaptadorImpresora, type AdaptadorImpresora } from "./impresion/termica.js";
 export {
+  registrarManejadorCierreVentana,
+  ejecutarManejadorCierreVentana,
+  type ManejadorCierreVentana,
+} from "./cierreVentana.js";
+export {
   configurarAdaptadorImpresoraTexto,
   type AdaptadorImpresoraTexto,
 } from "./impresion/termica.js";
