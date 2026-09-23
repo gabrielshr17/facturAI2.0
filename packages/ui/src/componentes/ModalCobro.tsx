@@ -5,6 +5,7 @@ import {
   ETIQUETA_TIPO_ECF,
   tipoEcfSugerido,
   procesarCobro,
+  aplicarRecargoTarjeta,
 } from "@sfr/core";
 import { CreditCard } from "lucide-react";
 import { FUNCIONES_EN_DESARROLLO } from "../banderas.js";
@@ -198,6 +199,20 @@ export function ModalCobro({
             )}
           </div>
         ))}
+        {/* Recargo de tarjeta (5% fijo, § PRECIOS/COBRO): no es una línea aparte en la
+            factura impresa — el cajero sí necesita ver cuánto cobrar de verdad en el
+            datáfono, así que se muestra aquí, junto al monto que tecleó. */}
+        {filas.some((f) => f.metodo === "tarjeta" && Number(f.monto) > 0) && (
+          <p style={{ fontSize: 12.5, color: c.gris, marginTop: -4, marginBottom: 12 }}>
+            {aplicarRecargoTarjeta(pagos)
+              .filter((p) => p.metodo === "tarjeta" && p.monto > 0)
+              .map((p, i) => (
+                <span key={i} style={{ display: "block" }}>
+                  Se cobrarán RD$ {money(p.monto)} en la tarjeta (incluye 5% de recargo).
+                </span>
+              ))}
+          </p>
+        )}
         <button style={{ ...s.botonSecundario, marginBottom: 12 }} onClick={agregarFila}>
           + Agregar método (pago mixto)
         </button>

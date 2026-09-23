@@ -7,3 +7,9 @@ export function filtrarNumero(texto: string): string {
   if (primerPunto === -1) return limpio;
   return limpio.slice(0, primerPunto + 1) + limpio.slice(primerPunto + 1).replace(/\./g, "");
 }
+
+/** Como `filtrarNumero`, pero sin punto decimal — para cantidades (p.ej. cuántas monedas o
+ *  billetes de una denominación), donde un medio no tiene sentido. */
+export function filtrarEntero(texto: string): string {
+  return texto.replace(/[^0-9]/g, "");
+}

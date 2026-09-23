@@ -2,7 +2,7 @@ import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
 import { tieneValor, normalizar, type ErrorValidacion } from "../dominio/validacion.js";
 import { tasaDe } from "../dominio/impuesto.js";
-import { calcularPrecioVenta } from "../dominio/precio.js";
+import { calcularPrecioVenta, precioTierDesdeCosto } from "../dominio/precio.js";
 import { exigirPermiso } from "../db/sesion.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { Producto } from "./tipos.js";
@@ -23,6 +23,7 @@ export interface ProductoInput {
   politica_sin_existencia?: Producto["politica_sin_existencia"];
   activo?: boolean;
   precio_2?: number | null;
+  precio_3?: number | null;
   cantidad_minima_mayoreo?: number | null;
   existencia_minima?: number | null;
 }
@@ -52,8 +53,12 @@ export class ValidacionError extends Error {
 const COLS = `id, codigo_barra, descripcion, tipo_venta, unidad_medida, costo,
   pct_ganancia, precio_venta, precio_mayoreo, departamento_id, impuesto_tipo,
   tasa_impuesto, existencia, politica_sin_existencia, activo, favorito,
-  precio_2, cantidad_minima_mayoreo, existencia_minima,
+  precio_2, precio_3, cantidad_minima_mayoreo, existencia_minima,
   created_at, updated_at, deleted_at`;
+
+/** Márgenes fijos (§ PRECIOS) para sugerir precio_2/precio_3 al crear un producto sin ellos. */
+const MARGEN_NIVEL_2_PCT = 10;
+const MARGEN_NIVEL_3_PCT = 5;
 
 export function crearProductoRepo(db: SqlDriver) {
   return {
@@ -73,6 +78,8 @@ export function crearProductoRepo(db: SqlDriver) {
         tasaImpuesto: tasa,
         precioManual: input.precio_venta ?? null,
       });
+      const precio_2 = input.precio_2 ?? precioTierDesdeCosto(costo, MARGEN_NIVEL_2_PCT, tasa);
+      const precio_3 = input.precio_3 ?? precioTierDesdeCosto(costo, MARGEN_NIVEL_3_PCT, tasa);
 
       const ts = now();
       const p: Producto = {
@@ -92,7 +99,8 @@ export function crearProductoRepo(db: SqlDriver) {
         politica_sin_existencia: input.politica_sin_existencia ?? "advertir",
         activo: input.activo === false ? 0 : 1,
         favorito: 0,
-        precio_2: input.precio_2 ?? null,
+        precio_2,
+        precio_3,
         cantidad_minima_mayoreo: input.cantidad_minima_mayoreo ?? null,
         existencia_minima: input.existencia_minima ?? null,
         created_at: ts,
@@ -100,7 +108,7 @@ export function crearProductoRepo(db: SqlDriver) {
         deleted_at: null,
       };
 
-      await db.run(`INSERT INTO producto (${COLS}) VALUES (${Array(22).fill("?").join(",")})`, [
+      await db.run(`INSERT INTO producto (${COLS}) VALUES (${Array(23).fill("?").join(",")})`, [
         p.id,
         p.codigo_barra,
         p.descripcion,
@@ -118,6 +126,7 @@ export function crearProductoRepo(db: SqlDriver) {
         p.activo,
         p.favorito,
         p.precio_2,
+        p.precio_3,
         p.cantidad_minima_mayoreo,
         p.existencia_minima,
         p.created_at,
@@ -157,7 +166,7 @@ export function crearProductoRepo(db: SqlDriver) {
         `UPDATE producto SET codigo_barra=?, descripcion=?, tipo_venta=?, unidad_medida=?,
            costo=?, pct_ganancia=?, precio_venta=?, precio_mayoreo=?, departamento_id=?,
            impuesto_tipo=?, tasa_impuesto=?, politica_sin_existencia=?, activo=?,
-           precio_2=?, cantidad_minima_mayoreo=?, existencia_minima=?, updated_at=?
+           precio_2=?, precio_3=?, cantidad_minima_mayoreo=?, existencia_minima=?, updated_at=?
          WHERE id=?`,
         [
           input.codigo_barra ?? actual.codigo_barra,
@@ -174,6 +183,7 @@ export function crearProductoRepo(db: SqlDriver) {
           input.politica_sin_existencia ?? actual.politica_sin_existencia,
           input.activo === false ? 0 : 1,
           input.precio_2 ?? actual.precio_2,
+          input.precio_3 ?? actual.precio_3,
           input.cantidad_minima_mayoreo ?? actual.cantidad_minima_mayoreo,
           input.existencia_minima ?? actual.existencia_minima,
           now(),

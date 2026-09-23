@@ -2,9 +2,12 @@ export { redondear2, ajustarCentavo, calcularCambio, sumar } from "./dinero.js";
 export { type ImpuestoTipo, TASA_POR_TIPO, tasaDe } from "./impuesto.js";
 export {
   type CalculoPrecioInput,
+  type NivelPrecio,
   precioBaseDesdeCosto,
   calcularPrecioVenta,
   pctGananciaDesdePrecio,
+  precioTierDesdeCosto,
+  precioSegunNivel,
 } from "./precio.js";
 export {
   type LineaInput,
@@ -16,6 +19,7 @@ export {
   calcularLinea,
   calcularTotales,
   procesarCobro,
+  aplicarRecargoTarjeta,
 } from "./factura.js";
 export { type TipoEcf, formatearNcf, tipoEcfSugerido, ETIQUETA_TIPO_ECF } from "./ecf.js";
 export { type CorteCajaInput, type CorteCajaResultado, calcularCorteCaja } from "./caja.js";

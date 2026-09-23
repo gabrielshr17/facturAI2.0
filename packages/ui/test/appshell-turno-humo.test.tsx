@@ -101,10 +101,18 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
     // Cerrar sesión no debe haberse ejecutado todavía: la sesión sigue siendo la del cajero.
     expect(ultimaSesion!.usuarioId).not.toBeNull();
 
+    // Arqueo por denominación (§ blind count): nunca aparece el total calculado (550) en
+    // pantalla mientras se cuenta, solo las etiquetas de cada denominación.
+    fireEvent.change(screen.getByLabelText("RD$ 25"), { target: { value: "2" } }); // 50
+    fireEvent.change(screen.getByLabelText("RD$ 500"), { target: { value: "1" } }); // 500
+    expect(screen.queryByText(/550/)).toBeNull();
+
     fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
 
     await waitFor(() => expect(ultimaSesion!.usuarioId).toBeNull());
     expect(await repos.corteCaja.turnoAbierto()).toBeNull();
+    const [cerrado] = await repos.corteCaja.listar();
+    expect(cerrado.efectivo_contado).toBe(550); // 2×25 + 1×500
   });
 
   it("Ctrl+U con un turno abierto pide cerrarlo antes de mostrar el selector de usuario", async () => {

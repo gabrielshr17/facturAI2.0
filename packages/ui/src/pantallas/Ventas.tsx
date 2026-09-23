@@ -12,6 +12,8 @@ import {
   cobrarConFiscal,
   aplicarDescuento,
   pctGananciaDesdePrecio,
+  precioSegunNivel,
+  type NivelPrecio,
 } from "@sfr/core";
 import { useRepos } from "../data/contexto.js";
 import { useSesion } from "../sesion/contexto.js";
@@ -618,6 +620,7 @@ export function Ventas() {
           esMayoreo,
           impuestoTipo: p.impuesto_tipo,
           tasaImpuesto: p.tasa_impuesto,
+          nivelPrecio: nivelPrecioParaLinea(p),
         });
         lineaId = nueva.id;
         registrarAccionTicket([{ tipo: "crear", lineaId }]);
@@ -641,11 +644,26 @@ export function Ventas() {
     }
   }
 
-  /** Precio unitario a usar para un producto según el régimen mayoreo activo (botón "Precio
-   *  mayoreo"/F8). Sin promoción — esa se resuelve de forma asíncrona dentro de `agregarProducto`
-   *  al confirmar. */
+  /** Nivel de precio del cliente activo en el ticket (§ PRECIOS): "1" si no hay
+   *  cliente asignado o el cliente no tiene uno propio configurado. */
+  function nivelPrecioActivo(): NivelPrecio {
+    return (clienteActivo?.nivel_precio as NivelPrecio | null) ?? "1";
+  }
+
+  /** Precio unitario a usar para un producto: el régimen mayoreo activo (botón "Precio
+   *  mayoreo"/F8) gana sobre el nivel de precio del cliente si está prendido y el producto
+   *  tiene precio de mayoreo configurado; si no, se usa el nivel del cliente (§ PRECIOS).
+   *  Sin promoción — esa se resuelve de forma asíncrona dentro de `agregarProducto` al
+   *  confirmar. */
   function precioBase(p: Producto): number {
-    return esMayoreo && p.precio_mayoreo ? p.precio_mayoreo : p.precio_venta;
+    if (esMayoreo && p.precio_mayoreo) return p.precio_mayoreo;
+    return precioSegunNivel(p, nivelPrecioActivo());
+  }
+
+  /** Qué guardar en `factura_linea.nivel_precio` (§ PRECIOS): "mayoreo" cuando ese régimen
+   *  ganó, si no el nivel de precio del cliente que de verdad se aplicó. */
+  function nivelPrecioParaLinea(p: Producto): string {
+    return esMayoreo && p.precio_mayoreo ? "mayoreo" : nivelPrecioActivo();
   }
 
   /** Punto de entrada al elegir un producto desde la búsqueda principal (clic en resultado, código de
@@ -1016,7 +1034,10 @@ export function Ventas() {
       const p = await productos.obtener(l.producto_id);
       if (!p) return;
       const nuevoMayoreo = !l.es_mayoreo;
-      const nuevoPrecio = nuevoMayoreo && p.precio_mayoreo ? p.precio_mayoreo : p.precio_venta;
+      const nuevoPrecio =
+        nuevoMayoreo && p.precio_mayoreo
+          ? p.precio_mayoreo
+          : precioSegunNivel(p, nivelPrecioActivo());
 
       const existente = lineas.find(
         (x) =>
@@ -1044,6 +1065,7 @@ export function Ventas() {
           esMayoreo: nuevoMayoreo,
           impuestoTipo: l.impuesto_tipo,
           tasaImpuesto: l.tasa_impuesto,
+          nivelPrecio: nuevoMayoreo && p.precio_mayoreo ? "mayoreo" : nivelPrecioActivo(),
         });
         registrarAccionTicket([
           { tipo: "eliminar", lineaId: l.id },
@@ -1634,10 +1656,7 @@ export function Ventas() {
                         </span>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <b style={{ fontVariantNumeric: "tabular-nums" }}>
-                            RD${" "}
-                            {money(
-                              esMayoreo && p.precio_mayoreo ? p.precio_mayoreo : p.precio_venta,
-                            )}
+                            RD$ {money(precioBase(p))}
                           </b>
                           {puedeEditarProducto && (
                             <button

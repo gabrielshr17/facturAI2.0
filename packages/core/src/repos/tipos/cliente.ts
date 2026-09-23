@@ -13,7 +13,11 @@ export interface Cliente extends Auditoria {
   saldo_credito: number;
   documento_tipo: "rnc" | "cedula" | null;
   documento_numero: string | null;
-  /** Nivel de precio preferido del cliente (§ PRECIOS: "normal" | "especial" | "mayoreo"). */
+  /**
+   * Nivel de precio del cliente (§ PRECIOS): "1" | "2" | "3", qué precio de
+   * producto (`precio_venta`/`precio_2`/`precio_3`) se usa por defecto en una
+   * venta a este cliente. `null`/ausente se trata como "1" (precio regular).
+   */
   nivel_precio: string | null;
   /** JSON con los niveles que este cliente puede usar, si se restringe. */
   niveles_permitidos_json: string | null;

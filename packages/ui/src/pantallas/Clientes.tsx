@@ -16,6 +16,7 @@ const VACIO: ClienteInput = {
   documento_tipo: null,
   documento_numero: "",
   aplica_credito: false,
+  nivel_precio: "1",
 };
 
 export function Clientes() {
@@ -76,6 +77,7 @@ export function Clientes() {
       documento_tipo: cl.documento_tipo,
       documento_numero: cl.documento_numero ?? "",
       aplica_credito: cl.aplica_credito === 1,
+      nivel_precio: cl.nivel_precio ?? "1",
     });
     setErrores([]);
   }
@@ -289,6 +291,18 @@ export function Clientes() {
                   onChange={(e) => setForm({ ...form, documento_numero: e.target.value })}
                 />
               </div>
+            </div>
+            <div>
+              <label style={s.label}>Nivel de precio</label>
+              <select
+                style={s.input}
+                value={form.nivel_precio ?? "1"}
+                onChange={(e) => setForm({ ...form, nivel_precio: e.target.value })}
+              >
+                <option value="1">Precio 1 (regular)</option>
+                <option value="2">Precio 2</option>
+                <option value="3">Precio 3</option>
+              </select>
             </div>
           </div>
           <label

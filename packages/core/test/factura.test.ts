@@ -3,6 +3,7 @@ import {
   calcularLinea,
   calcularTotales,
   procesarCobro,
+  aplicarRecargoTarjeta,
 } from "../src/dominio/factura.js";
 
 describe("factura — desglose de ITBIS por línea", () => {
@@ -86,5 +87,38 @@ describe("factura — cobro y pago mixto (§7.2)", () => {
     expect(r.suficiente).toBe(false);
     expect(r.faltante).toBe(30);
     expect(r.cambio).toBe(0);
+  });
+});
+
+describe("aplicarRecargoTarjeta — 5% fijo solo sobre lo pagado con tarjeta (§ PRECIOS/COBRO)", () => {
+  it("infla el monto de una fila 'tarjeta' en 5%", () => {
+    const [pago] = aplicarRecargoTarjeta([{ metodo: "tarjeta", monto: 100 }]);
+    expect(pago.monto).toBe(105);
+  });
+
+  it("no toca filas efectivo/transferencia/crédito", () => {
+    const pagos = aplicarRecargoTarjeta([
+      { metodo: "efectivo", monto: 100 },
+      { metodo: "transferencia", monto: 50 },
+      { metodo: "credito", monto: 25 },
+    ]);
+    expect(pagos.map((p) => p.monto)).toEqual([100, 50, 25]);
+  });
+
+  it("pago mixto: solo la porción de tarjeta se infla", () => {
+    const pagos = aplicarRecargoTarjeta([
+      { metodo: "efectivo", monto: 60 },
+      { metodo: "tarjeta", monto: 40 },
+    ]);
+    expect(pagos).toEqual([
+      { metodo: "efectivo", monto: 60 },
+      { metodo: "tarjeta", monto: 42 },
+    ]);
+  });
+
+  it("redondea a centavos", () => {
+    // 33.33 * 1.05 = 34.9965 -> redondea a 35.00
+    const [pago] = aplicarRecargoTarjeta([{ metodo: "tarjeta", monto: 33.33 }]);
+    expect(pago.monto).toBe(35);
   });
 });
