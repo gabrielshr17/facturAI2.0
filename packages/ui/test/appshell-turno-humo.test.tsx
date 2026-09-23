@@ -15,6 +15,7 @@ import {
   crearPortadorSesion,
   type PortadorSesion,
 } from "@sfr/core";
+import { ejecutarManejadorCierreVentana } from "../src/cierreVentana.js";
 import { createNodeSqliteDriver } from "../../core/src/db/drivers/node-sqlite.js";
 import { AppShell } from "../src/AppShell.js";
 import { ProveedorDatos, useRepos, type Repos } from "../src/data/contexto.js";
@@ -201,5 +202,48 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
     await waitFor(() => expect(ultimaSesion!.usuarioId).toBeNull());
     // El turno de Administrador sigue intacto — Cajero Dos nunca lo tocó.
     expect((await repos.corteCaja.turnoAbierto())?.usuario_id).toBe("usuario-admin");
+  });
+
+  it("cerrar la ventana (botón nativo) con un turno propio abierto pide contar el efectivo", async () => {
+    const { repos } = await montarConCajaExigida();
+
+    await screen.findByText("¿Con cuánto efectivo empieza la caja?");
+    fireEvent.click(screen.getByText("Abrir turno"));
+    await waitFor(() => expect(screen.getByRole("navigation", { name: "Módulos" })).toBeTruthy());
+
+    // Simula lo que hace `packages/desktop/src/main.tsx` al interceptar el botón nativo
+    // de cerrar la ventana.
+    const resultado = ejecutarManejadorCierreVentana();
+    expect(await screen.findByText("Cerrar turno para salir de la aplicación")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("RD$ 100"), { target: { value: "1" } });
+    fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
+
+    await expect(resultado).resolves.toBe("cerrar");
+    expect(await repos.corteCaja.turnoAbierto()).toBeNull();
+  });
+
+  it("cancelar el cierre de la ventana deja el turno abierto y no cierra la ventana", async () => {
+    const { repos } = await montarConCajaExigida();
+
+    await screen.findByText("¿Con cuánto efectivo empieza la caja?");
+    fireEvent.click(screen.getByText("Abrir turno"));
+    await waitFor(() => expect(screen.getByRole("navigation", { name: "Módulos" })).toBeTruthy());
+
+    const resultado = ejecutarManejadorCierreVentana();
+    await screen.findByText("Cerrar turno para salir de la aplicación");
+    fireEvent.click(screen.getByText("Cancelar"));
+
+    await expect(resultado).resolves.toBe("cancelar");
+    expect((await repos.corteCaja.turnoAbierto())?.estado).toBe("abierto");
+  });
+
+  it("sin turno abierto, cerrar la ventana no pide nada", async () => {
+    await montarConCajaExigida();
+    await screen.findByText("¿Con cuánto efectivo empieza la caja?");
+    // A propósito no abre turno: la compuerta de "abrir turno" sigue en pantalla, así que
+    // `estadoTurno.abierto` es null y el manejador debe dejar cerrar sin preguntar nada.
+
+    await expect(ejecutarManejadorCierreVentana()).resolves.toBe("cerrar");
   });
 });
