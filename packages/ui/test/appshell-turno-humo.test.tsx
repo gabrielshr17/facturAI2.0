@@ -130,6 +130,36 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
     expect(cerrado.efectivo_contado).toBe(550); // 2×25 + 1×500
   });
 
+  it("la pantalla de confirmación del cierre también muestra tarjeta, transferencia y crédito", async () => {
+    // Estos totales no son un conteo ciego (ya quedaron registrados electrónicamente), así
+    // que se muestran siempre en la confirmación, sin depender del toggle de "mostrar el
+    // efectivo esperado" en Configuración.
+    const { repos } = await montarConCajaExigida();
+
+    await screen.findByText("¿Con cuánto efectivo empieza la caja?");
+    fireEvent.click(screen.getByText("Abrir turno"));
+    await waitFor(() => expect(screen.getByRole("navigation", { name: "Módulos" })).toBeTruthy());
+
+    const t = await repos.factura.abrirTicket();
+    await repos.factura.agregarLinea(t.id, {
+      descripcion: "Artículo",
+      cantidad: 1,
+      precioUnitario: 100,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
+    });
+    await repos.factura.cobrar(t.id, { pagos: [{ metodo: "tarjeta", monto: 100 }] });
+
+    fireEvent.click(screen.getByLabelText("Cerrar sesión"));
+    await screen.findByText("Cerrar turno para salir");
+    fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
+
+    // La venta de tarjeta lleva el 5% de recargo (§ PRECIOS/COBRO): 105, no 100.
+    await waitFor(() => expect(screen.getByText("RD$ 105.00")).toBeTruthy());
+    expect(screen.getByText("Transferencia")).toBeTruthy();
+    expect(screen.getByText("Crédito")).toBeTruthy();
+  });
+
   it("Ctrl+U con un turno abierto pide cerrarlo antes de mostrar el selector de usuario", async () => {
     const { repos } = await montarConCajaExigida();
 

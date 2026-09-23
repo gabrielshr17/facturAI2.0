@@ -151,9 +151,11 @@ function cantidadesVacias(): Record<Denominacion, string> {
  * Paso "cerrar turno": arqueo por denominación — se cuenta cuánto hay de cada moneda/billete,
  * SIN mostrar ningún total mientras se cuenta (así nadie puede copiar el número esperado en
  * vez de contar de verdad). Al terminar, sí se muestra el total contado, en una pantalla de
- * confirmación aparte — y, si el negocio lo tiene activado en Configuración
- * ("mostrar el total esperado", el inverso de `negocio.arqueo_ciego`), también el efectivo
- * esperado y la diferencia, para que quien cierra pueda ver de una vez si cuadró.
+ * confirmación aparte, junto con lo cobrado por tarjeta/transferencia/crédito del turno (esto
+ * no es ciego: son montos que ya quedaron registrados electrónicamente, no algo que el cajero
+ * pueda "adivinar" en vez de contar). El efectivo esperado y la diferencia, en cambio, solo se
+ * muestran si el negocio lo tiene activado en Configuración ("mostrar el total esperado", el
+ * inverso de `negocio.arqueo_ciego`) — eso sí es lo que se compara contra el conteo ciego.
  */
 export function PromptCerrarTurno({
   montoInicial,
@@ -174,6 +176,9 @@ export function PromptCerrarTurno({
     efectivoContado: number;
     efectivoEsperado: number | null;
     diferencia: number | null;
+    totalTarjeta: number;
+    totalTransferencia: number;
+    totalCredito: number;
   } | null>(null);
 
   useEffect(() => {
@@ -192,17 +197,24 @@ export function PromptCerrarTurno({
         (suma, denom) => suma + denom * (Number(cantidades[denom]) || 0),
         0,
       );
-      if (!mostrarEsperado) {
-        setConfirmando({ efectivoContado, efectivoEsperado: null, diferencia: null });
-        return;
-      }
       const resumen = await corteCajaRepo.calcularResumen(fechaApertura, new Date().toISOString());
-      const { efectivoEsperado, diferencia } = calcularCorteCaja({
-        montoInicial,
-        totalEfectivo: resumen.totalEfectivo,
+      let efectivoEsperado: number | null = null;
+      let diferencia: number | null = null;
+      if (mostrarEsperado) {
+        ({ efectivoEsperado, diferencia } = calcularCorteCaja({
+          montoInicial,
+          totalEfectivo: resumen.totalEfectivo,
+          efectivoContado,
+        }));
+      }
+      setConfirmando({
         efectivoContado,
+        efectivoEsperado,
+        diferencia,
+        totalTarjeta: resumen.totalTarjeta,
+        totalTransferencia: resumen.totalTransferencia,
+        totalCredito: resumen.totalCredito,
       });
-      setConfirmando({ efectivoContado, efectivoEsperado, diferencia });
     } catch (e) {
       setError(mensajeDeError(e));
     } finally {
@@ -260,6 +272,18 @@ export function PromptCerrarTurno({
         <div style={filaTotal}>
           <span>Efectivo contado</span>
           <span>RD$ {money(confirmando.efectivoContado)}</span>
+        </div>
+        <div style={filaTotal}>
+          <span>Tarjeta</span>
+          <span>RD$ {money(confirmando.totalTarjeta)}</span>
+        </div>
+        <div style={filaTotal}>
+          <span>Transferencia</span>
+          <span>RD$ {money(confirmando.totalTransferencia)}</span>
+        </div>
+        <div style={filaTotal}>
+          <span>Crédito</span>
+          <span>RD$ {money(confirmando.totalCredito)}</span>
         </div>
         {confirmando.efectivoEsperado !== null && (
           <div style={filaTotal}>
