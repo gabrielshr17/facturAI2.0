@@ -10,7 +10,7 @@ import { ProveedorAlertas } from "./contexto/Alertas.js";
 import { useSesion } from "./sesion/contexto.js";
 import { useRepos } from "./data/contexto.js";
 import { MODULOS, MODULO_POR_DEFECTO_ID, type ModuloDef } from "./navegacion/modulos.js";
-import { c, sombra } from "./estilos.js";
+import { c, s, sombra } from "./estilos.js";
 import { useTema } from "./hooks/useTema.js";
 import { useAtajosTeclado } from "./hooks/useAtajosTeclado.js";
 import { useNavegacionFlechas } from "./hooks/useNavegacionFlechas.js";
@@ -99,6 +99,29 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
       cancelado = true;
     };
   }, [sesion.usuarioId, corteCajaRepo]);
+
+  // Turno abierto por OTRO usuario (§ CAJA, bug real: un cajero podía loguearse mientras
+  // el turno de otro seguía abierto —el portón solo miraba "¿hay turno?", no "¿es mío?"—
+  // y se quedaba sin forma de cerrar sesión al final, porque cerrar el turno de otro
+  // exige `caja.cerrar`, que un cajero no tiene). Se resuelve el nombre del que lo abrió
+  // solo cuando de verdad hay un desajuste, para no disparar una consulta de más en el
+  // caso normal (turno propio o ninguno).
+  const [nombreAbiertoPor, setNombreAbiertoPor] = useState<string | null>(null);
+  const turnoDeOtroUsuario =
+    estadoTurno.abierto !== null && estadoTurno.abierto.usuario_id !== sesion.usuarioId;
+  useEffect(() => {
+    if (!turnoDeOtroUsuario || !estadoTurno.abierto?.usuario_id) {
+      setNombreAbiertoPor(null);
+      return;
+    }
+    let cancelado = false;
+    void usuarioRepo.obtener(estadoTurno.abierto.usuario_id).then((u) => {
+      if (!cancelado) setNombreAbiertoPor(u?.nombre ?? null);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [turnoDeOtroUsuario, estadoTurno.abierto?.usuario_id, usuarioRepo]);
 
   const [cerrandoTurno, setCerrandoTurno] = useState(false);
 
@@ -212,6 +235,33 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
     // queda sin ningún módulo visible, es mejor decirlo explícito que reventar con un
     // `undefined.componente` más abajo.
     return <div style={{ padding: 24 }}>No hay ningún módulo disponible para esta sesión.</div>;
+  }
+
+  // Compuerta de "turno de otro usuario" (§ CAJA, bug real): esto va ANTES de la
+  // compuerta de "abrir turno" de abajo, y es independiente de `exigeCajaAbierta` — un
+  // turno abierto por alguien más bloquea a cualquier otro que inicie sesión después,
+  // sin importar si el negocio exige turno para vender o no. Solo quien lo abrió puede
+  // cerrarlo por su cuenta; cualquier otro necesita que un supervisor lo cierre a la
+  // fuerza desde Corte de Caja. Bloquear ACÁ, al entrar, evita el atrapamiento real que
+  // pasaba antes: alguien trabajaba todo el día sobre el turno de otro sin saberlo, y
+  // recién se enteraba al cerrar sesión, con un error genérico que no explicaba nada.
+  if (sesion.usuarioId !== null && estadoTurno.cargado && turnoDeOtroUsuario) {
+    return (
+      <ProveedorAlertas>
+        <div style={styles.overlayCompleto}>
+          <div style={{ ...s.tarjeta, width: 380, textAlign: "center" }}>
+            <h1 style={{ fontSize: 20, margin: "0 0 12px" }}>Hay un turno abierto</h1>
+            <p style={{ margin: "0 0 16px", fontSize: 14, color: c.gris }}>
+              {nombreAbiertoPor ?? "Otro usuario"} tiene un turno de caja abierto. Pídele que cierre
+              sesión para cerrarlo, o que un supervisor lo cierre a la fuerza desde Corte de Caja.
+            </p>
+            <button type="button" style={s.botonSecundario} onClick={cerrarSesion}>
+              Volver al login
+            </button>
+          </div>
+        </div>
+      </ProveedorAlertas>
+    );
   }
 
   // Compuerta de turno (§ CAJA): mientras el negocio exige caja abierta y la sesión real

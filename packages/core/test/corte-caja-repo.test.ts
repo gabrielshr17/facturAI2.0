@@ -212,8 +212,10 @@ describe("corteCajaRepo — verificarPago (tarjeta/transferencia, § CAJA)", () 
     const cortes = crearCorteCajaRepo(db);
     const id = await turnoConTarjetaYTransferencia();
 
-    const actualizado = await cortes.verificarPago(id, { tarjetaVerificado: 100 });
-    expect(actualizado.tarjeta_verificado).toBe(100);
+    // La fixture paga RD$100 por tarjeta, pero total_tarjeta guarda lo realmente cobrado
+    // (con el 5% de recargo de tarjeta, § PRECIOS/COBRO): 105, no 100.
+    const actualizado = await cortes.verificarPago(id, { tarjetaVerificado: 105 });
+    expect(actualizado.tarjeta_verificado).toBe(105);
     expect(actualizado.tarjeta_diferencia).toBe(0);
   });
 
@@ -222,17 +224,17 @@ describe("corteCajaRepo — verificarPago (tarjeta/transferencia, § CAJA)", () 
     const id = await turnoConTarjetaYTransferencia();
 
     const actualizado = await cortes.verificarPago(id, { tarjetaVerificado: 95 });
-    expect(actualizado.tarjeta_diferencia).toBe(-5);
+    expect(actualizado.tarjeta_diferencia).toBe(-10); // esperado 105 (con recargo), no 100
   });
 
   it("verificar tarjeta no toca transferencia, y viceversa", async () => {
     const cortes = crearCorteCajaRepo(db);
     const id = await turnoConTarjetaYTransferencia();
 
-    await cortes.verificarPago(id, { tarjetaVerificado: 100 });
+    await cortes.verificarPago(id, { tarjetaVerificado: 105 });
     const conAmbas = await cortes.verificarPago(id, { transferenciaVerificado: 50 });
 
-    expect(conAmbas.tarjeta_verificado).toBe(100);
+    expect(conAmbas.tarjeta_verificado).toBe(105);
     expect(conAmbas.tarjeta_diferencia).toBe(0);
     expect(conAmbas.transferencia_verificado).toBe(50);
     expect(conAmbas.transferencia_diferencia).toBe(0);
