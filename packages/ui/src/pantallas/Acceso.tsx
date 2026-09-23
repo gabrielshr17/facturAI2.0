@@ -68,7 +68,7 @@ export function Acceso(): ReactElement {
 }
 
 function AccesoInterno(): ReactElement {
-  const { usuario } = useRepos();
+  const { usuario, corteCaja } = useRepos();
   const { iniciarSesion } = useSesion();
   const { avisar } = useAlertas();
 
@@ -78,6 +78,7 @@ function AccesoInterno(): ReactElement {
   const [pinNuevo, setPinNuevo] = useState("");
   const [definiendoPin, setDefiniendoPin] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [turnoAjeno, setTurnoAjeno] = useState<{ nombre: string | null } | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -94,8 +95,22 @@ function AccesoInterno(): ReactElement {
     };
   }, []);
 
+  async function elegirUsuario(elegido: Usuario) {
+    try {
+      const turno = await corteCaja.turnoAbierto();
+      if (turno && turno.usuario_id !== elegido.id) {
+        const dueno = turno.usuario_id ? await usuario.obtener(turno.usuario_id) : undefined;
+        setTurnoAjeno({ nombre: dueno?.nombre ?? null });
+      }
+    } catch (error) {
+      console.error("No se pudo comprobar si hay un turno abierto al elegir usuario", error);
+    }
+    setSeleccionado(elegido);
+  }
+
   function volverASeleccion() {
     setSeleccionado(null);
+    setTurnoAjeno(null);
     setPin("");
     setPinNuevo("");
     setDefiniendoPin(false);
@@ -146,10 +161,14 @@ function AccesoInterno(): ReactElement {
       {usuarios === null && <p style={{ color: "white" }}>Cargando usuarios…</p>}
 
       {usuarios !== null && !seleccionado && (
-        <SeleccionUsuario usuarios={usuarios} onElegir={setSeleccionado} />
+        <SeleccionUsuario usuarios={usuarios} onElegir={elegirUsuario} />
       )}
 
-      {seleccionado && !definiendoPin && (
+      {seleccionado && turnoAjeno && (
+        <AvisoTurnoAbierto nombre={turnoAjeno.nombre} onVolver={volverASeleccion} />
+      )}
+
+      {seleccionado && !turnoAjeno && !definiendoPin && (
         <TecladoPin
           titulo={`Hola, ${seleccionado.nombre}`}
           subtitulo={ETIQUETA_ROL[seleccionado.rol] ?? seleccionado.rol}
@@ -161,7 +180,7 @@ function AccesoInterno(): ReactElement {
         />
       )}
 
-      {seleccionado && definiendoPin && (
+      {seleccionado && !turnoAjeno && definiendoPin && (
         <TecladoPin
           titulo="Define tu PIN"
           subtitulo={`Es la primera vez que ${seleccionado.nombre} inicia sesión. Elige un PIN de 4 a 6 dígitos.`}
@@ -210,6 +229,22 @@ function SeleccionUsuario({
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function AvisoTurnoAbierto({ nombre, onVolver }: { nombre: string | null; onVolver: () => void }) {
+  const tarjetaRef = useModalAccesible<HTMLDivElement>();
+  return (
+    <div ref={tarjetaRef} style={{ ...tarjeta, textAlign: "center" }}>
+      <h1 style={{ ...estiloTitulo, fontSize: 20 }}>Hay un turno abierto</h1>
+      <p style={subtituloTexto}>
+        {nombre ?? "Otro usuario"} tiene un turno de caja abierto. Pídele que cierre sesión para
+        cerrarlo, o que un supervisor lo cierre a la fuerza desde Corte de Caja.
+      </p>
+      <button type="button" style={s.botonSecundario} onClick={onVolver}>
+        Volver
+      </button>
     </div>
   );
 }
