@@ -24,4 +24,19 @@ export const migracionesCaja: Migration[] = [
         WHERE estado = 'abierto' AND deleted_at IS NULL;
     `,
   },
+  {
+    // Verificación opcional de tarjeta/transferencia al revisar un corte ya cerrado (§ CAJA):
+    // NULL = nadie lo verificó todavía; distinto de 0, que significa "verificado y coincidió
+    // exacto". El supervisor lo llena en Corte de Caja transcribiendo el reporte de lote del
+    // datáfono o la confirmación bancaria — no es un conteo ciego como el efectivo, así que no
+    // hace falta nada más que estas cuatro columnas.
+    id: 41,
+    nombre: "verificacion_tarjeta_transferencia",
+    sql: /* sql */ `
+      ALTER TABLE corte_caja ADD COLUMN tarjeta_verificado REAL;
+      ALTER TABLE corte_caja ADD COLUMN tarjeta_diferencia REAL;
+      ALTER TABLE corte_caja ADD COLUMN transferencia_verificado REAL;
+      ALTER TABLE corte_caja ADD COLUMN transferencia_diferencia REAL;
+    `,
+  },
 ];

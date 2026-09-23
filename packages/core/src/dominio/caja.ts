@@ -21,3 +21,14 @@ export function calcularCorteCaja(input: CorteCajaInput): CorteCajaResultado {
   const diferencia = redondear2(input.efectivoContado - efectivoEsperado);
   return { efectivoEsperado, diferencia };
 }
+
+/**
+ * Diferencia entre lo verificado (un monto de tarjeta/transferencia que el
+ * supervisor transcribe de un reporte de lote del datáfono o una
+ * confirmación bancaria) y lo esperado (lo que el sistema calculó de las
+ * ventas del turno). A diferencia del efectivo, esto no es un conteo ciego:
+ * el número real viene de una fuente externa, no de adivinar el total.
+ */
+export function calcularDiferenciaVerificacion(esperado: number, verificado: number): number {
+  return redondear2(verificado - esperado);
+}

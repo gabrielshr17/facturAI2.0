@@ -1,13 +1,15 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   type CorteCaja as CorteCajaTipo,
   type ResumenPeriodoVentas,
   type Usuario,
   ValidacionError,
 } from "@sfr/core";
-import { ChartColumn, Banknote, ClipboardList } from "lucide-react";
+import { ChartColumn, Banknote, ClipboardList, ShieldCheck } from "lucide-react";
 import { useRepos } from "../data/contexto.js";
 import { PromptCerrarTurno } from "../componentes/TarjetasTurno.js";
+import { useModalAccesible } from "../hooks/useModalAccesible.js";
+import { filtrarNumero } from "../utilidades/numero.js";
 import { s, c, money } from "../estilos.js";
 
 /**
@@ -26,6 +28,10 @@ export function CorteCaja() {
   const [historial, setHistorial] = useState<CorteCajaTipo[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [mostrandoCierre, setMostrandoCierre] = useState(false);
+  const [verificando, setVerificando] = useState<{
+    corte: CorteCajaTipo;
+    metodo: "tarjeta" | "transferencia";
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const cargarTurno = useCallback(async () => {
@@ -58,6 +64,53 @@ export function CorteCaja() {
     return usuarios.find((u) => u.id === usuarioId)?.nombre ?? "Usuario eliminado";
   }
 
+  /** Celda de la columna Tarjeta/Transferencia del historial: "—" si ese turno no tuvo ventas
+   *  por ese método, un botón "Verificar" si tuvo pero nadie lo verificó todavía, o el monto
+   *  verificado + su diferencia (con un "Editar" para corregirlo) una vez verificado. */
+  function celdaVerificacion(h: CorteCajaTipo, metodo: "tarjeta" | "transferencia") {
+    const total = metodo === "tarjeta" ? h.total_tarjeta : h.total_transferencia;
+    const verificado = metodo === "tarjeta" ? h.tarjeta_verificado : h.transferencia_verificado;
+    const diferencia = metodo === "tarjeta" ? h.tarjeta_diferencia : h.transferencia_diferencia;
+
+    if (total === 0) {
+      return <td style={{ ...s.tdDerecha, color: c.gris }}>—</td>;
+    }
+    if (verificado === null) {
+      return (
+        <td style={s.tdDerecha}>
+          <button
+            style={{ ...s.botonSecundario, padding: "4px 10px", fontSize: 12.5 }}
+            onClick={() => setVerificando({ corte: h, metodo })}
+          >
+            Verificar
+          </button>
+        </td>
+      );
+    }
+    return (
+      <td style={s.tdDerecha}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+          <span style={{ color: diferencia === 0 ? c.verde : c.rojo, fontWeight: 600 }}>
+            RD$ {money(verificado)} (dif: RD$ {money(diferencia ?? 0)})
+          </span>
+          <button
+            style={{
+              background: "none",
+              border: "none",
+              color: c.azul,
+              fontSize: 12,
+              cursor: "pointer",
+              padding: 0,
+            }}
+            onClick={() => setVerificando({ corte: h, metodo })}
+          >
+            Editar
+          </button>
+        </div>
+      </td>
+    );
+  }
+
   async function forzarCierre(efectivoContado: number) {
     setError(null);
     try {
@@ -69,6 +122,28 @@ export function CorteCaja() {
         e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e),
       );
       throw e; // el modal necesita el rechazo para mostrar su propio mensaje
+    }
+  }
+
+  /** Verificación opcional de tarjeta/transferencia (§ CAJA): no es un conteo ciego — el
+   *  supervisor transcribe el reporte de lote del datáfono o la confirmación bancaria. */
+  async function guardarVerificacion(monto: number) {
+    if (!verificando) return;
+    setError(null);
+    try {
+      await repo.verificarPago(
+        verificando.corte.id,
+        verificando.metodo === "tarjeta"
+          ? { tarjetaVerificado: monto }
+          : { transferenciaVerificado: monto },
+      );
+      setVerificando(null);
+      await cargarHistorial();
+    } catch (e) {
+      setError(
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e),
+      );
+      throw e;
     }
   }
 
@@ -170,6 +245,28 @@ export function CorteCaja() {
         </div>
       )}
 
+      {verificando && (
+        <div style={overlayModal} onClick={() => setVerificando(null)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <PromptVerificarPago
+              metodo={verificando.metodo}
+              totalEsperado={
+                verificando.metodo === "tarjeta"
+                  ? verificando.corte.total_tarjeta
+                  : verificando.corte.total_transferencia
+              }
+              valorActual={
+                verificando.metodo === "tarjeta"
+                  ? verificando.corte.tarjeta_verificado
+                  : verificando.corte.transferencia_verificado
+              }
+              onConfirmar={guardarVerificacion}
+              onCancelar={() => setVerificando(null)}
+            />
+          </div>
+        </div>
+      )}
+
       <div style={{ ...s.tarjeta, marginTop: 16 }}>
         <h4 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 6 }}>
           <ClipboardList size={16} /> Turnos anteriores
@@ -195,12 +292,18 @@ export function CorteCaja() {
               <th scope="col" style={s.th}>
                 Diferencia
               </th>
+              <th scope="col" style={s.th}>
+                Tarjeta
+              </th>
+              <th scope="col" style={s.th}>
+                Transferencia
+              </th>
             </tr>
           </thead>
           <tbody>
             {historial.length === 0 && (
               <tr>
-                <td style={s.filaVacia} colSpan={6}>
+                <td style={s.filaVacia} colSpan={8}>
                   Todavía no se ha cerrado ningún turno.
                 </td>
               </tr>
@@ -225,10 +328,126 @@ export function CorteCaja() {
                 >
                   RD$ {money(h.diferencia)}
                 </td>
+                {celdaVerificacion(h, "tarjeta")}
+                {celdaVerificacion(h, "transferencia")}
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+interface PromptVerificarPagoProps {
+  metodo: "tarjeta" | "transferencia";
+  /** Lo que el sistema calculó de las ventas del turno — mostrado como referencia, nunca
+   *  precargado en el campo: quien verifica transcribe el número real, no confirma el del
+   *  sistema a ciegas. */
+  totalEsperado: number;
+  /** Si ya había un valor verificado antes (§ "Editar"), se precarga para corregirlo. */
+  valorActual: number | null;
+  onConfirmar: (monto: number) => Promise<void>;
+  onCancelar: () => void;
+}
+
+/** Verificación de tarjeta/transferencia (§ CAJA): a diferencia del conteo de efectivo, esto
+ *  NO es ciego — el total esperado se muestra, porque el supervisor está comparando contra
+ *  una fuente externa (reporte de lote, confirmación bancaria), no adivinando. */
+function PromptVerificarPago({
+  metodo,
+  totalEsperado,
+  valorActual,
+  onConfirmar,
+  onCancelar,
+}: PromptVerificarPagoProps) {
+  const tarjetaRef = useModalAccesible<HTMLDivElement>();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [monto, setMonto] = useState(valorActual != null ? String(valorActual) : "");
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  async function confirmar() {
+    setError(null);
+    setEnviando(true);
+    try {
+      await onConfirmar(Number(monto) || 0);
+    } catch (e) {
+      setError(
+        e instanceof ValidacionError ? e.errores.map((x) => x.mensaje).join(" ") : String(e),
+      );
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  const etiquetaMetodo = metodo === "tarjeta" ? "tarjeta" : "transferencia";
+  const fuente =
+    metodo === "tarjeta" ? "el reporte de lote del datáfono" : "la confirmación del banco";
+
+  return (
+    <div ref={tarjetaRef} style={s.tarjeta} role="group" aria-label={`Verificar ${etiquetaMetodo}`}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        <span
+          aria-hidden="true"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: c.azulClaro,
+            color: c.azulOscuro,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <ShieldCheck size={20} />
+        </span>
+        <h1 style={{ fontSize: 20, margin: 0, letterSpacing: -0.3 }}>Verificar {etiquetaMetodo}</h1>
+      </div>
+      <p style={{ margin: "0 0 4px", fontSize: 14, color: c.gris }}>
+        El sistema calculó RD$ {money(totalEsperado)} en ventas por {etiquetaMetodo}.
+      </p>
+      <p style={{ margin: "0 0 16px", fontSize: 14, color: c.gris }}>
+        Escribe lo que de verdad muestra {fuente}.
+      </p>
+
+      <label style={s.label} htmlFor="sfr-monto-verificado">
+        Monto verificado
+      </label>
+      <input
+        id="sfr-monto-verificado"
+        ref={inputRef}
+        style={s.input}
+        type="text"
+        inputMode="decimal"
+        value={monto}
+        disabled={enviando}
+        onChange={(e) => setMonto(filtrarNumero(e.target.value))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") void confirmar();
+        }}
+      />
+
+      {error && (
+        <div role="alert" style={{ ...s.errorBox, marginTop: 12 }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ ...s.formFooter, justifyContent: "space-between" }}>
+        <button type="button" style={s.botonSecundario} onClick={onCancelar} disabled={enviando}>
+          Cancelar
+        </button>
+        <button type="button" style={s.boton} onClick={confirmar} disabled={enviando}>
+          Guardar
+        </button>
       </div>
     </div>
   );

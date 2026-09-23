@@ -304,6 +304,14 @@ CREATE TABLE corte_caja (
   efectivo_esperado   NUMERIC(12,2) NOT NULL DEFAULT 0,
   efectivo_contado    NUMERIC(12,2) NOT NULL DEFAULT 0,
   diferencia          NUMERIC(12,2) NOT NULL DEFAULT 0,
+  -- Verificación opcional de tarjeta/transferencia (migración SQLite 41): NULL = nadie lo
+  -- verificó todavía, distinto de 0 (verificado y coincidió exacto). No es un conteo ciego
+  -- como el efectivo — el supervisor transcribe el reporte de lote del datáfono o la
+  -- confirmación bancaria en Corte de Caja, para cualquier turno ya cerrado.
+  tarjeta_verificado          NUMERIC(12,2),
+  tarjeta_diferencia          NUMERIC(12,2),
+  transferencia_verificado    NUMERIC(12,2),
+  transferencia_diferencia    NUMERIC(12,2),
   estado              TEXT NOT NULL DEFAULT 'cerrado', -- abierto|cerrado
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),

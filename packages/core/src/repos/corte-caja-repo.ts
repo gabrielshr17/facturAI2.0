@@ -1,6 +1,6 @@
 import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
-import { calcularCorteCaja } from "../dominio/caja.js";
+import { calcularCorteCaja, calcularDiferenciaVerificacion } from "../dominio/caja.js";
 import type { ErrorValidacion } from "../dominio/validacion.js";
 import { exigirPermiso, sesionDe, usuarioDe } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
@@ -28,10 +28,16 @@ export interface CerrarTurnoInput {
   efectivoContado: number;
 }
 
+export interface VerificarPagoInput {
+  tarjetaVerificado?: number | null;
+  transferenciaVerificado?: number | null;
+}
+
 const COLS = `id, caja_id, usuario_id, fecha_apertura, fecha_cierre, monto_inicial,
   total_ventas, total_itbis, total_efectivo, total_tarjeta, total_transferencia,
-  total_credito, efectivo_esperado, efectivo_contado, diferencia, estado,
-  created_at, updated_at, deleted_at`;
+  total_credito, efectivo_esperado, efectivo_contado, diferencia,
+  tarjeta_verificado, tarjeta_diferencia, transferencia_verificado, transferencia_diferencia,
+  estado, created_at, updated_at, deleted_at`;
 
 /**
  * `desde`/`hasta` ahora son timestamps ISO completos (no solo fechas): un
@@ -140,13 +146,17 @@ export function crearCorteCajaRepo(db: SqlDriver) {
         efectivo_esperado: input.montoInicial,
         efectivo_contado: 0,
         diferencia: 0,
+        tarjeta_verificado: null,
+        tarjeta_diferencia: null,
+        transferencia_verificado: null,
+        transferencia_diferencia: null,
         estado: "abierto",
         created_at: ts,
         updated_at: ts,
         deleted_at: null,
       };
 
-      await db.run(`INSERT INTO corte_caja (${COLS}) VALUES (${Array(19).fill("?").join(",")})`, [
+      await db.run(`INSERT INTO corte_caja (${COLS}) VALUES (${Array(23).fill("?").join(",")})`, [
         c.id,
         c.caja_id,
         c.usuario_id,
@@ -162,6 +172,10 @@ export function crearCorteCajaRepo(db: SqlDriver) {
         c.efectivo_esperado,
         c.efectivo_contado,
         c.diferencia,
+        c.tarjeta_verificado,
+        c.tarjeta_diferencia,
+        c.transferencia_verificado,
+        c.transferencia_diferencia,
         c.estado,
         c.created_at,
         c.updated_at,
@@ -237,6 +251,90 @@ export function crearCorteCajaRepo(db: SqlDriver) {
       ]);
       if (!cerrado) throw new Error("No se pudo leer el corte tras cerrarlo.");
       return cerrado;
+    },
+
+    /**
+     * Verificación opcional de tarjeta/transferencia (§ CAJA): un supervisor transcribe, para
+     * un corte YA CERRADO (de cualquier fecha, no solo el último), el monto real del reporte
+     * de lote del datáfono o de una confirmación bancaria. No es un conteo ciego — a
+     * diferencia del efectivo, el número viene de una fuente externa, así que no hay nada que
+     * esconder. Solo toca la(s) columna(s) del método que de verdad viene en `input`; el otro
+     * método queda exactamente como estaba (una verificación no borra la otra). Requiere
+     * `caja.cerrar`, el mismo permiso que ya exige un cierre forzado.
+     */
+    async verificarPago(corteCajaId: string, input: VerificarPagoInput): Promise<CorteCaja> {
+      exigirPermiso(db, "caja.cerrar");
+      const corte = await db.get<CorteCaja>(
+        `SELECT ${COLS} FROM corte_caja WHERE id=? AND deleted_at IS NULL`,
+        [corteCajaId],
+      );
+      if (!corte) throw new Error(`Corte ${corteCajaId} no existe`);
+
+      const errores: ErrorValidacion[] = [];
+      if (input.tarjetaVerificado != null && input.tarjetaVerificado < 0) {
+        errores.push({
+          campo: "tarjetaVerificado",
+          mensaje: "El monto verificado de tarjeta no puede ser negativo.",
+        });
+      }
+      if (input.transferenciaVerificado != null && input.transferenciaVerificado < 0) {
+        errores.push({
+          campo: "transferenciaVerificado",
+          mensaje: "El monto verificado de transferencia no puede ser negativo.",
+        });
+      }
+      if (errores.length) throw new ValidacionError(errores);
+
+      const tarjetaVerificado =
+        input.tarjetaVerificado !== undefined ? input.tarjetaVerificado : corte.tarjeta_verificado;
+      const tarjetaDiferencia =
+        tarjetaVerificado != null
+          ? calcularDiferenciaVerificacion(corte.total_tarjeta, tarjetaVerificado)
+          : null;
+      const transferenciaVerificado =
+        input.transferenciaVerificado !== undefined
+          ? input.transferenciaVerificado
+          : corte.transferencia_verificado;
+      const transferenciaDiferencia =
+        transferenciaVerificado != null
+          ? calcularDiferenciaVerificacion(corte.total_transferencia, transferenciaVerificado)
+          : null;
+
+      await db.run(
+        `UPDATE corte_caja SET tarjeta_verificado=?, tarjeta_diferencia=?,
+           transferencia_verificado=?, transferencia_diferencia=?, updated_at=? WHERE id=?`,
+        [
+          tarjetaVerificado,
+          tarjetaDiferencia,
+          transferenciaVerificado,
+          transferenciaDiferencia,
+          now(),
+          corteCajaId,
+        ],
+      );
+      const partes: string[] = [];
+      if (input.tarjetaVerificado !== undefined) {
+        partes.push(
+          `Tarjeta: RD$ ${tarjetaVerificado?.toFixed(2) ?? "—"} (diferencia RD$ ${tarjetaDiferencia?.toFixed(2) ?? "—"})`,
+        );
+      }
+      if (input.transferenciaVerificado !== undefined) {
+        partes.push(
+          `Transferencia: RD$ ${transferenciaVerificado?.toFixed(2) ?? "—"} (diferencia RD$ ${transferenciaDiferencia?.toFixed(2) ?? "—"})`,
+        );
+      }
+      await registrarAccion(db, {
+        accion: "verificar_pago_corte",
+        entidad: "corte_caja",
+        entidadId: corteCajaId,
+        resumen: partes.join("; "),
+      });
+
+      const actualizado = await db.get<CorteCaja>(`SELECT ${COLS} FROM corte_caja WHERE id=?`, [
+        corteCajaId,
+      ]);
+      if (!actualizado) throw new Error("No se pudo leer el corte tras verificar el pago.");
+      return actualizado;
     },
 
     async listar(): Promise<CorteCaja[]> {
