@@ -6,6 +6,7 @@ import { ErrorBoundary } from "./componentes/ErrorBoundary.js";
 import { CambioRapidoUsuario } from "./componentes/CambioRapidoUsuario.js";
 import { BloqueoInactividad } from "./componentes/BloqueoInactividad.js";
 import { PromptAbrirTurno, PromptCerrarTurno } from "./componentes/TarjetasTurno.js";
+import { registrarManejadorCierreVentana } from "./cierreVentana.js";
 import { ProveedorAlertas } from "./contexto/Alertas.js";
 import { useSesion } from "./sesion/contexto.js";
 import { useRepos } from "./data/contexto.js";
@@ -124,6 +125,32 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
   }, [turnoDeOtroUsuario, estadoTurno.abierto?.usuario_id, usuarioRepo]);
 
   const [cerrandoTurno, setCerrandoTurno] = useState(false);
+
+  // Cerrar la VENTANA (§ CAJA, escritorio): mismo pedido de arqueo que cerrar sesión, pero
+  // disparado por el botón de cerrar del sistema operativo en vez de por "Cerrar sesión".
+  // El puente vive en `cierreVentana.ts` (agnóstico de plataforma); quien de verdad
+  // intercepta el cierre nativo y llama para acá es `packages/desktop/src/main.tsx` — la
+  // PWA nunca registra nada del lado de Tauri, así que esto queda inerte ahí.
+  const [cerrandoParaSalirApp, setCerrandoParaSalirApp] = useState(false);
+  const resolverCierreAppRef = useRef<((r: "cerrar" | "cancelar") => void) | null>(null);
+
+  function cancelarCierreApp() {
+    resolverCierreAppRef.current?.("cancelar");
+    resolverCierreAppRef.current = null;
+    setCerrandoParaSalirApp(false);
+  }
+
+  useEffect(() => {
+    return registrarManejadorCierreVentana(() => {
+      if (!estadoTurno.abierto || estadoTurno.abierto.usuario_id !== sesion.usuarioId) {
+        return Promise.resolve("cerrar");
+      }
+      return new Promise<"cerrar" | "cancelar">((resolve) => {
+        resolverCierreAppRef.current = resolve;
+        setCerrandoParaSalirApp(true);
+      });
+    });
+  }, [estadoTurno, sesion.usuarioId]);
 
   async function manejarCerrarSesion() {
     if (estadoTurno.abierto) {
@@ -487,6 +514,25 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
                   cerrarSesion();
                 }}
                 onCancelar={() => setCerrandoTurno(false)}
+              />
+            </div>
+          </div>
+        )}
+        {/* Cerrar la ventana con turno abierto (§ CAJA, escritorio): ver el comentario junto
+          a `registrarManejadorCierreVentana` arriba. */}
+        {cerrandoParaSalirApp && estadoTurno.abierto && (
+          <div style={styles.overlayModal} onClick={cancelarCierreApp}>
+            <div onClick={(e) => e.stopPropagation()}>
+              <PromptCerrarTurno
+                montoInicial={estadoTurno.abierto.monto_inicial}
+                titulo="Cerrar turno para salir de la aplicación"
+                onConfirmar={async (efectivoContado) => {
+                  await corteCajaRepo.cerrarTurno({ efectivoContado });
+                  setCerrandoParaSalirApp(false);
+                  resolverCierreAppRef.current?.("cerrar");
+                  resolverCierreAppRef.current = null;
+                }}
+                onCancelar={cancelarCierreApp}
               />
             </div>
           </div>
