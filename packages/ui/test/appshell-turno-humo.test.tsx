@@ -6,7 +6,15 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { migrate, seed, crearRepos, permisosDeRol, type PortadorSesion } from "@sfr/core";
+import {
+  migrate,
+  seed,
+  crearRepos,
+  permisosDeRol,
+  conSesion,
+  crearPortadorSesion,
+  type PortadorSesion,
+} from "@sfr/core";
 import { createNodeSqliteDriver } from "../../core/src/db/drivers/node-sqlite.js";
 import { AppShell } from "../src/AppShell.js";
 import { ProveedorDatos, useRepos, type Repos } from "../src/data/contexto.js";
@@ -139,5 +147,59 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
     await waitFor(() =>
       expect(screen.getByText("¿Con cuánto efectivo empieza la caja?")).toBeTruthy(),
     );
+  });
+
+  it("un turno abierto por OTRO usuario bloquea el login con un mensaje claro (regresión real)", async () => {
+    // Reproduce exactamente el bug real: "Administrador" abre un turno; después, sin que
+    // nadie lo cierre, "Cajero Dos" inicia sesión por su cuenta (login nuevo, no Ctrl+U) y
+    // se queda atrapado — no puede cerrar el turno de otro al salir (necesita `caja.cerrar`,
+    // que un cajero no tiene). La compuerta debe bloquear ANTES, al entrar, no dejar que
+    // trabaje todo el turno para enterarse recién al salir.
+    let ultimaSesion: PortadorSesion | null = null;
+    const db = createNodeSqliteDriver();
+    await migrate(db);
+    await seed(db);
+    const repos = crearRepos(db);
+    await repos.negocio.guardar({ nombre_comercial: "Negocio Prueba", exige_caja_abierta: true });
+
+    // "Administrador" (usuario-admin, de la semilla) abre un turno sin pasar por la UI.
+    const portadorAdmin = crearPortadorSesion({
+      usuarioId: "usuario-admin",
+      rol: "dueno",
+      permisos: permisosDeRol("dueno"),
+    });
+    await crearRepos(conSesion(db, portadorAdmin)).corteCaja.abrirTurno({ montoInicial: 100 });
+
+    const cajeroDos = await repos.usuario.crear({
+      nombre: "Cajero Dos",
+      rol: "cajero",
+      pin: "2222",
+      activo: true,
+    });
+    const sesionCajeroDos: PortadorSesion = {
+      usuarioId: cajeroDos.id,
+      rol: "cajero",
+      permisos: permisosDeRol("cajero"),
+    };
+
+    render(
+      <ProveedorSesion db={db} sesionInicial={sesionCajeroDos}>
+        <ProveedorDatos>
+          <SondaSesion onCambio={(s) => (ultimaSesion = s)} />
+          <AppShell plataforma="Web" />
+        </ProveedorDatos>
+      </ProveedorSesion>,
+    );
+
+    expect(await screen.findByText("Hay un turno abierto")).toBeTruthy();
+    expect(screen.getByText(/Administrador/)).toBeTruthy();
+    expect(screen.queryByRole("navigation", { name: "Módulos" })).toBeNull();
+    // No debe ofrecer "abrir turno": ya hay uno, solo que no es suyo.
+    expect(screen.queryByText("¿Con cuánto efectivo empieza la caja?")).toBeNull();
+
+    fireEvent.click(screen.getByText("Volver al login"));
+    await waitFor(() => expect(ultimaSesion!.usuarioId).toBeNull());
+    // El turno de Administrador sigue intacto — Cajero Dos nunca lo tocó.
+    expect((await repos.corteCaja.turnoAbierto())?.usuario_id).toBe("usuario-admin");
   });
 });

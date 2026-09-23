@@ -55,11 +55,13 @@ describe("CorteCaja — verificar tarjeta/transferencia (humo, § CAJA)", () => 
     const botonVerificar = await screen.findByText("Verificar");
     fireEvent.click(botonVerificar);
 
+    // La venta de la fixture es RD$100 por tarjeta, pero `total_tarjeta` guarda lo
+    // realmente cobrado (con el 5% de recargo de tarjeta, § PRECIOS/COBRO): 105, no 100.
     const campo = await screen.findByLabelText("Monto verificado");
     fireEvent.change(campo, { target: { value: "95" } });
     fireEvent.click(screen.getByText("Guardar"));
 
-    await waitFor(() => expect(screen.getByText(/dif: RD\$ -5\.00/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/dif: RD\$ -10\.00/)).toBeTruthy());
   });
 
   it("un turno sin ventas por transferencia muestra '—' en esa columna, sin botón", async () => {
