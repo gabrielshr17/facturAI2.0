@@ -5,6 +5,9 @@ import {
   type TipoVenta,
   pctGananciaDesdePrecio,
   calcularPrecioVenta,
+  precioTierDesdeCosto,
+  MARGEN_NIVEL_2_PCT,
+  MARGEN_NIVEL_3_PCT,
 } from "@sfr/core";
 import { Package } from "lucide-react";
 import { s, money } from "../estilos.js";
@@ -124,6 +127,11 @@ export function FormularioProducto({
   onGuardar,
   onCancelar,
 }: FormularioProductoProps) {
+  const costo = form.costo ?? 0;
+  const precioVenta =
+    form.precio_venta ?? calcularPrecioVenta({ costo, pctGanancia: form.pct_ganancia ?? 0 });
+  const sugerido2 = precioTierDesdeCosto(costo, MARGEN_NIVEL_2_PCT, precioVenta);
+  const sugerido3 = precioTierDesdeCosto(costo, MARGEN_NIVEL_3_PCT, precioVenta);
   return (
     <div style={{ ...s.tarjeta, marginBottom: 16 }}>
       <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
@@ -247,11 +255,12 @@ export function FormularioProducto({
           />
         </div>
         <div>
-          <label style={s.label}>Precio nivel 2 (vacío = automático desde costo + margen)</label>
+          <label style={s.label}>Precio nivel 2 (vacío = el sugerido en gris)</label>
           <input
             style={s.input}
             type="text"
             inputMode="decimal"
+            placeholder={money(sugerido2)}
             value={form.precio_2 ?? ""}
             onChange={(e) => {
               const texto = filtrarNumero(e.target.value);
@@ -260,11 +269,12 @@ export function FormularioProducto({
           />
         </div>
         <div>
-          <label style={s.label}>Precio nivel 3 (vacío = automático desde costo + margen)</label>
+          <label style={s.label}>Precio nivel 3 (vacío = el sugerido en gris)</label>
           <input
             style={s.input}
             type="text"
             inputMode="decimal"
+            placeholder={money(sugerido3)}
             value={form.precio_3 ?? ""}
             onChange={(e) => {
               const texto = filtrarNumero(e.target.value);

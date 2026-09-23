@@ -2,7 +2,12 @@ import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
 import { tieneValor, normalizar, type ErrorValidacion } from "../dominio/validacion.js";
 import { tasaDe } from "../dominio/impuesto.js";
-import { calcularPrecioVenta, precioTierDesdeCosto } from "../dominio/precio.js";
+import {
+  calcularPrecioVenta,
+  precioTierDesdeCosto,
+  MARGEN_NIVEL_2_PCT,
+  MARGEN_NIVEL_3_PCT,
+} from "../dominio/precio.js";
 import { exigirPermiso } from "../db/sesion.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { Producto } from "./tipos.js";
@@ -56,10 +61,6 @@ const COLS = `id, codigo_barra, descripcion, tipo_venta, unidad_medida, costo,
   precio_2, precio_3, cantidad_minima_mayoreo, existencia_minima,
   created_at, updated_at, deleted_at`;
 
-/** Márgenes fijos (§ PRECIOS) para sugerir precio_2/precio_3 al crear un producto sin ellos. */
-const MARGEN_NIVEL_2_PCT = 10;
-const MARGEN_NIVEL_3_PCT = 5;
-
 export function crearProductoRepo(db: SqlDriver) {
   return {
     /** Crea un producto. Si no se da precio manual, lo deriva del costo. Lanza ValidacionError. */
@@ -77,8 +78,8 @@ export function crearProductoRepo(db: SqlDriver) {
         pctGanancia: pct,
         precioManual: input.precio_venta ?? null,
       });
-      const precio_2 = input.precio_2 ?? precioTierDesdeCosto(costo, MARGEN_NIVEL_2_PCT);
-      const precio_3 = input.precio_3 ?? precioTierDesdeCosto(costo, MARGEN_NIVEL_3_PCT);
+      const precio_2 = input.precio_2 ?? precioTierDesdeCosto(costo, MARGEN_NIVEL_2_PCT, precio);
+      const precio_3 = input.precio_3 ?? precioTierDesdeCosto(costo, MARGEN_NIVEL_3_PCT, precio);
 
       const ts = now();
       const p: Producto = {

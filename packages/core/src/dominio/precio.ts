@@ -61,10 +61,19 @@ export function calcularPrecioVenta(input: CalculoPrecioInput): number {
  * margen FIJO (10%/5%) en vez del `pct_ganancia` propio del producto — a
  * diferencia de `precio_venta`, estos niveles NUNCA se recalculan después de
  * creados: es solo el valor con el que arranca el campo, editable sin tope.
+ * Nunca supera el `precio_venta`, y sin costo usa el `precio_venta`.
  */
-export function precioTierDesdeCosto(costo: number, pctMargen: number): number {
-  return precioBaseDesdeCosto(costo, pctMargen);
+export function precioTierDesdeCosto(
+  costo: number,
+  pctMargen: number,
+  precioVenta: number,
+): number {
+  if (!(costo > 0)) return redondear2(precioVenta);
+  return Math.min(precioBaseDesdeCosto(costo, pctMargen), redondear2(precioVenta));
 }
+
+export const MARGEN_NIVEL_2_PCT = 10;
+export const MARGEN_NIVEL_3_PCT = 5;
 
 export type NivelPrecio = "1" | "2" | "3";
 

@@ -47,8 +47,16 @@ describe("precio — el valor manual manda (§5)", () => {
 
 describe("precioTierDesdeCosto — sugerencia inicial de precio_2/precio_3 (§ PRECIOS)", () => {
   it("deriva el precio final con un margen fijo sobre el costo, sin impuesto aparte", () => {
-    expect(precioTierDesdeCosto(40, 10)).toBe(44);
-    expect(precioTierDesdeCosto(40, 5)).toBe(42);
+    expect(precioTierDesdeCosto(40, 10, 50)).toBe(44);
+    expect(precioTierDesdeCosto(40, 5, 50)).toBe(42);
+  });
+
+  it("nunca supera el precio de venta", () => {
+    expect(precioTierDesdeCosto(100, 10, 104)).toBe(104);
+  });
+
+  it("con costo 0 usa el precio de venta", () => {
+    expect(precioTierDesdeCosto(0, 10, 35)).toBe(35);
   });
 });
 
