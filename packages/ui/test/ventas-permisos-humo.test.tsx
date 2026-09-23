@@ -85,4 +85,34 @@ describe("Ventas — nivel de precio del cliente (humo, § PRECIOS)", () => {
     expect(await screen.findByText("44.00")).toBeTruthy();
     expect(screen.queryByText("50.00")).toBeNull();
   });
+  it("cambiar o quitar el cliente reprecia las líneas que ya estaban en el ticket", async () => {
+    const { repos } = await renderConDatos(
+      <ProveedorAlertas>
+        <Ventas />
+      </ProveedorAlertas>,
+      sesionDe("dueno"),
+    );
+    await repos.cliente.crear({ nombre: "Mayorista Uno", nivel_precio: "2" });
+    await repos.producto.crear({
+      descripcion: "Detergente Prueba",
+      costo: 40,
+      pct_ganancia: 25,
+    });
+
+    const campo = await screen.findByLabelText("Buscar producto por nombre o código de barra");
+    fireEvent.change(campo, { target: { value: "Detergente Prueba" } });
+    const lista = await screen.findByRole("listbox", { name: "Resultados de la búsqueda" });
+    fireEvent.click(within(lista).getByText("Detergente Prueba"));
+    await waitFor(() => expect(screen.getAllByText("50.00").length).toBeGreaterThan(0));
+
+    const buscarCliente = await screen.findByLabelText("Buscar cliente para asignar al ticket");
+    fireEvent.change(buscarCliente, { target: { value: "Mayorista" } });
+    fireEvent.click(await screen.findByText("Mayorista Uno"));
+    await waitFor(() => expect(screen.getAllByText("44.00").length).toBeGreaterThan(0));
+    expect(screen.queryByText("50.00")).toBeNull();
+
+    fireEvent.click(await screen.findByLabelText("Quitar a Mayorista Uno del ticket"));
+    await waitFor(() => expect(screen.getAllByText("50.00").length).toBeGreaterThan(0));
+    expect(screen.queryByText("44.00")).toBeNull();
+  });
 });

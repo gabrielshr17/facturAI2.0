@@ -81,12 +81,12 @@ export function diferenciasProducto(original: Producto, form: ProductoInput): Ca
   );
   agregar(
     "Precio nivel 2",
-    money(original.precio_2 ?? 0),
+    original.precio_2 != null ? money(original.precio_2) : "(automático)",
     form.precio_2 != null ? money(form.precio_2) : "(automático)",
   );
   agregar(
     "Precio nivel 3",
-    money(original.precio_3 ?? 0),
+    original.precio_3 != null ? money(original.precio_3) : "(automático)",
     form.precio_3 != null ? money(form.precio_3) : "(automático)",
   );
   agregar(

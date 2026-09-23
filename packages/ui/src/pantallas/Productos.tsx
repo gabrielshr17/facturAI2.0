@@ -209,6 +209,8 @@ export function Productos() {
           await facturaRepo.actualizarPrecioEnTicketsAbiertos({
             productoId: actualizado.id,
             precioVenta: actualizado.precio_venta,
+            precio2: actualizado.precio_2,
+            precio3: actualizado.precio_3,
             precioMayoreo: actualizado.precio_mayoreo,
             impuestoTipo: actualizado.impuesto_tipo,
             tasaImpuesto: actualizado.tasa_impuesto,
