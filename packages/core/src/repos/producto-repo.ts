@@ -75,11 +75,10 @@ export function crearProductoRepo(db: SqlDriver) {
       const precio = calcularPrecioVenta({
         costo,
         pctGanancia: pct,
-        tasaImpuesto: tasa,
         precioManual: input.precio_venta ?? null,
       });
-      const precio_2 = input.precio_2 ?? precioTierDesdeCosto(costo, MARGEN_NIVEL_2_PCT, tasa);
-      const precio_3 = input.precio_3 ?? precioTierDesdeCosto(costo, MARGEN_NIVEL_3_PCT, tasa);
+      const precio_2 = input.precio_2 ?? precioTierDesdeCosto(costo, MARGEN_NIVEL_2_PCT);
+      const precio_3 = input.precio_3 ?? precioTierDesdeCosto(costo, MARGEN_NIVEL_3_PCT);
 
       const ts = now();
       const p: Producto = {
@@ -158,7 +157,6 @@ export function crearProductoRepo(db: SqlDriver) {
       const precio = calcularPrecioVenta({
         costo,
         pctGanancia: pct,
-        tasaImpuesto: tasa,
         precioManual: input.precio_venta ?? null,
       });
 

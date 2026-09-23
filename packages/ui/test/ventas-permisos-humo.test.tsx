@@ -65,8 +65,8 @@ describe("Ventas — nivel de precio del cliente (humo, § PRECIOS)", () => {
       sesionDe("dueno"),
     );
     await repos.cliente.crear({ nombre: "Mayorista Uno", nivel_precio: "2" });
-    // Sin precio_2/precio_3 explícitos: el repo los sugiere solo (costo+10%/+5%, ITBIS incl.).
-    // 40 costo + 10% + 18% ITBIS = 51.92 (precio_2); + 25% + 18% ITBIS = 59.00 (precio_venta).
+    // Sin precio_2/precio_3 explícitos: el repo los sugiere solo (costo+10%/+5%).
+    // 40 costo + 10% = 44.00 (precio_2); + 25% = 50.00 (precio_venta).
     await repos.producto.crear({
       descripcion: "Detergente Prueba",
       costo: 40,
@@ -82,7 +82,7 @@ describe("Ventas — nivel de precio del cliente (humo, § PRECIOS)", () => {
     const lista = await screen.findByRole("listbox", { name: "Resultados de la búsqueda" });
     fireEvent.click(within(lista).getByText("Detergente Prueba"));
 
-    expect(await screen.findByText("51.92")).toBeTruthy();
-    expect(screen.queryByText("59.00")).toBeNull();
+    expect(await screen.findByText("44.00")).toBeTruthy();
+    expect(screen.queryByText("50.00")).toBeNull();
   });
 });

@@ -15,8 +15,7 @@ describe("productoRepo — CRUD persiste en SQLite", () => {
   it("crea y persiste, derivando el precio del costo", async () => {
     const repo = crearProductoRepo(db);
     const p = await repo.crear({ descripcion: "Arroz 5lb", costo: 40, pct_ganancia: 25 });
-    // 40 + 25% = 50 base, + 18% ITBIS = 59
-    expect(p.precio_venta).toBe(59);
+    expect(p.precio_venta).toBe(50);
 
     const leido = await repo.obtener(p.id);
     expect(leido?.descripcion).toBe("Arroz 5lb");
@@ -39,7 +38,7 @@ describe("productoRepo — CRUD persiste en SQLite", () => {
     await repo.actualizar(p.id, { descripcion: "Jabón azul", costo: 10, pct_ganancia: 100 });
     const leido = await repo.obtener(p.id);
     expect(leido?.descripcion).toBe("Jabón azul");
-    expect(leido?.precio_venta).toBe(23.6); // 10 + 100% = 20, +18% = 23.6
+    expect(leido?.precio_venta).toBe(20);
   });
 
   it("elimina (borrado lógico) y deja de listarse", async () => {
@@ -100,13 +99,11 @@ describe("productoRepo — CRUD persiste en SQLite", () => {
     expect(actualizado?.existencia_minima).toBe(10);
   });
 
-  it("al crear sin precio_2/precio_3, los sugiere como costo+10%/costo+5% (ITBIS incluido)", async () => {
+  it("al crear sin precio_2/precio_3, los sugiere como costo+10%/costo+5%", async () => {
     const repo = crearProductoRepo(db);
     const p = await repo.crear({ descripcion: "Arroz 5lb", costo: 40, pct_ganancia: 25 });
-    // base 44 (40+10%) + 18% ITBIS = 51.92
-    expect(p.precio_2).toBe(51.92);
-    // base 42 (40+5%) + 18% ITBIS = 49.56
-    expect(p.precio_3).toBe(49.56);
+    expect(p.precio_2).toBe(44);
+    expect(p.precio_3).toBe(42);
   });
 
   it("precio_2/precio_3 explícitos al crear ganan sobre la sugerencia", async () => {
@@ -128,8 +125,8 @@ describe("productoRepo — CRUD persiste en SQLite", () => {
     // Aunque el costo suba, precio_2/precio_3 no se tocan si no vienen en el input.
     await repo.actualizar(p.id, { descripcion: "Arroz 5lb", costo: 100 });
     const sinCambioExplicito = await repo.obtener(p.id);
-    expect(sinCambioExplicito?.precio_2).toBe(51.92);
-    expect(sinCambioExplicito?.precio_3).toBe(49.56);
+    expect(sinCambioExplicito?.precio_2).toBe(44);
+    expect(sinCambioExplicito?.precio_3).toBe(42);
 
     // Y un valor manual muy por encima de costo+10%/5% se guarda tal cual (sin tope).
     await repo.actualizar(p.id, { descripcion: "Arroz 5lb", precio_2: 500, precio_3: 500 });
