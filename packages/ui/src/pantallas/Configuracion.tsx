@@ -14,6 +14,7 @@ import { FUNCIONES_EN_DESARROLLO } from "../banderas.js";
 import { SeccionSecuenciasNcf } from "../componentes/SeccionSecuenciasNcf.js";
 import { SeccionBitacora } from "../componentes/SeccionBitacora.js";
 import { SeccionImpresoraTermica } from "../componentes/SeccionImpresoraTermica.js";
+import { SeccionInicioAutomatico } from "../componentes/SeccionInicioAutomatico.js";
 import { useAtajosTeclado } from "../hooks/useAtajosTeclado.js";
 
 const VACIO: NegocioInput = {
@@ -315,6 +316,8 @@ export function Configuracion() {
       </div>
 
       <SeccionImpresoraTermica />
+
+      <SeccionInicioAutomatico />
 
       {FUNCIONES_EN_DESARROLLO.fiscal && <SeccionSecuenciasNcf />}
 

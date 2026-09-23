@@ -8,6 +8,7 @@ import {
   useSesion,
   configurarAdaptadorImpresora,
   configurarAdaptadorImpresoraTexto,
+  configurarAdaptadorInicioAutomatico,
 } from "@sfr/ui";
 import { migrate, seed, crearUsuarioRepo, type SqlDriver } from "@sfr/core";
 import { crearTauriSqlDriver } from "./db/tauri-sql-driver.js";
@@ -15,11 +16,13 @@ import {
   adaptadorImpresoraTauri,
   adaptadorImpresoraTextoTauri,
 } from "./impresora/tauri-impresora.js";
+import { adaptadorInicioAutomaticoTauri } from "./sistema/tauri-inicio-automatico.js";
 import { iniciarSincronizacionEnSegundoPlano } from "./sync/arrancar.js";
 import "@sfr/ui/estilos-globales.css";
 
 configurarAdaptadorImpresora(adaptadorImpresoraTauri);
 configurarAdaptadorImpresoraTexto(adaptadorImpresoraTextoTauri);
+configurarAdaptadorInicioAutomatico(adaptadorInicioAutomaticoTauri);
 
 /** Ver `packages/web/src/main.tsx` para el porqué de esta compuerta (§ RBAC-05). */
 function Compuerta({ plataforma }: { plataforma: "Web" | "Escritorio" }) {
