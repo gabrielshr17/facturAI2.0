@@ -689,9 +689,11 @@ export function Ventas() {
       costo: p.costo,
       // § Productos.editar(): el % guardado se desfasa cuando el precio se
       // escribió a mano — se muestra el % que el precio actual implica de verdad.
-      pct_ganancia: pctGananciaDesdePrecio(p.costo, p.precio_venta, p.tasa_impuesto),
+      pct_ganancia: pctGananciaDesdePrecio(p.costo, p.precio_venta),
       precio_venta: p.precio_venta,
       precio_mayoreo: p.precio_mayoreo,
+      precio_2: p.precio_2,
+      precio_3: p.precio_3,
       impuesto_tipo: p.impuesto_tipo,
       politica_sin_existencia: p.politica_sin_existencia,
     });
@@ -728,6 +730,8 @@ export function Ventas() {
         await repo.actualizarPrecioEnTicketsAbiertos({
           productoId: actualizado.id,
           precioVenta: actualizado.precio_venta,
+          precio2: actualizado.precio_2,
+          precio3: actualizado.precio_3,
           precioMayoreo: actualizado.precio_mayoreo,
           impuestoTipo: actualizado.impuesto_tipo,
           tasaImpuesto: actualizado.tasa_impuesto,

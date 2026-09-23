@@ -3,9 +3,11 @@ import {
   type ProductoInput,
   type ImpuestoTipo,
   type TipoVenta,
-  tasaDe,
   pctGananciaDesdePrecio,
   calcularPrecioVenta,
+  precioTierDesdeCosto,
+  MARGEN_NIVEL_2_PCT,
+  MARGEN_NIVEL_3_PCT,
 } from "@sfr/core";
 import { Package } from "lucide-react";
 import { s, money } from "../estilos.js";
@@ -81,6 +83,16 @@ export function diferenciasProducto(original: Producto, form: ProductoInput): Ca
     form.precio_mayoreo != null ? money(form.precio_mayoreo) : "(ninguno)",
   );
   agregar(
+    "Precio nivel 2",
+    original.precio_2 != null ? money(original.precio_2) : "(automático)",
+    form.precio_2 != null ? money(form.precio_2) : "(automático)",
+  );
+  agregar(
+    "Precio nivel 3",
+    original.precio_3 != null ? money(original.precio_3) : "(automático)",
+    form.precio_3 != null ? money(form.precio_3) : "(automático)",
+  );
+  agregar(
     "Impuesto",
     ETIQUETA_IMPUESTO[original.impuesto_tipo],
     ETIQUETA_IMPUESTO[form.impuesto_tipo ?? "itbis18"],
@@ -115,6 +127,11 @@ export function FormularioProducto({
   onGuardar,
   onCancelar,
 }: FormularioProductoProps) {
+  const costo = form.costo ?? 0;
+  const precioVenta =
+    form.precio_venta ?? calcularPrecioVenta({ costo, pctGanancia: form.pct_ganancia ?? 0 });
+  const sugerido2 = precioTierDesdeCosto(costo, MARGEN_NIVEL_2_PCT, precioVenta);
+  const sugerido3 = precioTierDesdeCosto(costo, MARGEN_NIVEL_3_PCT, precioVenta);
   return (
     <div style={{ ...s.tarjeta, marginBottom: 16 }}>
       <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
@@ -172,15 +189,13 @@ export function FormularioProducto({
             value={form.costo ?? 0}
             onChange={(e) => {
               const costo = Number(filtrarNumero(e.target.value)) || 0;
-              // Costo, % Ganancia e Impuesto son los "insumos" de la fórmula — cualquiera de los
-              // tres recalcula el precio en vivo. Precio venta pasa a ser el insumo (y % Ganancia
+              // Costo y % Ganancia son los "insumos" de la fórmula — cualquiera de los dos
+              // recalcula el precio en vivo. Precio venta pasa a ser el insumo (y % Ganancia
               // el reflejo) solo cuando se escribe directamente ahí abajo — así cambiar la ganancia
               // sí mueve el precio, en vez de quedarse pegado al que tenía al abrir el formulario.
-              const tasa = tasaDe(form.impuesto_tipo ?? "itbis18");
               const precio_venta = calcularPrecioVenta({
                 costo,
                 pctGanancia: form.pct_ganancia ?? 0,
-                tasaImpuesto: tasa,
                 precioManual: null,
               });
               onCambiar({ ...form, costo, precio_venta });
@@ -196,11 +211,9 @@ export function FormularioProducto({
             value={form.pct_ganancia ?? 0}
             onChange={(e) => {
               const pct_ganancia = Number(filtrarNumero(e.target.value)) || 0;
-              const tasa = tasaDe(form.impuesto_tipo ?? "itbis18");
               const precio_venta = calcularPrecioVenta({
                 costo: form.costo ?? 0,
                 pctGanancia: pct_ganancia,
-                tasaImpuesto: tasa,
                 precioManual: null,
               });
               onCambiar({ ...form, pct_ganancia, precio_venta });
@@ -219,11 +232,7 @@ export function FormularioProducto({
               const precio_venta = texto === "" ? null : Number(texto) || 0;
               const pct_ganancia =
                 precio_venta != null
-                  ? pctGananciaDesdePrecio(
-                      form.costo ?? 0,
-                      precio_venta,
-                      tasaDe(form.impuesto_tipo ?? "itbis18"),
-                    )
+                  ? pctGananciaDesdePrecio(form.costo ?? 0, precio_venta)
                   : form.pct_ganancia;
               onCambiar({ ...form, precio_venta, pct_ganancia });
             }}
@@ -246,21 +255,39 @@ export function FormularioProducto({
           />
         </div>
         <div>
+          <label style={s.label}>Precio nivel 2 (vacío = el sugerido en gris)</label>
+          <input
+            style={s.input}
+            type="text"
+            inputMode="decimal"
+            placeholder={money(sugerido2)}
+            value={form.precio_2 ?? ""}
+            onChange={(e) => {
+              const texto = filtrarNumero(e.target.value);
+              onCambiar({ ...form, precio_2: texto === "" ? null : Number(texto) || 0 });
+            }}
+          />
+        </div>
+        <div>
+          <label style={s.label}>Precio nivel 3 (vacío = el sugerido en gris)</label>
+          <input
+            style={s.input}
+            type="text"
+            inputMode="decimal"
+            placeholder={money(sugerido3)}
+            value={form.precio_3 ?? ""}
+            onChange={(e) => {
+              const texto = filtrarNumero(e.target.value);
+              onCambiar({ ...form, precio_3: texto === "" ? null : Number(texto) || 0 });
+            }}
+          />
+        </div>
+        <div>
           <label style={s.label}>Impuesto</label>
           <select
             style={s.input}
             value={form.impuesto_tipo}
-            onChange={(e) => {
-              const impuesto_tipo = e.target.value as ImpuestoTipo;
-              const tasa = tasaDe(impuesto_tipo);
-              const precio_venta = calcularPrecioVenta({
-                costo: form.costo ?? 0,
-                pctGanancia: form.pct_ganancia ?? 0,
-                tasaImpuesto: tasa,
-                precioManual: null,
-              });
-              onCambiar({ ...form, impuesto_tipo, precio_venta });
-            }}
+            onChange={(e) => onCambiar({ ...form, impuesto_tipo: e.target.value as ImpuestoTipo })}
           >
             {IMPUESTOS.map((i) => (
               <option key={i.valor} value={i.valor}>

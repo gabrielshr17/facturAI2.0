@@ -48,9 +48,11 @@ const VACIO: ProductoInput = {
   tipo_venta: "unidad",
   unidad_medida: "",
   costo: 0,
-  pct_ganancia: 0,
+  pct_ganancia: 20,
   precio_venta: null,
   precio_mayoreo: null,
+  precio_2: null,
+  precio_3: null,
   impuesto_tipo: "itbis18",
   politica_sin_existencia: "advertir",
 };
@@ -167,9 +169,11 @@ export function Productos() {
       // El % guardado solo se actualiza cuando el precio se DERIVA de costo + %; si
       // se escribió el precio a mano queda desfasado (típicamente en 0) — se muestra
       // el % que ese precio implica de verdad, no el valor guardado y obsoleto.
-      pct_ganancia: pctGananciaDesdePrecio(p.costo, p.precio_venta, p.tasa_impuesto),
+      pct_ganancia: pctGananciaDesdePrecio(p.costo, p.precio_venta),
       precio_venta: p.precio_venta,
       precio_mayoreo: p.precio_mayoreo,
+      precio_2: p.precio_2,
+      precio_3: p.precio_3,
       impuesto_tipo: p.impuesto_tipo,
       politica_sin_existencia: p.politica_sin_existencia,
     });
@@ -205,6 +209,8 @@ export function Productos() {
           await facturaRepo.actualizarPrecioEnTicketsAbiertos({
             productoId: actualizado.id,
             precioVenta: actualizado.precio_venta,
+            precio2: actualizado.precio_2,
+            precio3: actualizado.precio_3,
             precioMayoreo: actualizado.precio_mayoreo,
             impuestoTipo: actualizado.impuesto_tipo,
             tasaImpuesto: actualizado.tasa_impuesto,

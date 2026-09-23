@@ -7,6 +7,8 @@ export {
   calcularPrecioVenta,
   pctGananciaDesdePrecio,
   precioTierDesdeCosto,
+  MARGEN_NIVEL_2_PCT,
+  MARGEN_NIVEL_3_PCT,
   precioSegunNivel,
 } from "./precio.js";
 export {

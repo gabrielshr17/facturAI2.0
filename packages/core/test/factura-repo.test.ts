@@ -141,6 +141,119 @@ describe("facturaRepo — armar ticket (§7.1)", () => {
     expect(factura?.notas).toBe("sin bolsa");
   });
 
+  it("al cambiar o quitar el cliente, las líneas ya agregadas se reprecian al nivel del cliente", async () => {
+    const repo = crearFacturaRepo(db);
+    const productos = crearProductoRepo(db);
+    const clientes = crearClienteRepo(db);
+    const t = await repo.abrirTicket();
+    const producto = await productos.crear({
+      descripcion: "Arroz 5lb",
+      costo: 40,
+      precio_venta: 50,
+      precio_2: 45,
+      precio_3: 42,
+    });
+    const cli2 = await clientes.crear({ nombre: "Dos", nivel_precio: "2" });
+    const cli3 = await clientes.crear({ nombre: "Tres", nivel_precio: "3" });
+    await repo.agregarLinea(t.id, {
+      producto_id: producto.id,
+      descripcion: "Arroz 5lb",
+      cantidad: 2,
+      precioUnitario: 50,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
+      nivelPrecio: "1",
+    });
+    const precio = async () => (await repo.obtenerLineas(t.id))[0]?.precio_unitario;
+
+    await repo.asignarCliente(t.id, cli2.id);
+    expect(await precio()).toBe(45);
+    expect((await repo.obtener(t.id))?.total).toBe(90);
+
+    await repo.asignarCliente(t.id, cli3.id);
+    expect(await precio()).toBe(42);
+
+    await repo.asignarCliente(t.id, null);
+    expect(await precio()).toBe(50);
+    expect((await repo.obtener(t.id))?.total).toBe(100);
+  });
+
+  it("al cambiar el cliente no toca líneas a mayoreo ni artículos sueltos", async () => {
+    const repo = crearFacturaRepo(db);
+    const productos = crearProductoRepo(db);
+    const clientes = crearClienteRepo(db);
+    const t = await repo.abrirTicket();
+    const producto = await productos.crear({
+      descripcion: "Arroz 5lb",
+      costo: 40,
+      precio_venta: 50,
+      precio_2: 45,
+    });
+    const cli2 = await clientes.crear({ nombre: "Dos", nivel_precio: "2" });
+    await repo.agregarLinea(t.id, {
+      producto_id: producto.id,
+      descripcion: "Arroz 5lb",
+      cantidad: 1,
+      precioUnitario: 30,
+      esMayoreo: true,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
+      nivelPrecio: "mayoreo",
+    });
+    await repo.agregarLinea(t.id, {
+      producto_id: null,
+      descripcion: "Suelto",
+      cantidad: 1,
+      precioUnitario: 10,
+      impuestoTipo: "exento",
+      tasaImpuesto: 0,
+    });
+    await repo.asignarCliente(t.id, cli2.id);
+    const precios = (await repo.obtenerLineas(t.id)).map((l) => l.precio_unitario).sort();
+    expect(precios).toEqual([10, 30]);
+  });
+
+  it("al corregir el precio de un producto, las líneas abiertas conservan el nivel de precio de su cliente", async () => {
+    const repo = crearFacturaRepo(db);
+    const productos = crearProductoRepo(db);
+    const clientes = crearClienteRepo(db);
+    const producto = await productos.crear({
+      descripcion: "Arroz 5lb",
+      costo: 40,
+      precio_venta: 50,
+      precio_2: 45,
+      precio_3: 42,
+    });
+    const cli2 = await clientes.crear({ nombre: "Dos", nivel_precio: "2" });
+    const t1 = await repo.abrirTicket();
+    const t2 = await repo.abrirTicket();
+    for (const t of [t1, t2]) {
+      await repo.agregarLinea(t.id, {
+        producto_id: producto.id,
+        descripcion: "Arroz 5lb",
+        cantidad: 1,
+        precioUnitario: 50,
+        impuestoTipo: "itbis18",
+        tasaImpuesto: 0.18,
+        nivelPrecio: "1",
+      });
+    }
+    await repo.asignarCliente(t2.id, cli2.id);
+
+    await repo.actualizarPrecioEnTicketsAbiertos({
+      productoId: producto.id,
+      precioVenta: 60,
+      precio2: 55,
+      precio3: 52,
+      precioMayoreo: null,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
+    });
+
+    expect((await repo.obtenerLineas(t1.id))[0]?.precio_unitario).toBe(60);
+    expect((await repo.obtenerLineas(t2.id))[0]?.precio_unitario).toBe(55);
+  });
+
   it("lista solo tickets abiertos", async () => {
     const repo = crearFacturaRepo(db);
     const t1 = await repo.abrirTicket();
