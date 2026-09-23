@@ -105,6 +105,39 @@ export function diferenciasProducto(original: Producto, form: ProductoInput): Ca
   return cambios;
 }
 
+interface NivelesSugeridos {
+  nivel2: number;
+  nivel3: number;
+}
+
+function nivelesSugeridos(form: ProductoInput): NivelesSugeridos {
+  const costo = form.costo ?? 0;
+  const precioVenta =
+    form.precio_venta ?? calcularPrecioVenta({ costo, pctGanancia: form.pct_ganancia ?? 0 });
+  return {
+    nivel2: precioTierDesdeCosto(costo, MARGEN_NIVEL_2_PCT, precioVenta),
+    nivel3: precioTierDesdeCosto(costo, MARGEN_NIVEL_3_PCT, precioVenta),
+  };
+}
+
+function siguenAlSugerido(actual: number | null | undefined, sugerido: number): boolean {
+  return actual != null && Math.abs(actual - sugerido) < 0.005;
+}
+
+function conNivelesAlDia(anterior: ProductoInput, siguiente: ProductoInput): ProductoInput {
+  const antes = nivelesSugeridos(anterior);
+  const despues = nivelesSugeridos(siguiente);
+  return {
+    ...siguiente,
+    precio_2: siguenAlSugerido(anterior.precio_2, antes.nivel2)
+      ? despues.nivel2
+      : siguiente.precio_2,
+    precio_3: siguenAlSugerido(anterior.precio_3, antes.nivel3)
+      ? despues.nivel3
+      : siguiente.precio_3,
+  };
+}
+
 export interface FormularioProductoProps {
   form: ProductoInput;
   onCambiar: (form: ProductoInput) => void;
@@ -127,11 +160,7 @@ export function FormularioProducto({
   onGuardar,
   onCancelar,
 }: FormularioProductoProps) {
-  const costo = form.costo ?? 0;
-  const precioVenta =
-    form.precio_venta ?? calcularPrecioVenta({ costo, pctGanancia: form.pct_ganancia ?? 0 });
-  const sugerido2 = precioTierDesdeCosto(costo, MARGEN_NIVEL_2_PCT, precioVenta);
-  const sugerido3 = precioTierDesdeCosto(costo, MARGEN_NIVEL_3_PCT, precioVenta);
+  const { nivel2: sugerido2, nivel3: sugerido3 } = nivelesSugeridos(form);
   return (
     <div style={{ ...s.tarjeta, marginBottom: 16 }}>
       <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
@@ -198,7 +227,7 @@ export function FormularioProducto({
                 pctGanancia: form.pct_ganancia ?? 0,
                 precioManual: null,
               });
-              onCambiar({ ...form, costo, precio_venta });
+              onCambiar(conNivelesAlDia(form, { ...form, costo, precio_venta }));
             }}
           />
         </div>
@@ -216,7 +245,7 @@ export function FormularioProducto({
                 pctGanancia: pct_ganancia,
                 precioManual: null,
               });
-              onCambiar({ ...form, pct_ganancia, precio_venta });
+              onCambiar(conNivelesAlDia(form, { ...form, pct_ganancia, precio_venta }));
             }}
           />
         </div>
@@ -234,7 +263,7 @@ export function FormularioProducto({
                 precio_venta != null
                   ? pctGananciaDesdePrecio(form.costo ?? 0, precio_venta)
                   : form.pct_ganancia;
-              onCambiar({ ...form, precio_venta, pct_ganancia });
+              onCambiar(conNivelesAlDia(form, { ...form, precio_venta, pct_ganancia }));
             }}
           />
         </div>
