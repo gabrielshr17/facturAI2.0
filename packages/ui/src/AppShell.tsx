@@ -124,6 +124,8 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
   }, [turnoDeOtroUsuario, estadoTurno.abierto?.usuario_id, usuarioRepo]);
 
   const [cerrandoTurno, setCerrandoTurno] = useState(false);
+  const [forzandoCierre, setForzandoCierre] = useState(false);
+  const puedeForzarCierre = sesion.permisos.has("caja.cerrar");
 
   async function manejarCerrarSesion() {
     if (estadoTurno.abierto) {
@@ -252,14 +254,40 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
           <div style={{ ...s.tarjeta, width: 380, textAlign: "center" }}>
             <h1 style={{ fontSize: 20, margin: "0 0 12px" }}>Hay un turno abierto</h1>
             <p style={{ margin: "0 0 16px", fontSize: 14, color: c.gris }}>
-              {nombreAbiertoPor ?? "Otro usuario"} tiene un turno de caja abierto. Pídele que cierre
-              sesión para cerrarlo, o que un supervisor lo cierre a la fuerza desde Corte de Caja.
+              {nombreAbiertoPor ?? "Otro usuario"} tiene un turno de caja abierto.{" "}
+              {puedeForzarCierre
+                ? "Puedes cerrarlo a la fuerza contando el efectivo de la caja."
+                : "Pídele que cierre sesión para cerrarlo, o que un supervisor lo cierre a la fuerza."}
             </p>
-            <button type="button" style={s.botonSecundario} onClick={cerrarSesion}>
-              Volver al login
-            </button>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              {puedeForzarCierre && (
+                <button type="button" style={s.boton} onClick={() => setForzandoCierre(true)}>
+                  Forzar cierre
+                </button>
+              )}
+              <button type="button" style={s.botonSecundario} onClick={cerrarSesion}>
+                Volver al login
+              </button>
+            </div>
           </div>
         </div>
+        {forzandoCierre && estadoTurno.abierto && (
+          <div style={styles.overlayModal} onClick={() => setForzandoCierre(false)}>
+            <div onClick={(e) => e.stopPropagation()}>
+              <PromptCerrarTurno
+                montoInicial={estadoTurno.abierto.monto_inicial}
+                nombreApertura={nombreAbiertoPor ?? undefined}
+                titulo="Forzar cierre de turno"
+                onConfirmar={async (efectivoContado) => {
+                  await corteCajaRepo.cerrarTurno({ efectivoContado });
+                  setForzandoCierre(false);
+                  setEstadoTurno({ cargado: true, abierto: await corteCajaRepo.turnoAbierto() });
+                }}
+                onCancelar={() => setForzandoCierre(false)}
+              />
+            </div>
+          </div>
+        )}
       </ProveedorAlertas>
     );
   }
