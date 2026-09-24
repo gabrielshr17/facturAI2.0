@@ -288,4 +288,65 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
 
     await expect(ejecutarManejadorCierreVentana()).resolves.toBe("cerrar");
   });
+
+  describe("turno abierto por otro usuario: quién puede forzar el cierre", () => {
+    async function montarConTurnoAjeno(rol: "supervisor" | "dueno" | "cajero") {
+      const db = createNodeSqliteDriver();
+      await migrate(db);
+      await seed(db);
+      const repos = crearRepos(db);
+      await repos.negocio.guardar({ nombre_comercial: "Negocio Prueba", exige_caja_abierta: true });
+      const portadorAdmin = crearPortadorSesion({
+        usuarioId: "usuario-admin",
+        rol: "dueno",
+        permisos: permisosDeRol("dueno"),
+      });
+      await crearRepos(conSesion(db, portadorAdmin)).corteCaja.abrirTurno({ montoInicial: 100 });
+
+      const entrante = await repos.usuario.crear({
+        nombre: "Persona Entrante",
+        rol,
+        pin: "2222",
+        activo: true,
+      });
+      render(
+        <ProveedorSesion
+          db={db}
+          sesionInicial={{ usuarioId: entrante.id, rol, permisos: permisosDeRol(rol) }}
+        >
+          <ProveedorDatos>
+            <AppShell plataforma="Web" />
+          </ProveedorDatos>
+        </ProveedorSesion>,
+      );
+      return repos;
+    }
+
+    it("un cajero solo puede volver al login: no ve el botón de forzar", async () => {
+      await montarConTurnoAjeno("cajero");
+      expect(await screen.findByText("Hay un turno abierto")).toBeTruthy();
+      expect(screen.queryByText("Forzar cierre")).toBeNull();
+    });
+
+    it.each(["supervisor", "dueno"] as const)(
+      "un %s puede forzar el cierre y sigue al flujo normal",
+      async (rol) => {
+        const repos = await montarConTurnoAjeno(rol);
+        expect(await screen.findByText("Hay un turno abierto")).toBeTruthy();
+
+        fireEvent.click(screen.getByText("Forzar cierre"));
+        expect(await screen.findByText("Forzar cierre de turno")).toBeTruthy();
+
+        fireEvent.change(screen.getByLabelText("RD$ 100"), { target: { value: "1" } });
+        fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
+        fireEvent.click(await screen.findByText("Confirmar cierre"));
+
+        expect(await screen.findByText("¿Con cuánto efectivo empieza la caja?")).toBeTruthy();
+        expect(await repos.corteCaja.turnoAbierto()).toBeNull();
+        const [cerrado] = await repos.corteCaja.listar();
+        expect(cerrado.efectivo_contado).toBe(100);
+        expect(cerrado.usuario_id).toBe("usuario-admin");
+      },
+    );
+  });
 });
