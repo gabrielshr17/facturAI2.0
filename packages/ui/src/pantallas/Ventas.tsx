@@ -1133,6 +1133,7 @@ export function Ventas() {
     notas: string,
     salida: SalidaCobro,
     fiscal: FiscalInput | null,
+    cobrarRecargoTarjeta: boolean,
   ) {
     if (!activoId) return;
 
@@ -1155,6 +1156,7 @@ export function Ventas() {
         {
           pagos,
           notas,
+          cobrarRecargoTarjeta,
           tipoEcf: fiscal.tipoEcf,
           receptorDocumentoTipo: fiscal.receptorDocumentoTipo,
           receptorDocumentoNumero: fiscal.receptorDocumentoNumero,
@@ -1168,7 +1170,7 @@ export function Ventas() {
         codigoSeguridad: resultado.comprobante.codigo_seguridad,
       };
     } else {
-      const resultado = await repo.cobrar(activoId, { pagos, notas });
+      const resultado = await repo.cobrar(activoId, { pagos, notas, cobrarRecargoTarjeta });
       factura = resultado.factura;
     }
 

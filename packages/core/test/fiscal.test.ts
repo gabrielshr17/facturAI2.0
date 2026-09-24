@@ -127,6 +127,21 @@ describe("cobrarConFiscal — flujo completo con proveedor simulado", () => {
     expect(cambio).toBe(0);
   });
 
+  it("pasa cobrarRecargoTarjeta al cobro: tarjeta sin recargo en una factura fiscal", async () => {
+    const d = deps();
+    await d.secuenciaRepo.crear({ tipoEcf: "32", rangoDesde: 1, rangoHasta: 100, vencimiento: hoyMasDias(365) });
+    const t = await ticketCon100(d.facturaRepo);
+
+    const { factura } = await cobrarConFiscal(d, t.id, {
+      pagos: [{ metodo: "tarjeta", monto: 100 }],
+      cobrarRecargoTarjeta: false,
+      tipoEcf: "32",
+      rncEmisor: "101023122",
+    });
+
+    expect(factura.monto_pagado).toBe(100);
+  });
+
   it("emite E31 (crédito fiscal) exigiendo RNC del receptor", async () => {
     const d = deps();
     await d.secuenciaRepo.crear({ tipoEcf: "31", rangoDesde: 1, rangoHasta: 100, vencimiento: hoyMasDias(365) });

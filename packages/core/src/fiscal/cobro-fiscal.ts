@@ -11,6 +11,7 @@ import type { Factura, ComprobanteFiscal } from "../repos/tipos.js";
 export interface CobrarConFiscalInput {
   pagos: PagoInput[];
   notas?: string | null;
+  cobrarRecargoTarjeta?: boolean;
   tipoEcf: TipoEcf;
   receptorDocumentoTipo?: "rnc" | "cedula" | null;
   receptorDocumentoNumero?: string | null;
@@ -139,6 +140,7 @@ export async function cobrarConFiscal(
   const { factura: facturaCobrada, cambio } = await facturaRepo.cobrar(facturaId, {
     pagos: input.pagos,
     notas: input.notas,
+    cobrarRecargoTarjeta: input.cobrarRecargoTarjeta,
   });
 
   const comprobante = await comprobanteRepo.crear({
