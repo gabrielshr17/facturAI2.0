@@ -25,7 +25,7 @@
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { Delete, LogIn, User as IconoUsuario, KeyRound, ShieldAlert } from "lucide-react";
-import { CriptoNoDisponibleError, type Usuario } from "@sfr/core";
+import { CriptoNoDisponibleError, permisosDeRol, type Usuario } from "@sfr/core";
 import { useRepos } from "../data/contexto.js";
 import { useSesion } from "../sesion/contexto.js";
 import { ProveedorAlertas, useAlertas } from "../contexto/Alertas.js";
@@ -78,7 +78,10 @@ function AccesoInterno(): ReactElement {
   const [pinNuevo, setPinNuevo] = useState("");
   const [definiendoPin, setDefiniendoPin] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [turnoAjeno, setTurnoAjeno] = useState<{ nombre: string | null } | null>(null);
+  const [turnoAjeno, setTurnoAjeno] = useState<{
+    nombre: string | null;
+    puedeForzar: boolean;
+  } | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -100,7 +103,10 @@ function AccesoInterno(): ReactElement {
       const turno = await corteCaja.turnoAbierto();
       if (turno && turno.usuario_id !== elegido.id) {
         const dueno = turno.usuario_id ? await usuario.obtener(turno.usuario_id) : undefined;
-        setTurnoAjeno({ nombre: dueno?.nombre ?? null });
+        setTurnoAjeno({
+          nombre: dueno?.nombre ?? null,
+          puedeForzar: permisosDeRol(elegido.rol).has("caja.cerrar"),
+        });
       }
     } catch (error) {
       console.error("No se pudo comprobar si hay un turno abierto al elegir usuario", error);
@@ -165,7 +171,12 @@ function AccesoInterno(): ReactElement {
       )}
 
       {seleccionado && turnoAjeno && (
-        <AvisoTurnoAbierto nombre={turnoAjeno.nombre} onVolver={volverASeleccion} />
+        <AvisoTurnoAbierto
+          nombre={turnoAjeno.nombre}
+          puedeForzar={turnoAjeno.puedeForzar}
+          onContinuar={() => setTurnoAjeno(null)}
+          onVolver={volverASeleccion}
+        />
       )}
 
       {seleccionado && !turnoAjeno && !definiendoPin && (
@@ -233,18 +244,37 @@ function SeleccionUsuario({
   );
 }
 
-function AvisoTurnoAbierto({ nombre, onVolver }: { nombre: string | null; onVolver: () => void }) {
+function AvisoTurnoAbierto({
+  nombre,
+  puedeForzar,
+  onContinuar,
+  onVolver,
+}: {
+  nombre: string | null;
+  puedeForzar: boolean;
+  onContinuar: () => void;
+  onVolver: () => void;
+}) {
   const tarjetaRef = useModalAccesible<HTMLDivElement>();
   return (
     <div ref={tarjetaRef} style={{ ...tarjeta, textAlign: "center" }}>
       <h1 style={{ ...estiloTitulo, fontSize: 20 }}>Hay un turno abierto</h1>
       <p style={subtituloTexto}>
-        {nombre ?? "Otro usuario"} tiene un turno de caja abierto. Pídele que cierre sesión para
-        cerrarlo, o que un supervisor lo cierre a la fuerza desde Corte de Caja.
+        {nombre ?? "Otro usuario"} tiene un turno de caja abierto.{" "}
+        {puedeForzar
+          ? "Al entrar podrás cerrarlo a la fuerza contando el efectivo de la caja."
+          : "Pídele que cierre sesión para cerrarlo, o que un supervisor lo cierre a la fuerza."}
       </p>
-      <button type="button" style={s.botonSecundario} onClick={onVolver}>
-        Volver
-      </button>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+        {puedeForzar && (
+          <button type="button" style={s.boton} onClick={onContinuar}>
+            Continuar
+          </button>
+        )}
+        <button type="button" style={s.botonSecundario} onClick={onVolver}>
+          Volver
+        </button>
+      </div>
     </div>
   );
 }
