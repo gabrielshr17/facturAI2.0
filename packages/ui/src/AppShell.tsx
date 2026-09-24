@@ -6,6 +6,7 @@ import { ErrorBoundary } from "./componentes/ErrorBoundary.js";
 import { CambioRapidoUsuario } from "./componentes/CambioRapidoUsuario.js";
 import { BloqueoInactividad } from "./componentes/BloqueoInactividad.js";
 import { PromptAbrirTurno, PromptCerrarTurno } from "./componentes/TarjetasTurno.js";
+import { registrarManejadorCierreVentana } from "./cierreVentana.js";
 import { ProveedorAlertas } from "./contexto/Alertas.js";
 import { useSesion } from "./sesion/contexto.js";
 import { useRepos } from "./data/contexto.js";
@@ -124,6 +125,34 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
   }, [turnoDeOtroUsuario, estadoTurno.abierto?.usuario_id, usuarioRepo]);
 
   const [cerrandoTurno, setCerrandoTurno] = useState(false);
+  const [forzandoCierre, setForzandoCierre] = useState(false);
+  const puedeForzarCierre = sesion.permisos.has("caja.cerrar");
+
+  // Cerrar la VENTANA (§ CAJA, escritorio): mismo pedido de arqueo que cerrar sesión, pero
+  // disparado por el botón de cerrar del sistema operativo en vez de por "Cerrar sesión".
+  // El puente vive en `cierreVentana.ts` (agnóstico de plataforma); quien de verdad
+  // intercepta el cierre nativo y llama para acá es `packages/desktop/src/main.tsx` — la
+  // PWA nunca registra nada del lado de Tauri, así que esto queda inerte ahí.
+  const [cerrandoParaSalirApp, setCerrandoParaSalirApp] = useState(false);
+  const resolverCierreAppRef = useRef<((r: "cerrar" | "cancelar") => void) | null>(null);
+
+  function cancelarCierreApp() {
+    resolverCierreAppRef.current?.("cancelar");
+    resolverCierreAppRef.current = null;
+    setCerrandoParaSalirApp(false);
+  }
+
+  useEffect(() => {
+    return registrarManejadorCierreVentana(() => {
+      if (!estadoTurno.abierto || estadoTurno.abierto.usuario_id !== sesion.usuarioId) {
+        return Promise.resolve("cerrar");
+      }
+      return new Promise<"cerrar" | "cancelar">((resolve) => {
+        resolverCierreAppRef.current = resolve;
+        setCerrandoParaSalirApp(true);
+      });
+    });
+  }, [estadoTurno, sesion.usuarioId]);
 
   async function manejarCerrarSesion() {
     if (estadoTurno.abierto) {
@@ -252,14 +281,41 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
           <div style={{ ...s.tarjeta, width: 380, textAlign: "center" }}>
             <h1 style={{ fontSize: 20, margin: "0 0 12px" }}>Hay un turno abierto</h1>
             <p style={{ margin: "0 0 16px", fontSize: 14, color: c.gris }}>
-              {nombreAbiertoPor ?? "Otro usuario"} tiene un turno de caja abierto. Pídele que cierre
-              sesión para cerrarlo, o que un supervisor lo cierre a la fuerza desde Corte de Caja.
+              {nombreAbiertoPor ?? "Otro usuario"} tiene un turno de caja abierto.{" "}
+              {puedeForzarCierre
+                ? "Puedes cerrarlo a la fuerza contando el efectivo de la caja."
+                : "Pídele que cierre sesión para cerrarlo, o que un supervisor lo cierre a la fuerza."}
             </p>
-            <button type="button" style={s.botonSecundario} onClick={cerrarSesion}>
-              Volver al login
-            </button>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              {puedeForzarCierre && (
+                <button type="button" style={s.boton} onClick={() => setForzandoCierre(true)}>
+                  Forzar cierre
+                </button>
+              )}
+              <button type="button" style={s.botonSecundario} onClick={cerrarSesion}>
+                Volver al login
+              </button>
+            </div>
           </div>
         </div>
+        {forzandoCierre && estadoTurno.abierto && (
+          <div style={styles.overlayModal} onClick={() => setForzandoCierre(false)}>
+            <div onClick={(e) => e.stopPropagation()}>
+              <PromptCerrarTurno
+                montoInicial={estadoTurno.abierto.monto_inicial}
+                fechaApertura={estadoTurno.abierto.fecha_apertura}
+                nombreApertura={nombreAbiertoPor ?? undefined}
+                titulo="Forzar cierre de turno"
+                onConfirmar={async (efectivoContado) => {
+                  await corteCajaRepo.cerrarTurno({ efectivoContado });
+                  setForzandoCierre(false);
+                  setEstadoTurno({ cargado: true, abierto: await corteCajaRepo.turnoAbierto() });
+                }}
+                onCancelar={() => setForzandoCierre(false)}
+              />
+            </div>
+          </div>
+        )}
       </ProveedorAlertas>
     );
   }
@@ -480,6 +536,7 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
             <div onClick={(e) => e.stopPropagation()}>
               <PromptCerrarTurno
                 montoInicial={estadoTurno.abierto.monto_inicial}
+                fechaApertura={estadoTurno.abierto.fecha_apertura}
                 titulo="Cerrar turno para salir"
                 onConfirmar={async (efectivoContado) => {
                   await corteCajaRepo.cerrarTurno({ efectivoContado });
@@ -487,6 +544,26 @@ export function AppShell({ plataforma }: { plataforma: "Escritorio" | "Web" }) {
                   cerrarSesion();
                 }}
                 onCancelar={() => setCerrandoTurno(false)}
+              />
+            </div>
+          </div>
+        )}
+        {/* Cerrar la ventana con turno abierto (§ CAJA, escritorio): ver el comentario junto
+          a `registrarManejadorCierreVentana` arriba. */}
+        {cerrandoParaSalirApp && estadoTurno.abierto && (
+          <div style={styles.overlayModal} onClick={cancelarCierreApp}>
+            <div onClick={(e) => e.stopPropagation()}>
+              <PromptCerrarTurno
+                montoInicial={estadoTurno.abierto.monto_inicial}
+                fechaApertura={estadoTurno.abierto.fecha_apertura}
+                titulo="Cerrar turno para salir de la aplicación"
+                onConfirmar={async (efectivoContado) => {
+                  await corteCajaRepo.cerrarTurno({ efectivoContado });
+                  setCerrandoParaSalirApp(false);
+                  resolverCierreAppRef.current?.("cerrar");
+                  resolverCierreAppRef.current = null;
+                }}
+                onCancelar={cancelarCierreApp}
               />
             </div>
           </div>

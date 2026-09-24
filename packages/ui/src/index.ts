@@ -17,7 +17,16 @@ export { Productos } from "./pantallas/Productos.js";
 export { Clientes } from "./pantallas/Clientes.js";
 export { Configuracion } from "./pantallas/Configuracion.js";
 export { Personal } from "./pantallas/Personal.js";
+export {
+  configurarAdaptadorInicioAutomatico,
+  type AdaptadorInicioAutomatico,
+} from "./sistema/inicio-automatico.js";
 export { configurarAdaptadorImpresora, type AdaptadorImpresora } from "./impresion/termica.js";
+export {
+  registrarManejadorCierreVentana,
+  ejecutarManejadorCierreVentana,
+  type ManejadorCierreVentana,
+} from "./cierreVentana.js";
 export {
   configurarAdaptadorImpresoraTexto,
   type AdaptadorImpresoraTexto,

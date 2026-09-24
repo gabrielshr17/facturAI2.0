@@ -65,8 +65,8 @@ describe("Ventas — nivel de precio del cliente (humo, § PRECIOS)", () => {
       sesionDe("dueno"),
     );
     await repos.cliente.crear({ nombre: "Mayorista Uno", nivel_precio: "2" });
-    // Sin precio_2/precio_3 explícitos: el repo los sugiere solo (costo+10%/+5%, ITBIS incl.).
-    // 40 costo + 10% + 18% ITBIS = 51.92 (precio_2); + 25% + 18% ITBIS = 59.00 (precio_venta).
+    // Sin precio_2/precio_3 explícitos: el repo los sugiere solo (costo+10%/+5%).
+    // 40 costo + 10% = 44.00 (precio_2); + 25% = 50.00 (precio_venta).
     await repos.producto.crear({
       descripcion: "Detergente Prueba",
       costo: 40,
@@ -82,7 +82,37 @@ describe("Ventas — nivel de precio del cliente (humo, § PRECIOS)", () => {
     const lista = await screen.findByRole("listbox", { name: "Resultados de la búsqueda" });
     fireEvent.click(within(lista).getByText("Detergente Prueba"));
 
-    expect(await screen.findByText("51.92")).toBeTruthy();
-    expect(screen.queryByText("59.00")).toBeNull();
+    expect(await screen.findByText("44.00")).toBeTruthy();
+    expect(screen.queryByText("50.00")).toBeNull();
+  });
+  it("cambiar o quitar el cliente reprecia las líneas que ya estaban en el ticket", async () => {
+    const { repos } = await renderConDatos(
+      <ProveedorAlertas>
+        <Ventas />
+      </ProveedorAlertas>,
+      sesionDe("dueno"),
+    );
+    await repos.cliente.crear({ nombre: "Mayorista Uno", nivel_precio: "2" });
+    await repos.producto.crear({
+      descripcion: "Detergente Prueba",
+      costo: 40,
+      pct_ganancia: 25,
+    });
+
+    const campo = await screen.findByLabelText("Buscar producto por nombre o código de barra");
+    fireEvent.change(campo, { target: { value: "Detergente Prueba" } });
+    const lista = await screen.findByRole("listbox", { name: "Resultados de la búsqueda" });
+    fireEvent.click(within(lista).getByText("Detergente Prueba"));
+    await waitFor(() => expect(screen.getAllByText("50.00").length).toBeGreaterThan(0));
+
+    const buscarCliente = await screen.findByLabelText("Buscar cliente para asignar al ticket");
+    fireEvent.change(buscarCliente, { target: { value: "Mayorista" } });
+    fireEvent.click(await screen.findByText("Mayorista Uno"));
+    await waitFor(() => expect(screen.getAllByText("44.00").length).toBeGreaterThan(0));
+    expect(screen.queryByText("50.00")).toBeNull();
+
+    fireEvent.click(await screen.findByLabelText("Quitar a Mayorista Uno del ticket"));
+    await waitFor(() => expect(screen.getAllByText("50.00").length).toBeGreaterThan(0));
+    expect(screen.queryByText("44.00")).toBeNull();
   });
 });

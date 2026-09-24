@@ -12,10 +12,11 @@
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { Banknote, LogOut as IconoCerrar } from "lucide-react";
-import { ValidacionError } from "@sfr/core";
+import { ValidacionError, calcularCorteCaja } from "@sfr/core";
 import { useModalAccesible } from "../hooks/useModalAccesible.js";
+import { useRepos } from "../data/contexto.js";
 import { filtrarNumero, filtrarEntero } from "../utilidades/numero.js";
-import { c, s } from "../estilos.js";
+import { c, s, money } from "../estilos.js";
 
 /** Denominaciones de RD$ en circulación (§ arqueo por denominación): monedas y billetes. */
 const MONEDAS = [1, 5, 10, 25] as const;
@@ -129,6 +130,8 @@ export function PromptAbrirTurno({
 export interface PromptCerrarTurnoProps {
   /** Fondo con el que abrió el turno, para mostrarlo como referencia (no editable aquí). */
   montoInicial: number;
+  /** Cuándo se abrió (ISO), para calcular el efectivo esperado si el negocio lo muestra. */
+  fechaApertura: string;
   /** Quién abrió el turno, si difiere de quien lo está cerrando ahora. */
   nombreApertura?: string | null;
   titulo?: string;
@@ -145,30 +148,48 @@ function cantidadesVacias(): Record<Denominacion, string> {
 }
 
 /**
- * Paso "cerrar turno": arqueo ciego por denominación (§ buena práctica, no configurable) — se
- * cuenta cuánto hay de cada moneda/billete, y el total NUNCA se muestra en esta pantalla, ni
- * mientras se cuenta ni después de enviar (el cajero se entera al cerrar sesión/cambiar de
- * usuario, no aquí; el supervisor lo ve en Corte de Caja). Solo se envía la suma calculada —
- * `onConfirmar` sigue recibiendo un solo número, igual que antes.
+ * Paso "cerrar turno": arqueo por denominación — se cuenta cuánto hay de cada moneda/billete,
+ * SIN mostrar ningún total mientras se cuenta (así nadie puede copiar el número esperado en
+ * vez de contar de verdad). Al terminar, sí se muestra el total contado, en una pantalla de
+ * confirmación aparte, junto con lo cobrado por tarjeta/transferencia/crédito del turno (esto
+ * no es ciego: son montos que ya quedaron registrados electrónicamente, no algo que el cajero
+ * pueda "adivinar" en vez de contar). El efectivo esperado y la diferencia, en cambio, solo se
+ * muestran si el negocio lo tiene activado en Configuración ("mostrar el total esperado", el
+ * inverso de `negocio.arqueo_ciego`) — eso sí es lo que se compara contra el conteo ciego.
  */
 export function PromptCerrarTurno({
   montoInicial,
+  fechaApertura,
   nombreApertura,
   titulo = "Cerrar turno",
   onConfirmar,
   onCancelar,
 }: PromptCerrarTurnoProps): ReactElement {
+  const { negocio: negocioRepo, corteCaja: corteCajaRepo } = useRepos();
   const tarjetaRef = useModalAccesible<HTMLDivElement>();
   const primerInputRef = useRef<HTMLInputElement>(null);
   const [cantidades, setCantidades] = useState<Record<Denominacion, string>>(cantidadesVacias);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mostrarEsperado, setMostrarEsperado] = useState(false);
+  const [confirmando, setConfirmando] = useState<{
+    efectivoContado: number;
+    efectivoEsperado: number | null;
+    diferencia: number | null;
+    totalTarjeta: number;
+    totalTransferencia: number;
+    totalCredito: number;
+  } | null>(null);
 
   useEffect(() => {
     primerInputRef.current?.focus();
   }, []);
 
-  async function confirmar() {
+  useEffect(() => {
+    void negocioRepo.obtener().then((n) => setMostrarEsperado(n?.arqueo_ciego === 0));
+  }, [negocioRepo]);
+
+  async function contar() {
     setError(null);
     setEnviando(true);
     try {
@@ -176,7 +197,37 @@ export function PromptCerrarTurno({
         (suma, denom) => suma + denom * (Number(cantidades[denom]) || 0),
         0,
       );
-      await onConfirmar(efectivoContado);
+      const resumen = await corteCajaRepo.calcularResumen(fechaApertura, new Date().toISOString());
+      let efectivoEsperado: number | null = null;
+      let diferencia: number | null = null;
+      if (mostrarEsperado) {
+        ({ efectivoEsperado, diferencia } = calcularCorteCaja({
+          montoInicial,
+          totalEfectivo: resumen.totalEfectivo,
+          efectivoContado,
+        }));
+      }
+      setConfirmando({
+        efectivoContado,
+        efectivoEsperado,
+        diferencia,
+        totalTarjeta: resumen.totalTarjeta,
+        totalTransferencia: resumen.totalTransferencia,
+        totalCredito: resumen.totalCredito,
+      });
+    } catch (e) {
+      setError(mensajeDeError(e));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function confirmarCierre() {
+    if (!confirmando) return;
+    setError(null);
+    setEnviando(true);
+    try {
+      await onConfirmar(confirmando.efectivoContado);
     } catch (e) {
       setError(mensajeDeError(e));
     } finally {
@@ -203,6 +254,75 @@ export function PromptCerrarTurno({
             setCantidades((prev) => ({ ...prev, [denom]: filtrarEntero(e.target.value) }))
           }
         />
+      </div>
+    );
+  }
+
+  if (confirmando) {
+    return (
+      <div ref={tarjetaRef} style={{ ...s.tarjeta, width: 380 }} role="group" aria-label={titulo}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <span aria-hidden="true" style={iconoCirculo}>
+            <IconoCerrar size={20} />
+          </span>
+          <h1 style={{ ...estiloTitulo, margin: 0 }}>{titulo}</h1>
+        </div>
+        <p style={subtituloTexto}>Confirma el cierre del turno.</p>
+
+        <div style={filaTotal}>
+          <span>Efectivo contado</span>
+          <span>RD$ {money(confirmando.efectivoContado)}</span>
+        </div>
+        <div style={filaTotal}>
+          <span>Tarjeta</span>
+          <span>RD$ {money(confirmando.totalTarjeta)}</span>
+        </div>
+        <div style={filaTotal}>
+          <span>Transferencia</span>
+          <span>RD$ {money(confirmando.totalTransferencia)}</span>
+        </div>
+        <div style={filaTotal}>
+          <span>Crédito</span>
+          <span>RD$ {money(confirmando.totalCredito)}</span>
+        </div>
+        {confirmando.efectivoEsperado !== null && (
+          <div style={filaTotal}>
+            <span>Efectivo esperado</span>
+            <span>RD$ {money(confirmando.efectivoEsperado)}</span>
+          </div>
+        )}
+        {confirmando.diferencia !== null && (
+          <div
+            style={{
+              ...filaTotal,
+              color: confirmando.diferencia === 0 ? c.verde : c.rojo,
+              fontWeight: 700,
+            }}
+          >
+            <span>Diferencia</span>
+            <span>RD$ {money(confirmando.diferencia)}</span>
+          </div>
+        )}
+
+        {error && (
+          <div role="alert" style={{ ...s.errorBox, marginTop: 12 }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ ...s.formFooter, justifyContent: "space-between" }}>
+          <button
+            type="button"
+            style={s.botonSecundario}
+            onClick={() => setConfirmando(null)}
+            disabled={enviando}
+          >
+            Volver
+          </button>
+          <button type="button" style={s.boton} onClick={confirmarCierre} disabled={enviando}>
+            Confirmar cierre
+          </button>
+        </div>
       </div>
     );
   }
@@ -243,7 +363,7 @@ export function PromptCerrarTurno({
             Cancelar
           </button>
         )}
-        <button type="button" style={s.boton} onClick={confirmar} disabled={enviando}>
+        <button type="button" style={s.boton} onClick={contar} disabled={enviando}>
           Cerrar turno
         </button>
       </div>
@@ -255,4 +375,12 @@ const gridDenominaciones: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(3, 1fr)",
   gap: 8,
+};
+
+const filaTotal: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  fontSize: 15,
+  padding: "6px 0",
+  borderBottom: `1px solid ${c.borde}`,
 };

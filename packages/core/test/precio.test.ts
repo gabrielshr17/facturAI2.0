@@ -3,6 +3,7 @@ import {
   precioBaseDesdeCosto,
   calcularPrecioVenta,
   precioTierDesdeCosto,
+  pctGananciaDesdePrecio,
   precioSegunNivel,
 } from "../src/dominio/precio.js";
 
@@ -13,13 +14,9 @@ describe("precio — costo + % de ganancia (§5)", () => {
     expect(precioBaseDesdeCosto(33.33, 30)).toBe(43.33);
   });
 
-  it("calcula el precio final con ITBIS incluido", () => {
-    // base 50 + 18% ITBIS = 59
-    expect(calcularPrecioVenta({ costo: 40, pctGanancia: 25, tasaImpuesto: 0.18 })).toBe(59);
-  });
-
-  it("producto exento no suma impuesto", () => {
-    expect(calcularPrecioVenta({ costo: 40, pctGanancia: 25, tasaImpuesto: 0 })).toBe(50);
+  it("el precio final es costo + margen, sin sumar impuesto aparte", () => {
+    expect(calcularPrecioVenta({ costo: 100, pctGanancia: 20 })).toBe(120);
+    expect(calcularPrecioVenta({ costo: 100, pctGanancia: 0 })).toBe(100);
   });
 });
 
@@ -28,7 +25,6 @@ describe("precio — el valor manual manda (§5)", () => {
     const p = calcularPrecioVenta({
       costo: 40,
       pctGanancia: 25,
-      tasaImpuesto: 0.18,
       precioManual: 55,
     });
     expect(p).toBe(55);
@@ -38,32 +34,29 @@ describe("precio — el valor manual manda (§5)", () => {
     const p = calcularPrecioVenta({
       costo: 40,
       pctGanancia: 25,
-      tasaImpuesto: 0.18,
       precioManual: 0,
     });
     expect(p).toBe(0);
   });
 
   it("precio manual null/negativo cae a la derivación", () => {
-    expect(
-      calcularPrecioVenta({ costo: 40, pctGanancia: 25, tasaImpuesto: 0.18, precioManual: null }),
-    ).toBe(59);
-    expect(
-      calcularPrecioVenta({ costo: 40, pctGanancia: 25, tasaImpuesto: 0.18, precioManual: -5 }),
-    ).toBe(59);
+    expect(calcularPrecioVenta({ costo: 40, pctGanancia: 25, precioManual: null })).toBe(50);
+    expect(calcularPrecioVenta({ costo: 40, pctGanancia: 25, precioManual: -5 })).toBe(50);
   });
 });
 
 describe("precioTierDesdeCosto — sugerencia inicial de precio_2/precio_3 (§ PRECIOS)", () => {
-  it("deriva el precio final (ITBIS incluido) con un margen fijo sobre el costo", () => {
-    // base 44 (40 + 10%) + 18% ITBIS = 51.92
-    expect(precioTierDesdeCosto(40, 10, 0.18)).toBe(51.92);
-    // base 42 (40 + 5%) + 18% ITBIS = 49.56
-    expect(precioTierDesdeCosto(40, 5, 0.18)).toBe(49.56);
+  it("deriva el precio final con un margen fijo sobre el costo, sin impuesto aparte", () => {
+    expect(precioTierDesdeCosto(40, 10, 50)).toBe(44);
+    expect(precioTierDesdeCosto(40, 5, 50)).toBe(42);
   });
 
-  it("producto exento no suma impuesto", () => {
-    expect(precioTierDesdeCosto(40, 10, 0)).toBe(44);
+  it("nunca supera el precio de venta", () => {
+    expect(precioTierDesdeCosto(100, 10, 104)).toBe(104);
+  });
+
+  it("con costo 0 usa el precio de venta", () => {
+    expect(precioTierDesdeCosto(0, 10, 35)).toBe(35);
   });
 });
 
@@ -86,5 +79,16 @@ describe("precioSegunNivel — qué precio usar según el nivel del cliente (§ 
     const productoViejo = { precio_venta: 59, precio_2: null, precio_3: null };
     expect(precioSegunNivel(productoViejo, "2")).toBe(59);
     expect(precioSegunNivel(productoViejo, "3")).toBe(59);
+  });
+});
+
+describe("pctGananciaDesdePrecio — inverso de la derivación", () => {
+  it("devuelve el % real de un precio escrito a mano", () => {
+    expect(pctGananciaDesdePrecio(100, 120)).toBe(20);
+    expect(pctGananciaDesdePrecio(100, 100)).toBe(0);
+  });
+
+  it("con costo 0 devuelve 0", () => {
+    expect(pctGananciaDesdePrecio(0, 50)).toBe(0);
   });
 });

@@ -129,7 +129,6 @@ export function Productos(): JSX.Element {
   const precioCalculado = calcularPrecioVenta({
     costo: Number(formulario.costo) || 0,
     pctGanancia: Number(formulario.pctGanancia) || 0,
-    tasaImpuesto: tasaDe(formulario.impuestoTipo),
     precioManual:
       formulario.precioVentaManual.trim() === "" ? null : Number(formulario.precioVentaManual),
   });
@@ -180,11 +179,9 @@ export function Productos(): JSX.Element {
         departamentoId = creado.id;
       }
 
-      const tasaImpuesto = tasaDe(formulario.impuestoTipo);
       const precioVenta = calcularPrecioVenta({
         costo,
         pctGanancia: Number(formulario.pctGanancia) || 0,
-        tasaImpuesto,
         precioManual:
           formulario.precioVentaManual.trim() === "" ? null : Number(formulario.precioVentaManual),
       });
@@ -201,7 +198,7 @@ export function Productos(): JSX.Element {
           formulario.precioMayoreo.trim() === "" ? null : Number(formulario.precioMayoreo),
         departamento_id: departamentoId,
         impuesto_tipo: formulario.impuestoTipo,
-        tasa_impuesto: tasaImpuesto,
+        tasa_impuesto: tasaDe(formulario.impuestoTipo),
         politica_sin_existencia: formulario.politicaSinExistencia,
         activo: formulario.activo,
         favorito: formulario.favorito,

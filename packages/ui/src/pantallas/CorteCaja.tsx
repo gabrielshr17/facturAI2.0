@@ -236,6 +236,7 @@ export function CorteCaja() {
           <div onClick={(e) => e.stopPropagation()}>
             <PromptCerrarTurno
               montoInicial={turno.monto_inicial}
+              fechaApertura={turno.fecha_apertura}
               nombreApertura={nombreDe(turno.usuario_id)}
               titulo="Forzar cierre de turno"
               onConfirmar={forzarCierre}
@@ -281,6 +282,9 @@ export function CorteCaja() {
                 Cajero
               </th>
               <th scope="col" style={s.th}>
+                Fondo inicial
+              </th>
+              <th scope="col" style={s.th}>
                 Total ventas
               </th>
               <th scope="col" style={s.th}>
@@ -303,7 +307,7 @@ export function CorteCaja() {
           <tbody>
             {historial.length === 0 && (
               <tr>
-                <td style={s.filaVacia} colSpan={8}>
+                <td style={s.filaVacia} colSpan={9}>
                   Todavía no se ha cerrado ningún turno.
                 </td>
               </tr>
@@ -316,6 +320,7 @@ export function CorteCaja() {
                   {new Date(h.fecha_cierre).toLocaleString("es-DO")}
                 </td>
                 <td style={s.td}>{nombreDe(h.usuario_id)}</td>
+                <td style={s.tdDerecha}>RD$ {money(h.monto_inicial)}</td>
                 <td style={s.tdDerecha}>RD$ {money(h.total_ventas)}</td>
                 <td style={s.tdDerecha}>RD$ {money(h.efectivo_esperado)}</td>
                 <td style={s.tdDerecha}>RD$ {money(h.efectivo_contado)}</td>

@@ -15,6 +15,7 @@ import { exigirPermiso, usuarioDe } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
 import { registrarAccion } from "./bitacora-repo.js";
 import type { ImpuestoTipo } from "../dominio/impuesto.js";
+import { precioSegunNivel, type NivelPrecio } from "../dominio/precio.js";
 import type { Factura, FacturaLinea, Pago } from "./tipos.js";
 
 /**
@@ -42,6 +43,8 @@ export interface FiltroFacturasCobradas {
 export interface SincronizarPrecioProductoInput {
   productoId: string;
   precioVenta: number;
+  precio2: number | null;
+  precio3: number | null;
   precioMayoreo: number | null;
   impuestoTipo: ImpuestoTipo;
   tasaImpuesto: number;
@@ -189,6 +192,47 @@ export function crearFacturaRepo(db: SqlDriver) {
        WHERE id=?`,
       [t.subtotalGravado, t.subtotalExento, t.totalItbis, t.total, now(), facturaId],
     );
+  }
+
+  async function reaplicarNivelPrecio(facturaId: string, clienteId: string | null): Promise<void> {
+    const cliente = clienteId
+      ? await db.get<{ nivel_precio: string | null }>(
+          "SELECT nivel_precio FROM cliente WHERE id=?",
+          [clienteId],
+        )
+      : undefined;
+    const nivel: NivelPrecio =
+      cliente?.nivel_precio === "2" || cliente?.nivel_precio === "3" ? cliente.nivel_precio : "1";
+
+    const lineas = await db.all<{
+      id: string;
+      cantidad: number;
+      tasa_impuesto: number;
+      precio_venta: number;
+      precio_2: number | null;
+      precio_3: number | null;
+    }>(
+      `SELECT fl.id, fl.cantidad, fl.tasa_impuesto, p.precio_venta, p.precio_2, p.precio_3
+       FROM factura_linea fl
+       JOIN producto p ON p.id = fl.producto_id
+       WHERE fl.factura_id=? AND fl.deleted_at IS NULL AND fl.es_mayoreo=0`,
+      [facturaId],
+    );
+    for (const l of lineas) {
+      const precioUnitario = precioSegunNivel(l, nivel);
+      const calc = calcularLinea({
+        precioUnitario,
+        cantidad: l.cantidad,
+        tasaImpuesto: l.tasa_impuesto,
+      });
+      await db.run(
+        `UPDATE factura_linea
+           SET precio_unitario=?, monto_itbis=?, subtotal=?, nivel_precio=?, updated_at=?
+         WHERE id=?`,
+        [precioUnitario, calc.montoItbis, calc.subtotal, nivel, now(), l.id],
+      );
+    }
+    await recalcularTotales(facturaId);
   }
 
   const repo = {
@@ -399,6 +443,7 @@ export function crearFacturaRepo(db: SqlDriver) {
         now(),
         facturaId,
       ]);
+      await reaplicarNivelPrecio(facturaId, clienteId);
     },
 
     async actualizarNotas(facturaId: string, notas: string): Promise<void> {
@@ -422,8 +467,9 @@ export function crearFacturaRepo(db: SqlDriver) {
         factura_id: string;
         cantidad: number;
         es_mayoreo: number;
+        nivel_precio: string | null;
       }>(
-        `SELECT fl.id, fl.factura_id, fl.cantidad, fl.es_mayoreo
+        `SELECT fl.id, fl.factura_id, fl.cantidad, fl.es_mayoreo, fl.nivel_precio
          FROM factura_linea fl
          JOIN factura f ON f.id = fl.factura_id
          WHERE fl.producto_id=? AND fl.deleted_at IS NULL AND f.estado='abierta' AND f.deleted_at IS NULL`,
@@ -434,7 +480,12 @@ export function crearFacturaRepo(db: SqlDriver) {
       for (const l of lineas) {
         // Una línea a mayoreo usa el precio mayoreo nuevo; si ya no hay uno (se quitó del
         // producto), se deja la línea como estaba en vez de adivinar un precio.
-        const nuevoPrecio = l.es_mayoreo ? input.precioMayoreo : input.precioVenta;
+        const nuevoPrecio = l.es_mayoreo
+          ? input.precioMayoreo
+          : precioSegunNivel(
+              { precio_venta: input.precioVenta, precio_2: input.precio2, precio_3: input.precio3 },
+              l.nivel_precio === "2" || l.nivel_precio === "3" ? l.nivel_precio : "1",
+            );
         if (nuevoPrecio == null) continue;
 
         const calc = calcularLinea({
@@ -483,7 +534,7 @@ export function crearFacturaRepo(db: SqlDriver) {
      */
     async cobrar(
       facturaId: string,
-      input: { pagos: PagoInput[]; notas?: string | null },
+      input: { pagos: PagoInput[]; notas?: string | null; cobrarRecargoTarjeta?: boolean },
     ): Promise<{ factura: Factura; cambio: number }> {
       exigirPermiso(db, "factura.cobrar");
       const factura = await this.obtener(facturaId);
@@ -552,7 +603,8 @@ export function crearFacturaRepo(db: SqlDriver) {
       // sin inflar `factura.total`/`subtotal_gravado`/`total_itbis` (que ya se calcularon
       // antes, solo de las líneas del ticket) ni el cambio en efectivo (el recargo nunca
       // sale de la porción en efectivo).
-      const pagosCobrados = aplicarRecargoTarjeta(input.pagos);
+      const pagosCobrados =
+        input.cobrarRecargoTarjeta === false ? input.pagos : aplicarRecargoTarjeta(input.pagos);
       const montoPagado = sumar(pagosCobrados.map((p) => p.monto));
 
       const ts = now();

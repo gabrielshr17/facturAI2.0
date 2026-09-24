@@ -14,6 +14,7 @@ import { FUNCIONES_EN_DESARROLLO } from "../banderas.js";
 import { SeccionSecuenciasNcf } from "../componentes/SeccionSecuenciasNcf.js";
 import { SeccionBitacora } from "../componentes/SeccionBitacora.js";
 import { SeccionImpresoraTermica } from "../componentes/SeccionImpresoraTermica.js";
+import { SeccionInicioAutomatico } from "../componentes/SeccionInicioAutomatico.js";
 import { useAtajosTeclado } from "../hooks/useAtajosTeclado.js";
 
 const VACIO: NegocioInput = {
@@ -27,6 +28,7 @@ const VACIO: NegocioInput = {
   redondeo_centavo: true,
   inventario_activo: false,
   exige_caja_abierta: false,
+  arqueo_ciego: true,
 };
 
 export function Configuracion() {
@@ -72,6 +74,7 @@ export function Configuracion() {
           redondeo_centavo: n.redondeo_centavo === 1,
           inventario_activo: n.inventario_activo === 1,
           exige_caja_abierta: n.exige_caja_abierta === 1,
+          arqueo_ciego: n.arqueo_ciego !== 0,
         });
       }
     })();
@@ -288,6 +291,19 @@ export function Configuracion() {
             cerrar sesión (o cambiar de usuario) pide contar el efectivo para cerrar el turno.
           </p>
         )}
+        <label style={{ ...s.label, display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={!(form.arqueo_ciego ?? true)}
+            onChange={(e) => setForm({ ...form, arqueo_ciego: !e.target.checked })}
+          />
+          Mostrar el efectivo esperado al cerrar un turno
+        </label>
+        <p style={{ fontSize: 13, color: c.gris, marginTop: -8 }}>
+          {(form.arqueo_ciego ?? true)
+            ? "Apagado (recomendado): mientras se cuenta el efectivo nunca se muestra un total, y después de contar solo se ve lo que se contó — nadie puede copiar el número que el sistema esperaba."
+            : "Encendido: después de contar el efectivo (nunca mientras se cuenta), también se muestra lo que el sistema esperaba y la diferencia, antes de confirmar el cierre."}
+        </p>
 
         {errores.length > 0 && (
           <div role="alert" style={s.errorBox}>
@@ -315,6 +331,8 @@ export function Configuracion() {
       </div>
 
       <SeccionImpresoraTermica />
+
+      <SeccionInicioAutomatico />
 
       {FUNCIONES_EN_DESARROLLO.fiscal && <SeccionSecuenciasNcf />}
 

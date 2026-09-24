@@ -1,6 +1,7 @@
 import type { SqlDriver } from "../db/driver.js";
 import { newId, now } from "../ids.js";
 import { calcularCorteCaja, calcularDiferenciaVerificacion } from "../dominio/caja.js";
+import { redondear2 } from "../dominio/dinero.js";
 import type { ErrorValidacion } from "../dominio/validacion.js";
 import { exigirPermiso, sesionDe, usuarioDe } from "../db/sesion.js";
 import { ValidacionError } from "./producto-repo.js";
@@ -71,8 +72,10 @@ export function crearCorteCajaRepo(db: SqlDriver) {
         cantidad: number;
         totalVentas: number | null;
         totalItbis: number | null;
+        totalCambio: number | null;
       }>(
-        `SELECT COUNT(*) as cantidad, SUM(total) as totalVentas, SUM(total_itbis) as totalItbis
+        `SELECT COUNT(*) as cantidad, SUM(total) as totalVentas, SUM(total_itbis) as totalItbis,
+                SUM(cambio) as totalCambio
          FROM factura
          WHERE estado='cobrada' AND deleted_at IS NULL
            AND fecha_hora >= ? AND fecha_hora <= ?`,
@@ -93,13 +96,19 @@ export function crearCorteCajaRepo(db: SqlDriver) {
         if (fila.metodo in totales) totales[fila.metodo as keyof typeof totales] = fila.total;
       }
 
+      // `pago.monto` en efectivo guarda lo TENDIDO por el cliente (p. ej. RD$200 para
+      // cubrir una venta de RD$150), no lo que se queda en la gaveta. El cambio siempre
+      // sale en efectivo (ver `procesarCobro` en dominio/factura.ts), así que hay que
+      // restarlo aquí o el corte de caja espera de más por cada venta con cambio.
+      const totalEfectivoNeto = redondear2(totales.efectivo - (agregada?.totalCambio ?? 0));
+
       return {
         desde,
         hasta,
         cantidadFacturas: agregada?.cantidad ?? 0,
         totalVentas: agregada?.totalVentas ?? 0,
         totalItbis: agregada?.totalItbis ?? 0,
-        totalEfectivo: totales.efectivo,
+        totalEfectivo: totalEfectivoNeto,
         totalTarjeta: totales.tarjeta,
         totalTransferencia: totales.transferencia,
         totalCredito: totales.credito,

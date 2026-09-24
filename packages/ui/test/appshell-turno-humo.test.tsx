@@ -15,6 +15,7 @@ import {
   crearPortadorSesion,
   type PortadorSesion,
 } from "@sfr/core";
+import { ejecutarManejadorCierreVentana } from "../src/cierreVentana.js";
 import { createNodeSqliteDriver } from "../../core/src/db/drivers/node-sqlite.js";
 import { AppShell } from "../src/AppShell.js";
 import { ProveedorDatos, useRepos, type Repos } from "../src/data/contexto.js";
@@ -117,10 +118,46 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
 
     fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
 
+    // Paso de confirmación: se muestra el efectivo contado antes de cerrar de verdad.
+    expect(await screen.findByText("Confirmar cierre")).toBeTruthy();
+    expect(ultimaSesion!.usuarioId).not.toBeNull();
+
+    fireEvent.click(screen.getByText("Confirmar cierre"));
+
     await waitFor(() => expect(ultimaSesion!.usuarioId).toBeNull());
     expect(await repos.corteCaja.turnoAbierto()).toBeNull();
     const [cerrado] = await repos.corteCaja.listar();
     expect(cerrado.efectivo_contado).toBe(550); // 2×25 + 1×500
+  });
+
+  it("la pantalla de confirmación del cierre también muestra tarjeta, transferencia y crédito", async () => {
+    // Estos totales no son un conteo ciego (ya quedaron registrados electrónicamente), así
+    // que se muestran siempre en la confirmación, sin depender del toggle de "mostrar el
+    // efectivo esperado" en Configuración.
+    const { repos } = await montarConCajaExigida();
+
+    await screen.findByText("¿Con cuánto efectivo empieza la caja?");
+    fireEvent.click(screen.getByText("Abrir turno"));
+    await waitFor(() => expect(screen.getByRole("navigation", { name: "Módulos" })).toBeTruthy());
+
+    const t = await repos.factura.abrirTicket();
+    await repos.factura.agregarLinea(t.id, {
+      descripcion: "Artículo",
+      cantidad: 1,
+      precioUnitario: 100,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
+    });
+    await repos.factura.cobrar(t.id, { pagos: [{ metodo: "tarjeta", monto: 100 }] });
+
+    fireEvent.click(screen.getByLabelText("Cerrar sesión"));
+    await screen.findByText("Cerrar turno para salir");
+    fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
+
+    // La venta de tarjeta lleva el 5% de recargo (§ PRECIOS/COBRO): 105, no 100.
+    await waitFor(() => expect(screen.getByText("RD$ 105.00")).toBeTruthy());
+    expect(screen.getByText("Transferencia")).toBeTruthy();
+    expect(screen.getByText("Crédito")).toBeTruthy();
   });
 
   it("Ctrl+U con un turno abierto pide cerrarlo antes de mostrar el selector de usuario", async () => {
@@ -138,6 +175,9 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
     expect(screen.queryByText("¿Quién va a usar la caja ahora?")).toBeNull();
 
     fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
+    expect(await screen.findByText("Confirmar cierre")).toBeTruthy();
+    fireEvent.click(screen.getByText("Confirmar cierre"));
+
     fireEvent.click(await screen.findByText("Cajero Dos"));
     escribirPin("2222");
     fireEvent.click(screen.getByText("Entrar (Enter)"));
@@ -201,5 +241,112 @@ describe("Ciclo de turno de caja enganchado a la sesión (humo, § CAJA)", () =>
     await waitFor(() => expect(ultimaSesion!.usuarioId).toBeNull());
     // El turno de Administrador sigue intacto — Cajero Dos nunca lo tocó.
     expect((await repos.corteCaja.turnoAbierto())?.usuario_id).toBe("usuario-admin");
+  });
+
+  it("cerrar la ventana (botón nativo) con un turno propio abierto pide contar el efectivo", async () => {
+    const { repos } = await montarConCajaExigida();
+
+    await screen.findByText("¿Con cuánto efectivo empieza la caja?");
+    fireEvent.click(screen.getByText("Abrir turno"));
+    await waitFor(() => expect(screen.getByRole("navigation", { name: "Módulos" })).toBeTruthy());
+
+    // Simula lo que hace `packages/desktop/src/main.tsx` al interceptar el botón nativo
+    // de cerrar la ventana.
+    const resultado = ejecutarManejadorCierreVentana();
+    expect(await screen.findByText("Cerrar turno para salir de la aplicación")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("RD$ 100"), { target: { value: "1" } });
+    fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
+
+    expect(await screen.findByText("Confirmar cierre")).toBeTruthy();
+    fireEvent.click(screen.getByText("Confirmar cierre"));
+
+    await expect(resultado).resolves.toBe("cerrar");
+    expect(await repos.corteCaja.turnoAbierto()).toBeNull();
+  });
+
+  it("cancelar el cierre de la ventana deja el turno abierto y no cierra la ventana", async () => {
+    const { repos } = await montarConCajaExigida();
+
+    await screen.findByText("¿Con cuánto efectivo empieza la caja?");
+    fireEvent.click(screen.getByText("Abrir turno"));
+    await waitFor(() => expect(screen.getByRole("navigation", { name: "Módulos" })).toBeTruthy());
+
+    const resultado = ejecutarManejadorCierreVentana();
+    await screen.findByText("Cerrar turno para salir de la aplicación");
+    fireEvent.click(screen.getByText("Cancelar"));
+
+    await expect(resultado).resolves.toBe("cancelar");
+    expect((await repos.corteCaja.turnoAbierto())?.estado).toBe("abierto");
+  });
+
+  it("sin turno abierto, cerrar la ventana no pide nada", async () => {
+    await montarConCajaExigida();
+    await screen.findByText("¿Con cuánto efectivo empieza la caja?");
+    // A propósito no abre turno: la compuerta de "abrir turno" sigue en pantalla, así que
+    // `estadoTurno.abierto` es null y el manejador debe dejar cerrar sin preguntar nada.
+
+    await expect(ejecutarManejadorCierreVentana()).resolves.toBe("cerrar");
+  });
+
+  describe("turno abierto por otro usuario: quién puede forzar el cierre", () => {
+    async function montarConTurnoAjeno(rol: "supervisor" | "dueno" | "cajero") {
+      const db = createNodeSqliteDriver();
+      await migrate(db);
+      await seed(db);
+      const repos = crearRepos(db);
+      await repos.negocio.guardar({ nombre_comercial: "Negocio Prueba", exige_caja_abierta: true });
+      const portadorAdmin = crearPortadorSesion({
+        usuarioId: "usuario-admin",
+        rol: "dueno",
+        permisos: permisosDeRol("dueno"),
+      });
+      await crearRepos(conSesion(db, portadorAdmin)).corteCaja.abrirTurno({ montoInicial: 100 });
+
+      const entrante = await repos.usuario.crear({
+        nombre: "Persona Entrante",
+        rol,
+        pin: "2222",
+        activo: true,
+      });
+      render(
+        <ProveedorSesion
+          db={db}
+          sesionInicial={{ usuarioId: entrante.id, rol, permisos: permisosDeRol(rol) }}
+        >
+          <ProveedorDatos>
+            <AppShell plataforma="Web" />
+          </ProveedorDatos>
+        </ProveedorSesion>,
+      );
+      return repos;
+    }
+
+    it("un cajero solo puede volver al login: no ve el botón de forzar", async () => {
+      await montarConTurnoAjeno("cajero");
+      expect(await screen.findByText("Hay un turno abierto")).toBeTruthy();
+      expect(screen.queryByText("Forzar cierre")).toBeNull();
+    });
+
+    it.each(["supervisor", "dueno"] as const)(
+      "un %s puede forzar el cierre y sigue al flujo normal",
+      async (rol) => {
+        const repos = await montarConTurnoAjeno(rol);
+        expect(await screen.findByText("Hay un turno abierto")).toBeTruthy();
+
+        fireEvent.click(screen.getByText("Forzar cierre"));
+        expect(await screen.findByText("Forzar cierre de turno")).toBeTruthy();
+
+        fireEvent.change(screen.getByLabelText("RD$ 100"), { target: { value: "1" } });
+        fireEvent.click(screen.getByText("Cerrar turno", { selector: "button" }));
+        fireEvent.click(await screen.findByText("Confirmar cierre"));
+
+        expect(await screen.findByText("¿Con cuánto efectivo empieza la caja?")).toBeTruthy();
+        expect(await repos.corteCaja.turnoAbierto()).toBeNull();
+        const [cerrado] = await repos.corteCaja.listar();
+        expect(cerrado.efectivo_contado).toBe(100);
+        expect(cerrado.usuario_id).toBe("usuario-admin");
+      },
+    );
   });
 });
