@@ -269,6 +269,35 @@ describe("facturaRepo — cobrar (§7.2)", () => {
     expect(pago.monto).toBe(105);
   });
 
+  it("con cobrarRecargoTarjeta en false, la tarjeta se cobra sin el 5% de recargo", async () => {
+    const repo = crearFacturaRepo(db);
+    const t = await ticketCon100(repo);
+
+    const { factura } = await repo.cobrar(t.id, {
+      pagos: [{ metodo: "tarjeta", monto: 100 }],
+      cobrarRecargoTarjeta: false,
+    });
+    expect(factura.monto_pagado).toBe(100);
+
+    const [pago] = await repo.obtenerPagos(t.id);
+    expect(pago.monto).toBe(100);
+  });
+
+  it("con cobrarRecargoTarjeta en true, o sin indicar, la tarjeta lleva el 5%", async () => {
+    const repo = crearFacturaRepo(db);
+    const t1 = await ticketCon100(repo);
+    const t2 = await ticketCon100(repo);
+
+    const explicito = await repo.cobrar(t1.id, {
+      pagos: [{ metodo: "tarjeta", monto: 100 }],
+      cobrarRecargoTarjeta: true,
+    });
+    const porDefecto = await repo.cobrar(t2.id, { pagos: [{ metodo: "tarjeta", monto: 100 }] });
+
+    expect(explicito.factura.monto_pagado).toBe(105);
+    expect(porDefecto.factura.monto_pagado).toBe(105);
+  });
+
   it("rechaza cobro insuficiente con el faltante exacto", async () => {
     const repo = crearFacturaRepo(db);
     const t = await ticketCon100(repo);

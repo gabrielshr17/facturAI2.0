@@ -483,7 +483,7 @@ export function crearFacturaRepo(db: SqlDriver) {
      */
     async cobrar(
       facturaId: string,
-      input: { pagos: PagoInput[]; notas?: string | null },
+      input: { pagos: PagoInput[]; notas?: string | null; cobrarRecargoTarjeta?: boolean },
     ): Promise<{ factura: Factura; cambio: number }> {
       exigirPermiso(db, "factura.cobrar");
       const factura = await this.obtener(facturaId);
@@ -552,7 +552,8 @@ export function crearFacturaRepo(db: SqlDriver) {
       // sin inflar `factura.total`/`subtotal_gravado`/`total_itbis` (que ya se calcularon
       // antes, solo de las líneas del ticket) ni el cambio en efectivo (el recargo nunca
       // sale de la porción en efectivo).
-      const pagosCobrados = aplicarRecargoTarjeta(input.pagos);
+      const pagosCobrados =
+        input.cobrarRecargoTarjeta === false ? input.pagos : aplicarRecargoTarjeta(input.pagos);
       const montoPagado = sumar(pagosCobrados.map((p) => p.monto));
 
       const ts = now();

@@ -52,6 +52,7 @@ export interface ModalCobroProps {
     notas: string,
     salida: SalidaCobro,
     fiscal: FiscalInput | null,
+    cobrarRecargoTarjeta: boolean,
   ) => Promise<void>;
 }
 
@@ -68,6 +69,7 @@ export function ModalCobro({
   const tarjetaRef = useModalAccesible<HTMLDivElement>();
   const [filas, setFilas] = useState<FilaPago[]>([{ metodo: "efectivo", monto: total.toFixed(2) }]);
   const [notas, setNotas] = useState(notasIniciales ?? "");
+  const [cobrarRecargoTarjeta, setCobrarRecargoTarjeta] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,7 +124,7 @@ export function ModalCobro({
 
     setGuardando(true);
     try {
-      await onConfirmar(pagos, notas, salida, fiscal);
+      await onConfirmar(pagos, notas, salida, fiscal, cobrarRecargoTarjeta);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -203,15 +205,35 @@ export function ModalCobro({
             factura impresa — el cajero sí necesita ver cuánto cobrar de verdad en el
             datáfono, así que se muestra aquí, junto al monto que tecleó. */}
         {filas.some((f) => f.metodo === "tarjeta" && Number(f.monto) > 0) && (
-          <p style={{ fontSize: 12.5, color: c.gris, marginTop: -4, marginBottom: 12 }}>
-            {aplicarRecargoTarjeta(pagos)
-              .filter((p) => p.metodo === "tarjeta" && p.monto > 0)
-              .map((p, i) => (
-                <span key={i} style={{ display: "block" }}>
-                  Se cobrarán RD$ {money(p.monto)} en la tarjeta (incluye 5% de recargo).
-                </span>
-              ))}
-          </p>
+          <div style={{ marginTop: -4, marginBottom: 12 }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                minHeight: 44,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={cobrarRecargoTarjeta}
+                onChange={(e) => setCobrarRecargoTarjeta(e.target.checked)}
+                style={{ width: 20, height: 20 }}
+              />
+              Cobrar 5% de recargo de tarjeta
+            </label>
+            <p style={{ fontSize: 12.5, color: c.gris, margin: 0 }}>
+              {(cobrarRecargoTarjeta ? aplicarRecargoTarjeta(pagos) : pagos)
+                .filter((p) => p.metodo === "tarjeta" && p.monto > 0)
+                .map((p, i) => (
+                  <span key={i} style={{ display: "block" }}>
+                    Se cobrarán RD$ {money(p.monto)} en la tarjeta (
+                    {cobrarRecargoTarjeta ? "incluye 5% de recargo" : "sin recargo"}).
+                  </span>
+                ))}
+            </p>
+          </div>
         )}
         <button style={{ ...s.botonSecundario, marginBottom: 12 }} onClick={agregarFila}>
           + Agregar método (pago mixto)
