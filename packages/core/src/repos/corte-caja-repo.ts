@@ -19,6 +19,7 @@ export interface ResumenPeriodoVentas {
   totalTarjeta: number;
   totalTransferencia: number;
   totalCredito: number;
+  totalDevoluciones: number;
 }
 
 export interface AbrirTurnoInput {
@@ -61,7 +62,25 @@ function validarPeriodo(desde: string, hasta: string): ErrorValidacion[] {
   return errores;
 }
 
+type MetodoCaja = "efectivo" | "tarjeta" | "transferencia" | "credito";
+
+const METODOS_CAJA: readonly string[] = ["efectivo", "tarjeta", "transferencia", "credito"];
+
 export function crearCorteCajaRepo(db: SqlDriver) {
+  async function metodoDeLaDevolucion(
+    explicito: string | null,
+    facturaId: string,
+  ): Promise<MetodoCaja> {
+    if (explicito && METODOS_CAJA.includes(explicito)) return explicito as MetodoCaja;
+
+    const metodos = await db.all<{ metodo: string }>(
+      "SELECT DISTINCT metodo FROM pago WHERE factura_id=? AND deleted_at IS NULL",
+      [facturaId],
+    );
+    const unico = metodos.length === 1 ? metodos[0]?.metodo : undefined;
+    return unico && METODOS_CAJA.includes(unico) ? (unico as MetodoCaja) : "efectivo";
+  }
+
   return {
     /** Totales de ventas cobradas entre `desde` y `hasta` (timestamps ISO, inclusive). */
     async calcularResumen(desde: string, hasta: string): Promise<ResumenPeriodoVentas> {
@@ -100,18 +119,40 @@ export function crearCorteCajaRepo(db: SqlDriver) {
       // cubrir una venta de RD$150), no lo que se queda en la gaveta. El cambio siempre
       // sale en efectivo (ver `procesarCobro` en dominio/factura.ts), así que hay que
       // restarlo aquí o el corte de caja espera de más por cada venta con cambio.
+      const devoluciones = await db.all<{
+        id: string;
+        factura_id: string;
+        total: number;
+        itbis: number;
+        metodo_devolucion: string | null;
+      }>(
+        `SELECT id, factura_id, total, itbis, metodo_devolucion
+         FROM devolucion
+         WHERE deleted_at IS NULL AND fecha >= ? AND fecha <= ?`,
+        [desde, hasta],
+      );
+      let totalDevoluciones = 0;
+      let itbisDevuelto = 0;
+      for (const d of devoluciones) {
+        totalDevoluciones += d.total;
+        itbisDevuelto += d.itbis;
+        const metodo = await metodoDeLaDevolucion(d.metodo_devolucion, d.factura_id);
+        totales[metodo] = redondear2(totales[metodo] - d.total);
+      }
+
       const totalEfectivoNeto = redondear2(totales.efectivo - (agregada?.totalCambio ?? 0));
 
       return {
         desde,
         hasta,
         cantidadFacturas: agregada?.cantidad ?? 0,
-        totalVentas: agregada?.totalVentas ?? 0,
-        totalItbis: agregada?.totalItbis ?? 0,
+        totalVentas: redondear2((agregada?.totalVentas ?? 0) - totalDevoluciones),
+        totalItbis: redondear2((agregada?.totalItbis ?? 0) - itbisDevuelto),
         totalEfectivo: totalEfectivoNeto,
         totalTarjeta: totales.tarjeta,
         totalTransferencia: totales.transferencia,
         totalCredito: totales.credito,
+        totalDevoluciones: redondear2(totalDevoluciones),
       };
     },
 

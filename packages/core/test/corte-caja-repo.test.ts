@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { SqlDriver } from "../src/db/driver.js";
 import { nuevaDb } from "./_ayuda.js";
-import { crearFacturaRepo, crearCorteCajaRepo, ValidacionError } from "../src/index.js";
+import {
+  crearFacturaRepo,
+  crearCorteCajaRepo,
+  crearDevolucionRepo,
+  ValidacionError,
+} from "../src/index.js";
 
 describe("corteCajaRepo — resumen y ciclo de turno (Corte de caja)", () => {
   let db: SqlDriver;
@@ -292,5 +297,114 @@ describe("corteCajaRepo — verificarPago (tarjeta/transferencia, § CAJA)", () 
     await expect(
       cortes.verificarPago("corte-inexistente", { tarjetaVerificado: 10 }),
     ).rejects.toThrow();
+  });
+});
+
+describe("corteCajaRepo — las devoluciones se restan del método con que se devuelve", () => {
+  let db: SqlDriver;
+  beforeEach(async () => {
+    db = await nuevaDb();
+  });
+
+  const TODO = ["2000-01-01T00:00:00.000Z", "2999-01-01T00:00:00.000Z"] as const;
+
+  async function ventaDe100(
+    pagos: { metodo: "efectivo" | "tarjeta" | "transferencia"; monto: number }[],
+    cantidad = 1,
+  ) {
+    const facturas = crearFacturaRepo(db);
+    const t = await facturas.abrirTicket();
+    const linea = await facturas.agregarLinea(t.id, {
+      descripcion: "Artículo",
+      cantidad,
+      precioUnitario: 100,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
+    });
+    await facturas.cobrar(t.id, { pagos, cobrarRecargoTarjeta: false });
+    return { facturaId: t.id, lineaId: linea.id };
+  }
+
+  async function devolver(
+    v: { facturaId: string; lineaId: string },
+    cantidad: number,
+    metodoDevolucion?: string,
+  ) {
+    await crearDevolucionRepo(db).crear({
+      facturaId: v.facturaId,
+      metodoDevolucion,
+      lineas: [{ facturaLineaId: v.lineaId, cantidad }],
+    });
+  }
+
+  it("una devolución en efectivo baja el efectivo esperado y el total de ventas", async () => {
+    const v = await ventaDe100([{ metodo: "efectivo", monto: 100 }]);
+    await devolver(v, 1, "efectivo");
+
+    const r = await crearCorteCajaRepo(db).calcularResumen(...TODO);
+    expect(r.totalEfectivo).toBe(0);
+    expect(r.totalVentas).toBe(0);
+    expect(r.totalDevoluciones).toBe(100);
+  });
+
+  it("sin método explícito, usa el método con que se pagó la venta (tarjeta)", async () => {
+    const v = await ventaDe100([{ metodo: "tarjeta", monto: 100 }]);
+    await devolver(v, 1);
+
+    const r = await crearCorteCajaRepo(db).calcularResumen(...TODO);
+    expect(r.totalTarjeta).toBe(0);
+    expect(r.totalEfectivo).toBe(0);
+  });
+
+  it("sin método y con pago mixto, se toma como efectivo", async () => {
+    const v = await ventaDe100([
+      { metodo: "tarjeta", monto: 60 },
+      { metodo: "efectivo", monto: 40 },
+    ]);
+    await devolver(v, 1);
+
+    const r = await crearCorteCajaRepo(db).calcularResumen(...TODO);
+    expect(r.totalEfectivo).toBe(40 - 100);
+    expect(r.totalTarjeta).toBe(60);
+  });
+
+  it("el método explícito manda sobre el de la venta", async () => {
+    const v = await ventaDe100([{ metodo: "tarjeta", monto: 100 }]);
+    await devolver(v, 1, "efectivo");
+
+    const r = await crearCorteCajaRepo(db).calcularResumen(...TODO);
+    expect(r.totalEfectivo).toBe(-100);
+    expect(r.totalTarjeta).toBe(100);
+  });
+
+  it("una devolución parcial resta solo lo devuelto", async () => {
+    const v = await ventaDe100([{ metodo: "efectivo", monto: 300 }], 3);
+    await devolver(v, 1, "efectivo");
+
+    const r = await crearCorteCajaRepo(db).calcularResumen(...TODO);
+    expect(r.totalEfectivo).toBe(200);
+    expect(r.totalDevoluciones).toBe(100);
+  });
+
+  it("una devolución fuera del período no cuenta", async () => {
+    const v = await ventaDe100([{ metodo: "efectivo", monto: 100 }]);
+    await devolver(v, 1, "efectivo");
+
+    const r = await crearCorteCajaRepo(db).calcularResumen(
+      "2000-01-01T00:00:00.000Z",
+      "2000-01-02T00:00:00.000Z",
+    );
+    expect(r.totalDevoluciones).toBe(0);
+  });
+
+  it("el efectivo esperado del cierre descuenta la devolución (fondo 500 + venta 100 - devolución 100)", async () => {
+    const cortes = crearCorteCajaRepo(db);
+    await cortes.abrirTurno({ montoInicial: 500 });
+    const v = await ventaDe100([{ metodo: "efectivo", monto: 100 }]);
+    await devolver(v, 1, "efectivo");
+
+    const cerrado = await cortes.cerrarTurno({ efectivoContado: 500 });
+    expect(cerrado.efectivo_esperado).toBe(500);
+    expect(cerrado.diferencia).toBe(0);
   });
 });
