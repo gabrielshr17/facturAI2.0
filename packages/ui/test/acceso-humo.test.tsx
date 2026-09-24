@@ -91,12 +91,20 @@ describe("Acceso (humo)", () => {
   });
 
   describe("turno abierto por otro usuario", () => {
-    async function montarAcceso(opciones: { turnoDeAdministrador: boolean }) {
+    async function montarAcceso(opciones: {
+      turnoDeAdministrador: boolean;
+      rolEntrante?: "cajero" | "supervisor";
+    }) {
       const db = createNodeSqliteDriver();
       await migrate(db);
       await seed(db);
       const repos = crearRepos(db);
-      await repos.usuario.crear({ nombre: "Cajero Dos", rol: "cajero", pin: "2222", activo: true });
+      await repos.usuario.crear({
+        nombre: "Cajero Dos",
+        rol: opciones.rolEntrante ?? "cajero",
+        pin: "2222",
+        activo: true,
+      });
       if (opciones.turnoDeAdministrador) {
         const portador = crearPortadorSesion({
           usuarioId: "usuario-admin",
@@ -132,6 +140,27 @@ describe("Acceso (humo)", () => {
       fireEvent.click(await screen.findByText("Volver"));
 
       expect(await screen.findByText("¿Quién va a usar la caja?")).toBeTruthy();
+    });
+
+    it("un cajero no puede continuar desde el aviso", async () => {
+      await montarAcceso({ turnoDeAdministrador: true, rolEntrante: "cajero" });
+
+      fireEvent.click(await screen.findByText("Cajero Dos"));
+
+      await screen.findByText("Hay un turno abierto");
+      expect(screen.queryByText("Continuar")).toBeNull();
+    });
+
+    it("un supervisor puede continuar al PIN para forzar el cierre", async () => {
+      await montarAcceso({ turnoDeAdministrador: true, rolEntrante: "supervisor" });
+
+      fireEvent.click(await screen.findByText("Cajero Dos"));
+      await screen.findByText("Hay un turno abierto");
+      expect(screen.getByText(/podrás cerrarlo a la fuerza/i)).toBeTruthy();
+
+      fireEvent.click(screen.getByText("Continuar"));
+
+      expect(await screen.findByText(/Hola, Cajero Dos/)).toBeTruthy();
     });
 
     it("quien abrió el turno entra normal y ve el teclado de PIN", async () => {
