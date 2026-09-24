@@ -181,6 +181,12 @@ export function CorteCaja() {
               <span style={{ color: c.gris }}>Facturas cobradas</span>
               <span>{resumen.cantidadFacturas}</span>
             </div>
+            {resumen.totalDevoluciones > 0 && (
+              <div style={filaResumen}>
+                <span style={{ color: c.gris }}>Devoluciones (ya descontadas)</span>
+                <span>RD$ {money(resumen.totalDevoluciones)}</span>
+              </div>
+            )}
             <div style={filaResumenTotal}>
               <span>Total ventas</span>
               <span>RD$ {money(resumen.totalVentas)}</span>

@@ -73,3 +73,45 @@ describe("CorteCaja — verificar tarjeta/transferencia (humo, § CAJA)", () => 
     expect(filaDatos.textContent).toContain("—");
   });
 });
+
+describe("CorteCaja — devoluciones en el turno abierto (humo, § CAJA)", () => {
+  it("muestra las devoluciones y el efectivo esperado ya las descuenta", async () => {
+    const db = createNodeSqliteDriver();
+    await migrate(db);
+    await seed(db);
+    const repos = crearRepos(db);
+    await repos.corteCaja.abrirTurno({ montoInicial: 500 });
+    const t = await repos.factura.abrirTicket();
+    const linea = await repos.factura.agregarLinea(t.id, {
+      descripcion: "Artículo",
+      cantidad: 1,
+      precioUnitario: 100,
+      impuestoTipo: "itbis18",
+      tasaImpuesto: 0.18,
+    });
+    await repos.factura.cobrar(t.id, { pagos: [{ metodo: "efectivo", monto: 100 }] });
+    await repos.devolucion.crear({
+      facturaId: t.id,
+      metodoDevolucion: "efectivo",
+      lineas: [{ facturaLineaId: linea.id, cantidad: 1 }],
+    });
+
+    const sesion: PortadorSesion = {
+      usuarioId: null,
+      rol: "dueno",
+      permisos: permisosDeRol("dueno"),
+    };
+    render(
+      <ProveedorSesion db={db} sesionInicial={sesion}>
+        <ProveedorDatos>
+          <CorteCaja />
+        </ProveedorDatos>
+      </ProveedorSesion>,
+    );
+
+    expect(await screen.findByText("Devoluciones (ya descontadas)")).toBeTruthy();
+    expect(screen.getAllByText("RD$ 100.00").length).toBeGreaterThan(0);
+    const filasEsperado = screen.getAllByText("Efectivo esperado").map((e) => e.parentElement);
+    expect(filasEsperado.some((f) => f?.textContent?.includes("RD$ 500.00"))).toBe(true);
+  });
+});
