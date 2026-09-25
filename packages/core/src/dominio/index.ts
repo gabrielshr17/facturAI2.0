@@ -54,6 +54,7 @@ export {
   puedeVerBackoffice,
   PermisoError,
   SESION_LOCAL,
+  SESION_COPIA_REMOTA,
 } from "./permisos.js";
 export { hashearPin, verificarPin, CriptoNoDisponibleError } from "./pin.js";
 export { marcarSesion, restaurarSesion, debeBloquear } from "./sesion-vigencia.js";

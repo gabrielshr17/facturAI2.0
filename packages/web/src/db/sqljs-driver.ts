@@ -45,7 +45,11 @@ async function guardarBytes(bytes: Uint8Array): Promise<void> {
   });
 }
 
-export async function crearSqlJsDriver(): Promise<SqlDriver> {
+export interface OpcionesSqlJsDriver {
+  exigirLlavesForaneas?: boolean;
+}
+
+export async function crearSqlJsDriver(opciones: OpcionesSqlJsDriver = {}): Promise<SqlDriver> {
   const SQL = await initSqlJs({ locateFile: () => wasmUrl });
 
   // Sin esto el navegador trata la base como caché descartable y puede borrarla cuando el
@@ -59,7 +63,7 @@ export async function crearSqlJsDriver(): Promise<SqlDriver> {
 
   const previos = await cargarBytes();
   const db: Database = previos ? new SQL.Database(previos) : new SQL.Database();
-  db.run("PRAGMA foreign_keys = ON;");
+  db.run(`PRAGMA foreign_keys = ${opciones.exigirLlavesForaneas === false ? "OFF" : "ON"};`);
 
   // Persistencia diferida: agrupa escrituras seguidas en un solo guardado.
   let pendiente: ReturnType<typeof setTimeout> | null = null;

@@ -10,6 +10,8 @@ export {
 } from "./restauracion-nube.js";
 export {
   crearSincronizadorEntrante,
+  OPCIONES_MODO_REMOTO,
+  type OpcionesSincronizacionEntrante,
   type ConfigSincronizacionEntrante,
   type SincronizadorEntrante,
 } from "./bajada-entrante.js";
