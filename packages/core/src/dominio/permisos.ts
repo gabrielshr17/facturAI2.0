@@ -237,7 +237,6 @@ export const SESION_LOCAL: PortadorSesion = {
 const PERMISOS_SOLO_EN_CAJA: readonly Permiso[] = [
   "modulo.ventas",
   "factura.cobrar",
-  "modulo.corte_caja",
   "caja.abrir",
   "caja.cerrar",
   "devolucion.registrar",

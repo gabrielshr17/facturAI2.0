@@ -253,7 +253,8 @@ export function crearCorteCajaRepo(db: SqlDriver) {
       }
 
       const sesion = sesionDe(db);
-      const esPropio = sesion !== null && sesion.usuarioId === abierto.usuario_id;
+      const esPropio =
+        sesion !== null && sesion.usuarioId !== null && sesion.usuarioId === abierto.usuario_id;
       if (!esPropio) exigirPermiso(db, "caja.cerrar");
 
       if (input.efectivoContado < 0) {

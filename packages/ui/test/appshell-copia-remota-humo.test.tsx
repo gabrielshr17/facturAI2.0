@@ -10,13 +10,12 @@ beforeEach(() => {
 });
 
 describe("AppShell con la sesión de la copia remota", () => {
-  it("oculta Ventas y Corte de caja y deja los módulos de administración", async () => {
+  it("oculta Ventas y deja el corte de caja y los módulos de administración", async () => {
     await renderConDatos(<AppShell plataforma="Web" />, SESION_COPIA_REMOTA);
 
     const nav = screen.getByRole("navigation", { name: "Módulos" });
     expect(within(nav).queryByText("Ventas")).toBeNull();
-    expect(within(nav).queryByText("Corte de caja")).toBeNull();
-    for (const etiqueta of ["Productos", "Clientes", "Compras", "Reportes"]) {
+    for (const etiqueta of ["Productos", "Clientes", "Compras", "Reportes", "Corte de caja"]) {
       expect(within(nav).getByText(etiqueta)).toBeTruthy();
     }
   });

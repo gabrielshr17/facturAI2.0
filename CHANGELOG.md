@@ -18,6 +18,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   facturas y reportes) y los mismos datos. Desde ahí no se puede vender ni abrir o cerrar caja:
   eso sigue haciéndose solo en la caja.
 
+- La copia web que se abre desde el panel remoto ahora muestra el Corte de caja en modo consulta:
+  se ve el turno en curso de la caja y los cortes anteriores, pero no se puede abrir ni cerrar caja
+  desde ahí.
+
 ### Removed
 
 - Del panel remoto salieron las pantallas propias de Ventas, Clientes, Productos, Compras,
@@ -27,5 +31,6 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Fixed
 
+- Un turno de caja abierto sin usuario ya no se puede cerrar desde una sesión sin permiso de cierre.
 - Un cambio hecho en el panel remoto ya no se pierde cuando la caja vende ese mismo producto
   después: gana siempre el cambio más reciente.
