@@ -85,4 +85,12 @@ export const migracionesSync: Migration[] = [
       );
     `,
   },
+  {
+    id: 97,
+    nombre: "sync_usuario_y_bitacora",
+    sql: /* sql */ `
+      ${bloqueTabla("usuario")}
+      ${bloqueTabla("bitacora_accion")}
+    `,
+  },
 ];

@@ -33,6 +33,7 @@ export interface SincronizadorSaliente {
  */
 export const ORDEN_TABLAS = [
   "negocio",
+  "usuario",
   "departamento",
   "proveedor",
   "cliente",
@@ -45,7 +46,23 @@ export const ORDEN_TABLAS = [
   "compra",
   "compra_linea",
   "comprobante_archivo",
+  "bitacora_accion",
 ] as const;
+
+export const COLUMNAS_SUBIDA: Readonly<Record<string, readonly string[]>> = {
+  usuario: ["id", "nombre", "rol", "activo", "created_at", "updated_at", "deleted_at"],
+};
+
+function limitarColumnas(
+  tabla: string,
+  filas: Record<string, unknown>[],
+): Record<string, unknown>[] {
+  const permitidas = COLUMNAS_SUBIDA[tabla];
+  if (!permitidas) return filas;
+  return filas.map((fila) =>
+    Object.fromEntries(permitidas.map((columna) => [columna, fila[columna]])),
+  );
+}
 
 /** Límite de filas por lote: evita un payload gigante si se acumuló mucho pendiente offline. */
 const TAMANO_LOTE = 200;
@@ -143,7 +160,7 @@ async function sincronizarTabla(
   if (filas.length === 0) return tokenActual;
 
   const token = tokenActual ?? (await obtenerToken(config, peticion));
-  await subirFilas(config, token, tabla, filas, peticion);
+  await subirFilas(config, token, tabla, limitarColumnas(tabla, filas), peticion);
   await limpiarPendientes(db, tabla, Array.from(idsEncontrados));
   return token;
 }
