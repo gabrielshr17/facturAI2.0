@@ -1,9 +1,11 @@
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AppShell, ProveedorDatos, ProveedorSesion, Acceso, useSesion } from "@sfr/ui";
-import { migrate, seed, crearUsuarioRepo, type SqlDriver } from "@sfr/core";
+import { migrate, seed, crearUsuarioRepo, SESION_COPIA_REMOTA, type SqlDriver } from "@sfr/core";
 import { crearSqlJsDriver } from "./db/sqljs-driver.js";
 import { iniciarSincronizacionEnSegundoPlano } from "./sync/arrancar.js";
+import { iniciarCopiaRemota, type ResultadoCopiaRemota } from "./sync/copia-remota.js";
+import { MODO_REMOTO } from "./modo-remoto.js";
 import "@sfr/ui/estilos-globales.css";
 
 /**
@@ -14,8 +16,25 @@ import "@sfr/ui/estilos-globales.css";
  * `.autenticar()` igual que cualquier pantalla.
  */
 function Compuerta({ plataforma }: { plataforma: "Web" | "Escritorio" }) {
-  const { autenticado } = useSesion();
+  const { autenticado, iniciarSesion } = useSesion();
+  useEffect(() => {
+    if (MODO_REMOTO && !autenticado) iniciarSesion(SESION_COPIA_REMOTA);
+  }, [autenticado, iniciarSesion]);
+  if (MODO_REMOTO) return autenticado ? <AppShell plataforma={plataforma} /> : null;
   return autenticado ? <AppShell plataforma={plataforma} /> : <Acceso />;
+}
+
+function AvisoCopiaRemota({ motivo }: { motivo: Exclude<ResultadoCopiaRemota, "listo"> }) {
+  const mensaje =
+    motivo === "sin_sesion"
+      ? "Inicia sesión en el panel remoto para abrir facturAI."
+      : "Esta copia no está configurada para conectarse a la nube.";
+  return (
+    <div style={{ padding: 24, fontFamily: "system-ui" }}>
+      <p>{mensaje}</p>
+      <a href="/">Ir al panel remoto</a>
+    </div>
+  );
 }
 
 /**
@@ -25,6 +44,9 @@ function Compuerta({ plataforma }: { plataforma: "Web" | "Escritorio" }) {
 function App() {
   const [db, setDb] = useState<SqlDriver | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [avisoRemoto, setAvisoRemoto] = useState<Exclude<ResultadoCopiaRemota, "listo"> | null>(
+    null,
+  );
 
   // Guarda contra el doble-montaje de React StrictMode en desarrollo: sin este
   // guard, el efecto crea DOS instancias independientes de sql.js (cada una con
@@ -38,8 +60,17 @@ function App() {
     iniciado.current = true;
     void (async () => {
       try {
-        const driver = await crearSqlJsDriver();
+        const driver = await crearSqlJsDriver({ exigirLlavesForaneas: !MODO_REMOTO });
         await migrate(driver);
+        if (MODO_REMOTO) {
+          const resultado = await iniciarCopiaRemota(driver);
+          if (resultado !== "listo") {
+            setAvisoRemoto(resultado);
+            return;
+          }
+          setDb(driver);
+          return;
+        }
         await seed(driver);
         setDb(driver);
         // No puede lanzar (arrancar.ts solo loguea y sigue si algo falla): un
@@ -59,6 +90,7 @@ function App() {
       </div>
     );
   }
+  if (avisoRemoto) return <AvisoCopiaRemota motivo={avisoRemoto} />;
   if (!db) {
     return (
       <div style={{ padding: 24, fontFamily: "system-ui", color: "#6b7280" }}>

@@ -111,6 +111,22 @@ export function App(): JSX.Element {
                 {item.etiqueta}
               </button>
             ))}
+            <a
+              href="/facturai/"
+              target="_blank"
+              rel="noopener"
+              style={{
+                borderRadius: 8,
+                padding: "8px 14px",
+                fontSize: 14,
+                fontWeight: 600,
+                textDecoration: "none",
+                border: `1px solid ${c.azul}`,
+                color: c.azul,
+              }}
+            >
+              facturAI
+            </a>
           </nav>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
