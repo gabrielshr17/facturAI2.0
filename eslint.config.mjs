@@ -12,6 +12,7 @@ export default tseslint.config(
       "**/*.tsbuildinfo",
       "packages/desktop/src-tauri/**",
       "packages/web/public/**",
+      "packages/remoto/public/facturai/**",
       "packages/desktop/gen/**",
     ],
   },
