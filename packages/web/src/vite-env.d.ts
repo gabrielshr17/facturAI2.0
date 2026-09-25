@@ -12,6 +12,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_SYNC_EMAIL?: string;
   readonly VITE_SYNC_PASSWORD?: string;
+  readonly VITE_MODO_REMOTO?: string;
 }
 
 interface ImportMeta {

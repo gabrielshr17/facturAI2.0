@@ -4,41 +4,12 @@ import { supabase } from "./supabaseClient";
 import { c, s } from "./estilos";
 import { Acceso } from "./pantallas/Acceso";
 import { CambiarClave } from "./pantallas/CambiarClave";
-import { Inventario } from "./pantallas/Inventario";
-import { Compras } from "./pantallas/Compras";
-import { Reportes } from "./pantallas/Reportes";
-import { Ventas } from "./pantallas/Ventas";
-import { Clientes } from "./pantallas/Clientes";
-import { Productos } from "./pantallas/Productos";
-import { Promociones } from "./pantallas/Promociones";
-import { ConsultaCotizaciones } from "./pantallas/ConsultaCotizaciones";
-import { ConsultaFacturas } from "./pantallas/ConsultaFacturas";
 import { Personal } from "./pantallas/Personal";
 import { Configuracion } from "./pantallas/Configuracion";
 
-type Pestana =
-  | "ventas"
-  | "clientes"
-  | "productos"
-  | "compras"
-  | "inventario"
-  | "promociones"
-  | "cotizaciones"
-  | "facturas"
-  | "reportes"
-  | "personal"
-  | "configuracion";
+type Pestana = "personal" | "configuracion";
 
 const PESTANAS: { id: Pestana; etiqueta: string }[] = [
-  { id: "ventas", etiqueta: "Ventas" },
-  { id: "clientes", etiqueta: "Clientes" },
-  { id: "productos", etiqueta: "Productos" },
-  { id: "compras", etiqueta: "Compras" },
-  { id: "inventario", etiqueta: "Inventario" },
-  { id: "promociones", etiqueta: "Promociones" },
-  { id: "cotizaciones", etiqueta: "Cotizaciones" },
-  { id: "facturas", etiqueta: "Facturas" },
-  { id: "reportes", etiqueta: "Reportes" },
   { id: "personal", etiqueta: "Personal" },
   { id: "configuracion", etiqueta: "Configuración" },
 ];
@@ -53,7 +24,7 @@ const PESTANAS: { id: Pestana; etiqueta: string }[] = [
 export function App(): JSX.Element {
   const [sesion, setSesion] = useState<Session | null>(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
-  const [pestana, setPestana] = useState<Pestana>("ventas");
+  const [pestana, setPestana] = useState<Pestana>("personal");
   const [cambiandoClave, setCambiandoClave] = useState(false);
 
   useEffect(() => {
@@ -111,6 +82,22 @@ export function App(): JSX.Element {
                 {item.etiqueta}
               </button>
             ))}
+            <a
+              href="/facturai/"
+              target="_blank"
+              rel="noopener"
+              style={{
+                borderRadius: 8,
+                padding: "8px 14px",
+                fontSize: 14,
+                fontWeight: 600,
+                textDecoration: "none",
+                border: `1px solid ${c.azul}`,
+                color: c.azul,
+              }}
+            >
+              facturAI
+            </a>
           </nav>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -129,15 +116,6 @@ export function App(): JSX.Element {
       </header>
 
       <main style={{ flex: 1, padding: 20 }}>
-        {pestana === "ventas" && <Ventas />}
-        {pestana === "clientes" && <Clientes />}
-        {pestana === "productos" && <Productos />}
-        {pestana === "compras" && <Compras />}
-        {pestana === "inventario" && <Inventario />}
-        {pestana === "promociones" && <Promociones />}
-        {pestana === "cotizaciones" && <ConsultaCotizaciones />}
-        {pestana === "facturas" && <ConsultaFacturas />}
-        {pestana === "reportes" && <Reportes />}
         {pestana === "personal" && <Personal />}
         {pestana === "configuracion" && <Configuracion />}
       </main>
