@@ -11,6 +11,11 @@ export interface SincronizadorEntrante {
   sincronizar(): Promise<void>;
 }
 
+export interface OpcionesSincronizacionEntrante {
+  tablas?: readonly string[];
+  columnasPorTabla?: Readonly<Record<string, string>>;
+}
+
 export const TABLAS_ENTRANTES = [
   "negocio",
   "departamento",
@@ -20,6 +25,27 @@ export const TABLAS_ENTRANTES = [
   "movimiento_inventario",
 ] as const;
 
+export const OPCIONES_MODO_REMOTO: Required<OpcionesSincronizacionEntrante> = {
+  tablas: [
+    "negocio",
+    "departamento",
+    "proveedor",
+    "usuario",
+    "cliente",
+    "producto",
+    "factura",
+    "factura_linea",
+    "pago",
+    "corte_caja",
+    "movimiento_inventario",
+    "compra",
+    "compra_linea",
+  ],
+  columnasPorTabla: {
+    usuario: "id,nombre,rol,activo,created_at,updated_at,deleted_at",
+  },
+};
+
 const TAMANO_PAGINA = 500;
 
 type FilaRemota = Record<string, unknown>;
@@ -28,13 +54,14 @@ async function pedirFilas(
   config: ConfigSincronizacionEntrante,
   token: string,
   tabla: string,
+  columnas: string,
   cursor: string | null,
   desplazamiento: number,
   peticion: typeof fetch,
 ): Promise<FilaRemota[]> {
   const filtro = cursor ? `&updated_at=gte.${encodeURIComponent(cursor)}` : "";
   const pagina = `&limit=${TAMANO_PAGINA}&offset=${desplazamiento}`;
-  const url = `${normalizarBase(config.supabaseUrl)}/rest/v1/${tabla}?select=*&order=updated_at.asc,id.asc${filtro}${pagina}`;
+  const url = `${normalizarBase(config.supabaseUrl)}/rest/v1/${tabla}?select=${columnas}&order=updated_at.asc,id.asc${filtro}${pagina}`;
   const respuesta = await peticion(url, {
     headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${token}` },
   });
@@ -110,13 +137,22 @@ async function sincronizarTabla(
   config: ConfigSincronizacionEntrante,
   token: string,
   tabla: string,
+  seleccion: string,
   peticion: typeof fetch,
 ): Promise<void> {
   const columnas = await columnasLocales(db, tabla);
   let cursor = await leerCursor(db, tabla);
   let desplazamiento = 0;
   for (;;) {
-    const filas = await pedirFilas(config, token, tabla, cursor, desplazamiento, peticion);
+    const filas = await pedirFilas(
+      config,
+      token,
+      tabla,
+      seleccion,
+      cursor,
+      desplazamiento,
+      peticion,
+    );
     for (const fila of filas) await aplicarFila(db, tabla, columnas, fila);
     if (filas.length === 0) return;
 
@@ -133,7 +169,9 @@ export function crearSincronizadorEntrante(
   db: SqlDriver,
   config: ConfigSincronizacionEntrante,
   peticion: typeof fetch = fetch,
+  opciones: OpcionesSincronizacionEntrante = {},
 ): SincronizadorEntrante {
+  const tablas = opciones.tablas ?? TABLAS_ENTRANTES;
   return {
     async sincronizar(): Promise<void> {
       let token: string;
@@ -143,9 +181,10 @@ export function crearSincronizadorEntrante(
         console.error("No se pudo autenticar la sincronización entrante con Supabase:", error);
         return;
       }
-      for (const tabla of TABLAS_ENTRANTES) {
+      for (const tabla of tablas) {
         try {
-          await sincronizarTabla(db, config, token, tabla, peticion);
+          const seleccion = opciones.columnasPorTabla?.[tabla] ?? "*";
+          await sincronizarTabla(db, config, token, tabla, seleccion, peticion);
         } catch (error) {
           console.error(`No se pudo traer '${tabla}' desde Supabase:`, error);
         }

@@ -49,6 +49,8 @@ export {
   type ConfigSincronizacionSaliente,
   type SincronizadorSaliente,
   crearSincronizadorEntrante,
+  OPCIONES_MODO_REMOTO,
+  type OpcionesSincronizacionEntrante,
   type ConfigSincronizacionEntrante,
   type SincronizadorEntrante,
   crearSincronizadorBidireccional,

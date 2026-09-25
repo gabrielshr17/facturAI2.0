@@ -233,3 +233,19 @@ export const SESION_LOCAL: PortadorSesion = {
   rol: "superadmin",
   permisos: new Set(PERMISOS),
 };
+
+const PERMISOS_SOLO_EN_CAJA: readonly Permiso[] = [
+  "modulo.ventas",
+  "factura.cobrar",
+  "modulo.corte_caja",
+  "caja.abrir",
+  "caja.cerrar",
+  "devolucion.registrar",
+  "personal.gestionar",
+];
+
+export const SESION_COPIA_REMOTA: PortadorSesion = {
+  usuarioId: null,
+  rol: "dueno",
+  permisos: new Set(PERMISOS.filter((p) => !PERMISOS_SOLO_EN_CAJA.includes(p))),
+};
