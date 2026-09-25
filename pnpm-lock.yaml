@@ -207,6 +207,9 @@ importers:
       '@sfr/ui':
         specifier: workspace:*
         version: link:../ui
+      '@supabase/supabase-js':
+        specifier: ^2.116.0
+        version: 2.116.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
