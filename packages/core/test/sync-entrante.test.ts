@@ -3,7 +3,7 @@ import type { SqlDriver } from "../src/db/driver.js";
 import { nuevaDb, nuevaDbHasta } from "./_ayuda.js";
 import { migrate } from "../src/db/migrator.js";
 import { crearProductoRepo } from "../src/index.js";
-import { crearSincronizadorEntrante } from "../src/sync/bajada-entrante.js";
+import { crearSincronizadorEntrante, OPCIONES_MODO_REMOTO } from "../src/sync/bajada-entrante.js";
 import { crearSincronizadorBidireccional } from "../src/sync/index.js";
 
 type FilaRemota = Record<string, unknown>;
@@ -15,6 +15,7 @@ interface NubeFalsa {
   consultas: URL[];
   subidas: { tabla: string; filas: FilaRemota[] }[];
   autenticaciones: { total: number };
+  autorizaciones: string[];
   tablasConError: Set<string>;
   fetch: typeof fetch;
 }
@@ -25,6 +26,7 @@ function crearNubeFalsa(): NubeFalsa {
   const subidas: { tabla: string; filas: FilaRemota[] }[] = [];
   const tablasConError = new Set<string>();
   const autenticaciones = { total: 0 };
+  const autorizaciones: string[] = [];
   const fetchFalso = (async (entrada: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = new URL(String(entrada));
     if (url.pathname === "/auth/v1/token") {
@@ -37,6 +39,9 @@ function crearNubeFalsa(): NubeFalsa {
       return new Response(null, { status: 201 });
     }
     consultas.push(url);
+    autorizaciones.push(
+      String((init?.headers as Record<string, string> | undefined)?.Authorization),
+    );
     if (tablasConError.has(tabla)) return new Response("boom", { status: 500 });
     const filtro = url.searchParams.get("updated_at");
     const desde = filtro?.startsWith("gte.") ? new Date(filtro.slice(4)).getTime() : -Infinity;
@@ -52,7 +57,15 @@ function crearNubeFalsa(): NubeFalsa {
     const pagina = filas.slice(desplazamiento, desplazamiento + Math.min(limite, MAX_FILAS_NUBE));
     return new Response(JSON.stringify(pagina), { status: 200 });
   }) as typeof fetch;
-  return { tablas, consultas, subidas, autenticaciones, tablasConError, fetch: fetchFalso };
+  return {
+    tablas,
+    consultas,
+    subidas,
+    autenticaciones,
+    autorizaciones,
+    tablasConError,
+    fetch: fetchFalso,
+  };
 }
 
 const CONFIG = {
@@ -261,6 +274,24 @@ describe("sincronizador entrante — Supabase hacia la base local", () => {
     );
     expect(JSON.parse(fila?.niveles_permitidos_json ?? "null")).toEqual(["precio_2", "precio_3"]);
   });
+
+  it("usa el token que entrega el proveedor de sesión sin pedir credenciales compartidas", async () => {
+    nube.tablas.producto = [productoRemoto()];
+    const config = {
+      supabaseUrl: CONFIG.supabaseUrl,
+      supabaseAnonKey: CONFIG.supabaseAnonKey,
+      proveedorToken: async () => "jwt-del-dueno",
+    };
+
+    await crearSincronizadorEntrante(db, config, nube.fetch).sincronizar();
+
+    expect(nube.autenticaciones.total).toBe(0);
+    expect(nube.autorizaciones.length).toBeGreaterThan(0);
+    expect(new Set(nube.autorizaciones)).toEqual(new Set(["Bearer jwt-del-dueno"]));
+    expect((await crearProductoRepo(db).obtener("prod-remoto-1"))?.descripcion).toBe(
+      "Arroz a granel",
+    );
+  });
 });
 
 describe("migración 96 — cursor de sincronización entrante", () => {
@@ -320,5 +351,124 @@ describe("ciclo completo — primero baja, después sube", () => {
     await Promise.all([sincronizador.sincronizar(), sincronizador.sincronizar()]);
 
     expect(nube2.autenticaciones.total).toBe(1);
+  });
+});
+
+describe("copia remota — modo espejo con todas las tablas", () => {
+  it("trae facturas que apuntan a cajas y usuarios que el dueño no puede leer", async () => {
+    const db = await nuevaDb();
+    await db.exec("PRAGMA foreign_keys = OFF");
+    const nube = crearNubeFalsa();
+    nube.tablas.factura = [
+      {
+        id: "fact-1",
+        fecha_hora: "2026-09-24T15:00:00+00:00",
+        caja_id: "caja-de-la-tienda",
+        usuario_id: "cajero-1",
+        total: 118,
+        estado: "cobrada",
+        created_at: "2026-09-24T15:00:00+00:00",
+        updated_at: "2026-09-24T15:00:00+00:00",
+        deleted_at: null,
+      },
+    ];
+    nube.tablas.factura_linea = [
+      {
+        id: "lin-1",
+        factura_id: "fact-1",
+        descripcion: "Arroz",
+        cantidad: 2,
+        precio_unitario: 50,
+        created_at: "2026-09-24T15:00:00+00:00",
+        updated_at: "2026-09-24T15:00:00+00:00",
+        deleted_at: null,
+      },
+    ];
+
+    await crearSincronizadorEntrante(db, CONFIG, nube.fetch, OPCIONES_MODO_REMOTO).sincronizar();
+
+    const factura = await db.get<{ total: number }>("SELECT total FROM factura WHERE id=?", [
+      "fact-1",
+    ]);
+    const linea = await db.get<{ cantidad: number }>(
+      "SELECT cantidad FROM factura_linea WHERE id=?",
+      ["lin-1"],
+    );
+    expect(factura?.total).toBe(118);
+    expect(linea?.cantidad).toBe(2);
+  });
+
+  it("pide a usuario solo las columnas permitidas y conserva el PIN local", async () => {
+    const db = await nuevaDb();
+    await db.exec("PRAGMA foreign_keys = OFF");
+    const nube = crearNubeFalsa();
+    await db.run(
+      "INSERT INTO usuario (id, nombre, rol, pin_hash, activo, created_at, updated_at) VALUES (?,?,?,?,?,?,?)",
+      [
+        "u1",
+        "Ana",
+        "cajero",
+        "hash-secreto",
+        1,
+        "2026-01-01T00:00:00.000Z",
+        "2026-01-01T00:00:00.000Z",
+      ],
+    );
+    nube.tablas.usuario = [
+      {
+        id: "u1",
+        nombre: "Ana María",
+        rol: "cajero",
+        activo: true,
+        created_at: "2026-01-01T00:00:00+00:00",
+        updated_at: "2026-09-24T09:00:00+00:00",
+        deleted_at: null,
+      },
+    ];
+
+    await crearSincronizadorEntrante(db, CONFIG, nube.fetch, OPCIONES_MODO_REMOTO).sincronizar();
+
+    const consulta = nube.consultas.find((u) => u.pathname === "/rest/v1/usuario");
+    expect(consulta?.searchParams.get("select")).toBe(
+      "id,nombre,rol,activo,created_at,updated_at,deleted_at",
+    );
+    const usuario = await db.get<{ nombre: string; pin_hash: string }>(
+      "SELECT nombre, pin_hash FROM usuario WHERE id=?",
+      ["u1"],
+    );
+    expect(usuario?.nombre).toBe("Ana María");
+    expect(usuario?.pin_hash).toBe("hash-secreto");
+  });
+});
+
+describe("ciclo completo en modo espejo", () => {
+  it("pasa las opciones de la bajada y no sube lo que acaba de bajar", async () => {
+    const db = await nuevaDb();
+    await db.exec("PRAGMA foreign_keys = OFF");
+    const nube = crearNubeFalsa();
+    nube.tablas.factura = [
+      {
+        id: "fact-espejo",
+        fecha_hora: "2026-09-24T15:00:00+00:00",
+        total: 236,
+        estado: "cobrada",
+        created_at: "2026-09-24T15:00:00+00:00",
+        updated_at: "2026-09-24T15:00:00+00:00",
+        deleted_at: null,
+      },
+    ];
+
+    await crearSincronizadorBidireccional(
+      db,
+      CONFIG,
+      nube.fetch,
+      OPCIONES_MODO_REMOTO,
+    ).sincronizar();
+
+    const factura = await db.get<{ total: number }>("SELECT total FROM factura WHERE id=?", [
+      "fact-espejo",
+    ]);
+    expect(factura?.total).toBe(236);
+    expect(nube.subidas.flatMap((u) => u.filas).some((f) => f.id === "fact-espejo")).toBe(false);
   });
 });

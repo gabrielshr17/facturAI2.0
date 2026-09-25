@@ -12,12 +12,13 @@ import type { SqlDriver } from "../db/driver.js";
  * registro es un problema distinto, fuera de alcance aquí.
  */
 
-export interface ConfigSincronizacionSaliente {
+export type CredencialesSincronizacion =
+  { syncEmail: string; syncPassword: string } | { proveedorToken: () => Promise<string> };
+
+export type ConfigSincronizacionSaliente = {
   supabaseUrl: string;
   supabaseAnonKey: string;
-  syncEmail: string;
-  syncPassword: string;
-}
+} & CredencialesSincronizacion;
 
 export interface SincronizadorSaliente {
   /** Sube todo lo pendiente que pueda. Nunca lanza: registra el error y sigue. */
@@ -61,6 +62,7 @@ export async function obtenerToken(
   config: ConfigSincronizacionSaliente,
   peticion: typeof fetch = fetch,
 ): Promise<string> {
+  if ("proveedorToken" in config) return config.proveedorToken();
   const url = `${normalizarBase(config.supabaseUrl)}/auth/v1/token?grant_type=password`;
   const respuesta = await peticion(url, {
     method: "POST",

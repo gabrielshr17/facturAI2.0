@@ -1,5 +1,8 @@
 import type { SqlDriver } from "../db/driver.js";
-import { crearSincronizadorEntrante } from "./bajada-entrante.js";
+import {
+  crearSincronizadorEntrante,
+  type OpcionesSincronizacionEntrante,
+} from "./bajada-entrante.js";
 import {
   crearSincronizadorSaliente,
   type ConfigSincronizacionSaliente,
@@ -13,8 +16,9 @@ export function crearSincronizadorBidireccional(
   db: SqlDriver,
   config: ConfigSincronizacionSaliente,
   peticion: typeof fetch = fetch,
+  opcionesEntrantes: OpcionesSincronizacionEntrante = {},
 ): SincronizadorBidireccional {
-  const entrante = crearSincronizadorEntrante(db, config, peticion);
+  const entrante = crearSincronizadorEntrante(db, config, peticion, opcionesEntrantes);
   const saliente = crearSincronizadorSaliente(db, config, peticion);
   let enCurso = false;
   return {
