@@ -14,10 +14,16 @@ export interface SincronizadorEntrante {
 export interface OpcionesSincronizacionEntrante {
   tablas?: readonly string[];
   columnasPorTabla?: Readonly<Record<string, string>>;
+  columnaCursor?: Readonly<Record<string, string>>;
 }
+
+const COLUMNAS_SEGURAS: Readonly<Record<string, string>> = {
+  usuario: "id,nombre,rol,activo,created_at,updated_at,deleted_at",
+};
 
 export const TABLAS_ENTRANTES = [
   "negocio",
+  "usuario",
   "departamento",
   "proveedor",
   "cliente",
@@ -40,10 +46,10 @@ export const OPCIONES_MODO_REMOTO: Required<OpcionesSincronizacionEntrante> = {
     "movimiento_inventario",
     "compra",
     "compra_linea",
+    "bitacora_accion",
   ],
-  columnasPorTabla: {
-    usuario: "id,nombre,rol,activo,created_at,updated_at,deleted_at",
-  },
+  columnasPorTabla: COLUMNAS_SEGURAS,
+  columnaCursor: { bitacora_accion: "timestamp" },
 };
 
 const TAMANO_PAGINA = 500;
@@ -55,13 +61,14 @@ async function pedirFilas(
   token: string,
   tabla: string,
   columnas: string,
+  columnaCursor: string,
   cursor: string | null,
   desplazamiento: number,
   peticion: typeof fetch,
 ): Promise<FilaRemota[]> {
-  const filtro = cursor ? `&updated_at=gte.${encodeURIComponent(cursor)}` : "";
+  const filtro = cursor ? `&${columnaCursor}=gte.${encodeURIComponent(cursor)}` : "";
   const pagina = `&limit=${TAMANO_PAGINA}&offset=${desplazamiento}`;
-  const url = `${normalizarBase(config.supabaseUrl)}/rest/v1/${tabla}?select=${columnas}&order=updated_at.asc,id.asc${filtro}${pagina}`;
+  const url = `${normalizarBase(config.supabaseUrl)}/rest/v1/${tabla}?select=${columnas}&order=${columnaCursor}.asc,id.asc${filtro}${pagina}`;
   const respuesta = await peticion(url, {
     headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${token}` },
   });
@@ -88,8 +95,9 @@ async function aplicarFila(
   columnas: string[],
   fila: FilaRemota,
 ): Promise<void> {
-  const existente = await db.get<{ updated_at: string }>(
-    `SELECT updated_at FROM ${tabla} WHERE id=?`,
+  const conFechaDeEdicion = columnas.includes("updated_at");
+  const existente = await db.get<{ updated_at?: string }>(
+    `SELECT ${conFechaDeEdicion ? "updated_at" : "id"} FROM ${tabla} WHERE id=?`,
     [fila.id as string],
   );
   const usadas = columnas.filter((c) => c in fila);
@@ -101,7 +109,7 @@ async function aplicarFila(
       `INSERT INTO ${tabla} (${usadas.join(",")}) VALUES (${usadas.map(() => "?").join(",")})`,
       valores,
     );
-  } else if (esMasNueva(fila.updated_at, existente.updated_at)) {
+  } else if (conFechaDeEdicion && esMasNueva(fila.updated_at, existente.updated_at)) {
     const editables = usadas.filter((c) => c !== "id");
     await db.run(`UPDATE ${tabla} SET ${editables.map((c) => `${c}=?`).join(",")} WHERE id=?`, [
       ...editables.map((c) => aValorLocal(fila[c])),
@@ -138,6 +146,7 @@ async function sincronizarTabla(
   token: string,
   tabla: string,
   seleccion: string,
+  columnaCursor: string,
   peticion: typeof fetch,
 ): Promise<void> {
   const columnas = await columnasLocales(db, tabla);
@@ -149,6 +158,7 @@ async function sincronizarTabla(
       token,
       tabla,
       seleccion,
+      columnaCursor,
       cursor,
       desplazamiento,
       peticion,
@@ -156,7 +166,7 @@ async function sincronizarTabla(
     for (const fila of filas) await aplicarFila(db, tabla, columnas, fila);
     if (filas.length === 0) return;
 
-    const ultima = String(filas[filas.length - 1].updated_at);
+    const ultima = String(filas[filas.length - 1][columnaCursor]);
     await guardarCursor(db, tabla, ultima);
     if (filas.length < TAMANO_PAGINA) return;
 
@@ -183,8 +193,9 @@ export function crearSincronizadorEntrante(
       }
       for (const tabla of tablas) {
         try {
-          const seleccion = opciones.columnasPorTabla?.[tabla] ?? "*";
-          await sincronizarTabla(db, config, token, tabla, seleccion, peticion);
+          const seleccion = opciones.columnasPorTabla?.[tabla] ?? COLUMNAS_SEGURAS[tabla] ?? "*";
+          const columnaCursor = opciones.columnaCursor?.[tabla] ?? "updated_at";
+          await sincronizarTabla(db, config, token, tabla, seleccion, columnaCursor, peticion);
         } catch (error) {
           console.error(`No se pudo traer '${tabla}' desde Supabase:`, error);
         }

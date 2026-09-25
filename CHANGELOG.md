@@ -22,6 +22,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   se ve el turno en curso de la caja y los cortes anteriores, pero no se puede abrir ni cerrar caja
   desde ahí.
 
+- El personal de la caja y su bitácora de acciones ahora se ven desde el panel remoto y desde la
+  copia web. Las personas creadas en el panel aparecen en la caja sin PIN y no pueden entrar hasta
+  que se les asigne uno allí. El PIN y los permisos detallados nunca salen de la caja.
+
 ### Removed
 
 - Del panel remoto salieron las pantallas propias de Ventas, Clientes, Productos, Compras,
