@@ -83,7 +83,7 @@ export function App(): JSX.Element {
               </button>
             ))}
             <a
-              href="/facturai/"
+              href="/facturai/index.html"
               target="_blank"
               rel="noopener"
               style={{
