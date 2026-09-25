@@ -80,6 +80,10 @@ describe("CorteCaja — devoluciones en el turno abierto (humo, § CAJA)", () =>
     await migrate(db);
     await seed(db);
     const repos = crearRepos(db);
+    await db.run("UPDATE factura SET fecha_hora=? WHERE id=?", [
+      "2020-01-01T00:00:00.000Z",
+      "fac-demo",
+    ]);
     await repos.corteCaja.abrirTurno({ montoInicial: 500 });
     const t = await repos.factura.abrirTicket();
     const linea = await repos.factura.agregarLinea(t.id, {
