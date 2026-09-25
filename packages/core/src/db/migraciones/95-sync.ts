@@ -75,4 +75,14 @@ export const migracionesSync: Migration[] = [
       ${TABLAS_SINCRONIZADAS.map(bloqueTabla).join("\n")}
     `,
   },
+  {
+    id: 96,
+    nombre: "cursor_sincronizacion_entrante",
+    sql: /* sql */ `
+      CREATE TABLE sync_cursor (
+        tabla              TEXT PRIMARY KEY,
+        ultimo_updated_at  TEXT NOT NULL
+      );
+    `,
+  },
 ];

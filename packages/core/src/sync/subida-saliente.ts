@@ -57,9 +57,12 @@ export function normalizarBase(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-export async function obtenerToken(config: ConfigSincronizacionSaliente): Promise<string> {
+export async function obtenerToken(
+  config: ConfigSincronizacionSaliente,
+  peticion: typeof fetch = fetch,
+): Promise<string> {
   const url = `${normalizarBase(config.supabaseUrl)}/auth/v1/token?grant_type=password`;
-  const respuesta = await fetch(url, {
+  const respuesta = await peticion(url, {
     method: "POST",
     headers: { apikey: config.supabaseAnonKey, "Content-Type": "application/json" },
     body: JSON.stringify({ email: config.syncEmail, password: config.syncPassword }),
@@ -79,9 +82,10 @@ async function subirFilas(
   token: string,
   tabla: string,
   filas: Record<string, unknown>[],
+  peticion: typeof fetch,
 ): Promise<void> {
   const url = `${normalizarBase(config.supabaseUrl)}/rest/v1/${tabla}?on_conflict=id`;
-  const respuesta = await fetch(url, {
+  const respuesta = await peticion(url, {
     method: "POST",
     headers: {
       apikey: config.supabaseAnonKey,
@@ -112,6 +116,7 @@ async function sincronizarTabla(
   config: ConfigSincronizacionSaliente,
   tabla: string,
   tokenActual: string | null,
+  peticion: typeof fetch,
 ): Promise<string | null> {
   const pendientes = await db.all<{ id: string }>(
     "SELECT id FROM sync_pendiente WHERE tabla=? LIMIT ?",
@@ -135,8 +140,8 @@ async function sincronizarTabla(
 
   if (filas.length === 0) return tokenActual;
 
-  const token = tokenActual ?? (await obtenerToken(config));
-  await subirFilas(config, token, tabla, filas);
+  const token = tokenActual ?? (await obtenerToken(config, peticion));
+  await subirFilas(config, token, tabla, filas, peticion);
   await limpiarPendientes(db, tabla, Array.from(idsEncontrados));
   return token;
 }
@@ -144,13 +149,14 @@ async function sincronizarTabla(
 export function crearSincronizadorSaliente(
   db: SqlDriver,
   config: ConfigSincronizacionSaliente,
+  peticion: typeof fetch = fetch,
 ): SincronizadorSaliente {
   return {
     async sincronizar(): Promise<void> {
       let token: string | null = null;
       for (const tabla of ORDEN_TABLAS) {
         try {
-          token = await sincronizarTabla(db, config, tabla, token);
+          token = await sincronizarTabla(db, config, tabla, token, peticion);
         } catch (error) {
           // Una tabla fallando (red caída, token vencido, lo que sea) no debe
           // impedir que se intenten las demás — y nunca debe romper el
