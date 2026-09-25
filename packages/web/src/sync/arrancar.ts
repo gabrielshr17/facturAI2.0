@@ -1,14 +1,14 @@
-import { crearSincronizadorSaliente, type SqlDriver } from "@sfr/core";
+import { crearSincronizadorBidireccional, type SqlDriver } from "@sfr/core";
 
 /**
- * Cada 25s intenta subir lo pendiente (ver migración 95 / `sync_pendiente`
- * en @sfr/core). No hay push ni tiempo real: para una caja registradora,
+ * Cada 30s baja los cambios del panel remoto y luego sube lo pendiente (ver
+ * migraciones 95 y 96 / `sync_pendiente` y `sync_cursor` en @sfr/core). No hay push ni tiempo real: para una caja registradora,
  * unos segundos de retraso es aceptable y evita mantener una conexión
  * persistente abierta. Si faltan variables de entorno (instalación sin
  * sincronización configurada) o la red falla, no rompe nada — la PWA sigue
  * 100% funcional offline.
  */
-const INTERVALO_MS = 25_000;
+const INTERVALO_MS = 30_000;
 
 export function iniciarSincronizacionEnSegundoPlano(db: SqlDriver): void {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -24,7 +24,7 @@ export function iniciarSincronizacionEnSegundoPlano(db: SqlDriver): void {
     return;
   }
 
-  const sincronizador = crearSincronizadorSaliente(db, {
+  const sincronizador = crearSincronizadorBidireccional(db, {
     supabaseUrl,
     supabaseAnonKey,
     syncEmail,
