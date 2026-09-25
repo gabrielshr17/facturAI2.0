@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: "autoUpdate",
+        workbox: { maximumFileSizeToCacheInBytes: 6 * 1024 * 1024 },
         manifest: {
           name: "facturAI",
           short_name: "facturAI",
